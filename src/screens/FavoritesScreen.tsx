@@ -1,7 +1,7 @@
 import { Heart, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { motion } from 'motion/react';
-import { t } from '../utils/translations';
+import { t, getLocalizedName } from '../utils/translations';
 
 export default function FavoritesScreen() {
   const { mosques, favorites, setSelectedMosque, setActiveTab, language } = useAppStore();
@@ -35,7 +35,7 @@ export default function FavoritesScreen() {
                 <div className="h-32 relative">
                   <img 
                     src={mosque.image} 
-                    alt={mosque.name} 
+                    alt={getLocalizedName(mosque, language)} 
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-500">
@@ -44,7 +44,7 @@ export default function FavoritesScreen() {
                 </div>
                 <div className="p-4">
                   <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
-                  <h3 className="font-bold text-gray-900 mb-1">{mosque.name}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1">{getLocalizedName(mosque, language)}</h3>
                   <div className="flex items-start text-gray-500 text-sm">
                     <MapPin size={14} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                     <span className="line-clamp-1">{mosque.address}</span>

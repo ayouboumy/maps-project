@@ -1,6 +1,9 @@
 export interface Mosque {
   id: number;
   name: string;
+  name_ar?: string;
+  name_fr?: string;
+  name_en?: string;
   latitude: number;
   longitude: number;
   address: string;

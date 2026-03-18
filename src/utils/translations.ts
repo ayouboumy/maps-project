@@ -1,4 +1,4 @@
-import { Language } from '../store/useAppStore';
+import { Language, useAppStore } from '../store/useAppStore';
 
 const dictionary: Record<string, Record<Language, string>> = {
   // UI Elements
@@ -11,6 +11,9 @@ const dictionary: Record<string, Record<Language, string>> = {
     ar: 'قم باستيراد ملف Excel (.xlsx أو .xls) لتحديث قاعدة بيانات المساجد. يجب أن تحتوي الورقة على أعمدة للاسم وخط العرض وخط الطول والعنوان والنوع والخدمات والعناصر.' 
   },
   'Import Excel File': { en: 'Import Excel File', fr: 'Importer un fichier Excel', ar: 'استيراد ملف إكسل' },
+  'Parsing Excel file...': { en: 'Parsing Excel file...', fr: 'Analyse du fichier Excel...', ar: 'جاري تحليل ملف إكسل...' },
+  'Translating new terms intelligently...': { en: 'Translating new terms intelligently...', fr: 'Traduction intelligente des nouveaux termes...', ar: 'جاري ترجمة المصطلحات الجديدة بذكاء...' },
+  'Translating...': { en: 'Translating...', fr: 'Traduction...', ar: 'جاري الترجمة...' },
   'Language': { en: 'Language', fr: 'Langue', ar: 'اللغة' },
   'Select Language': { en: 'Select Language', fr: 'Choisir la langue', ar: 'اختر اللغة' },
   'Map': { en: 'Map', fr: 'Carte', ar: 'الخريطة' },
@@ -53,7 +56,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Unknown Address': { en: 'Unknown Address', fr: 'Adresse inconnue', ar: 'عنوان غير معروف' },
   'Mosque': { en: 'Mosque', fr: 'Mosquée', ar: 'مسجد' },
 
-  // Common Data Keys (from Excel)
+  // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },
   'salle de prière femmes': { en: 'Women\'s prayer room', fr: 'Salle de prière femmes', ar: 'قاعة صلاة النساء' },
   'sanitaires': { en: 'Restrooms', fr: 'Sanitaires', ar: 'مرافق صحية' },
@@ -64,16 +67,47 @@ const dictionary: Record<string, Record<Language, string>> = {
   'capacité': { en: 'Capacity', fr: 'Capacité', ar: 'السعة' },
   'surface': { en: 'Surface', fr: 'Surface', ar: 'المساحة' },
   'nombre': { en: 'Count', fr: 'Nombre', ar: 'العدد' },
+  'mosquée': { en: 'Mosque', fr: 'Mosquée', ar: 'مسجد' },
+  'zaouia': { en: 'Zaouia', fr: 'Zaouia', ar: 'زاوية' },
+  'lieu de prière': { en: 'Prayer place', fr: 'Lieu de prière', ar: 'مصلى' },
+  'urbain': { en: 'Urban', fr: 'Urbain', ar: 'حضري' },
+  'rural': { en: 'Rural', fr: 'Rural', ar: 'قروي' },
+  'oui': { en: 'Yes', fr: 'Oui', ar: 'نعم' },
+  'non': { en: 'No', fr: 'Non', ar: 'لا' },
+  'etat': { en: 'Condition', fr: 'Etat', ar: 'الحالة' },
+  'bon': { en: 'Good', fr: 'Bon', ar: 'جيد' },
+  'moyen': { en: 'Average', fr: 'Moyen', ar: 'متوسط' },
+  'mauvais': { en: 'Bad', fr: 'Mauvais', ar: 'سيء' },
+  'en construction': { en: 'Under construction', fr: 'En construction', ar: 'قيد الإنشاء' },
+  'fermé': { en: 'Closed', fr: 'Fermé', ar: 'مغلق' },
+  'ouvert': { en: 'Open', fr: 'Ouvert', ar: 'مفتوح' },
 };
 
 export function t(key: string, lang: Language): string {
+  if (!key) return '';
+  
+  const cleanKey = key.trim();
+  const lowerKey = cleanKey.toLowerCase();
+  
+  // Check dynamic translations first
+  const dynamicTranslations = useAppStore.getState().dynamicTranslations;
+  if (dynamicTranslations) {
+    if (dynamicTranslations[cleanKey] && dynamicTranslations[cleanKey][lang]) {
+      return dynamicTranslations[cleanKey][lang];
+    }
+    for (const dictKey in dynamicTranslations) {
+      if (dictKey.toLowerCase() === lowerKey && dynamicTranslations[dictKey][lang]) {
+        return dynamicTranslations[dictKey][lang];
+      }
+    }
+  }
+
   // Direct match
-  if (dictionary[key] && dictionary[key][lang]) {
-    return dictionary[key][lang];
+  if (dictionary[cleanKey] && dictionary[cleanKey][lang]) {
+    return dictionary[cleanKey][lang];
   }
   
   // Case-insensitive match for data keys
-  const lowerKey = key.toLowerCase();
   for (const dictKey in dictionary) {
     if (dictKey.toLowerCase() === lowerKey) {
       return dictionary[dictKey][lang];
@@ -82,7 +116,7 @@ export function t(key: string, lang: Language): string {
 
   // Handle combined keys like "Nombre salle de prière hommes" or "salle de prière hommes N=..., S=..."
   if (lang === 'ar') {
-    let translated = key;
+    let translated = cleanKey;
     
     // Replace known parts
     translated = translated.replace(/Nombre/gi, 'عدد');
@@ -100,5 +134,31 @@ export function t(key: string, lang: Language): string {
     return translated;
   }
 
-  return key;
+  if (lang === 'en') {
+    let translated = cleanKey;
+    
+    // Replace known parts
+    translated = translated.replace(/Nombre/gi, 'Count');
+    translated = translated.replace(/Surface/gi, 'Surface');
+    translated = translated.replace(/salle de prière hommes/gi, 'Men\'s prayer room');
+    translated = translated.replace(/salle de prière femmes/gi, 'Women\'s prayer room');
+    translated = translated.replace(/salle de prière/gi, 'Prayer room');
+    translated = translated.replace(/sanitaires/gi, 'Restrooms');
+    translated = translated.replace(/logement imam/gi, 'Imam\'s housing');
+    translated = translated.replace(/logement muezzin/gi, 'Muezzin\'s housing');
+    translated = translated.replace(/woudou/gi, 'Ablution area');
+    translated = translated.replace(/N=/g, 'Count=');
+    translated = translated.replace(/S=/g, 'Surface=');
+    
+    return translated;
+  }
+
+  return cleanKey;
+}
+
+export function getLocalizedName(mosque: any, lang: Language): string {
+  if (lang === 'ar' && mosque.name_ar) return mosque.name_ar;
+  if (lang === 'fr' && mosque.name_fr) return mosque.name_fr;
+  if (lang === 'en' && mosque.name_en) return mosque.name_en;
+  return mosque.name;
 }

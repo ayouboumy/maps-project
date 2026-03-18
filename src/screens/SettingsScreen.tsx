@@ -1,26 +1,33 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2 } from 'lucide-react';
 import { useRef, useState, ChangeEvent } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
 import { t } from '../utils/translations';
+import { translateTerms } from '../utils/gemini';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage } = useAppStore();
+  const { mosques, importMosques, language, setLanguage, addDynamicTranslations } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
 
-  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setStatus({ type: 'info', message: t('Parsing Excel file...', language) });
+    setIsTranslating(true);
+
     const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const parsed = XLSX.utils.sheet_to_json(worksheet);
+    reader.onload = async (e) => {
+      // Use setTimeout to allow the UI to render the "Parsing..." state before blocking the main thread
+      setTimeout(async () => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const parsed = XLSX.utils.sheet_to_json(worksheet);
         
         if (Array.isArray(parsed)) {
           const formattedMosques = parsed.map((item: any, index: number) => {
@@ -31,7 +38,10 @@ export default function SettingsScreen() {
             };
 
             const id = getVal(['id']) || index + 1;
-            const name = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name', 'mosque name', 'mosque']) || 'Unknown Mosque';
+            const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar']);
+            const name_fr = getVal(['dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'name_fr', 'name fr']);
+            const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
+            const name = name_ar || name_fr || name_en || getVal(['name', 'mosque name', 'mosque']) || 'Unknown Mosque';
             const latitude = Number(getVal(['latitude', 'lat'])) || 0;
             const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
             const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
@@ -48,7 +58,7 @@ export default function SettingsScreen() {
             };
 
             // Collect all other columns into extraData
-            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name', 'mosque name', 'mosque', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
+            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
             const extraData: Record<string, any> = {};
             const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
             
@@ -102,6 +112,9 @@ export default function SettingsScreen() {
             return {
               id,
               name,
+              name_ar,
+              name_fr,
+              name_en,
               latitude,
               longitude,
               address,
@@ -119,6 +132,37 @@ export default function SettingsScreen() {
           );
           
           if (isValid && formattedMosques.length > 0) {
+            setStatus({ type: 'info', message: t('Translating new terms intelligently...', language) });
+            
+            // Extract unique terms for translation
+            const termsToTranslate = new Set<string>();
+            formattedMosques.forEach(m => {
+              if (m.type && typeof m.type === 'string') termsToTranslate.add(m.type);
+              if (Array.isArray(m.services)) m.services.forEach(s => typeof s === 'string' && termsToTranslate.add(s));
+              if (Array.isArray(m.items)) m.items.forEach(i => typeof i === 'string' && termsToTranslate.add(i));
+              if (m.extraData) {
+                Object.entries(m.extraData).forEach(([k, v]) => {
+                  termsToTranslate.add(k);
+                  if (typeof v === 'string' && isNaN(Number(v))) {
+                    termsToTranslate.add(v);
+                  }
+                });
+              }
+            });
+
+            const existingDict = useAppStore.getState().dynamicTranslations || {};
+            const filteredTerms = Array.from(termsToTranslate).filter(term => {
+              if (!term || term.trim().length < 2) return false;
+              if (!isNaN(Number(term))) return false; // Skip numbers
+              if (existingDict[term]) return false; // Skip already translated
+              return true;
+            });
+
+            if (filteredTerms.length > 0) {
+              const newTranslations = await translateTerms(filteredTerms);
+              addDynamicTranslations(newTranslations);
+            }
+
             importMosques(formattedMosques);
             setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques from Excel.', language)}` });
           } else {
@@ -127,14 +171,17 @@ export default function SettingsScreen() {
         } else {
           throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
         }
-      } catch (error: any) {
-        setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
-      }
-      
-      // Reset input so the same file can be uploaded again if needed
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+        } catch (error: any) {
+          setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
+        } finally {
+          setIsTranslating(false);
+        }
+        
+        // Reset input so the same file can be uploaded again if needed
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 50);
     };
     reader.readAsArrayBuffer(file);
   };
@@ -201,18 +248,31 @@ export default function SettingsScreen() {
           
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center py-3 bg-emerald-50 text-emerald-700 rounded-xl font-medium hover:bg-emerald-100 transition-colors"
+            disabled={isTranslating}
+            className={`w-full flex items-center justify-center py-3 rounded-xl font-medium transition-colors ${
+              isTranslating 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+            }`}
           >
-            <FileSpreadsheet size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Import Excel File', language)}
+            {isTranslating ? (
+              <Loader2 size={20} className={`animate-spin ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            ) : (
+              <FileSpreadsheet size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            )}
+            {isTranslating ? t('Translating...', language) : t('Import Excel File', language)}
           </button>
 
           {status && (
             <div className={`mt-4 p-3 rounded-xl flex items-start text-sm ${
-              status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+              status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 
+              status.type === 'info' ? 'bg-blue-50 text-blue-700' : 
+              'bg-red-50 text-red-700'
             }`}>
               {status.type === 'success' 
                 ? <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                : status.type === 'info'
+                ? <Loader2 size={16} className={`animate-spin mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
                 : <AlertCircle size={16} className={`mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               }
               {status.message}

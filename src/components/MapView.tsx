@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
+import { getLocalizedName } from '../utils/translations';
 
 // Fix for default marker icons in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -19,6 +20,7 @@ const customIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  tooltipAnchor: [0, -28],
   shadowSize: [41, 41]
 });
 
@@ -28,6 +30,7 @@ const userIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  tooltipAnchor: [0, -28],
   shadowSize: [41, 41]
 });
 
@@ -60,7 +63,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
 }
 
 export default function MapView() {
-  const { mosques, userLocation, setSelectedMosque } = useAppStore();
+  const { mosques, userLocation, setSelectedMosque, language } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   // Default center (Casablanca)
@@ -104,12 +107,17 @@ export default function MapView() {
             {zoom >= 14 && (
               <Tooltip 
                 direction="top" 
-                offset={[0, -40]} 
+                offset={[0, -10]} 
                 opacity={0.9} 
                 permanent 
-                className="bg-white/90 border-none shadow-md text-xs font-bold text-gray-800 rounded px-2 py-1"
+                className="bg-white/90 border-none shadow-md rounded px-2 py-1"
               >
-                {mosque.name}
+                <div 
+                  className="max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-gray-800 text-center"
+                  title={getLocalizedName(mosque, language)}
+                >
+                  {getLocalizedName(mosque, language)}
+                </div>
               </Tooltip>
             )}
           </Marker>

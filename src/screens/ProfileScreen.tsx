@@ -3,7 +3,7 @@ import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2 } from 'lucide-react
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
-import { t } from '../utils/translations';
+import { t, getLocalizedName } from '../utils/translations';
 
 interface ProfileScreenProps {
   mosque: Mosque;
@@ -29,7 +29,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       <div className="relative h-72">
         <img 
           src={mosque.image} 
-          alt={mosque.name} 
+          alt={getLocalizedName(mosque, language)} 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -45,7 +45,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           <div className="inline-block px-3 py-1 bg-emerald-500/80 backdrop-blur-sm rounded-full text-xs font-medium mb-2">
             {t(mosque.type, language)}
           </div>
-          <h1 className="text-3xl font-bold mb-1">{mosque.name}</h1>
+          <h1 className="text-3xl font-bold mb-1">{getLocalizedName(mosque, language)}</h1>
           <div className="flex items-center text-white/80 text-sm">
             <MapPin size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
             {mosque.address}

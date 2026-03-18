@@ -3,7 +3,7 @@ import { Search, Filter, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Mosque } from '../types';
 import { motion } from 'motion/react';
-import { t } from '../utils/translations';
+import { t, getLocalizedName } from '../utils/translations';
 
 export default function SearchScreen() {
   const { mosques, setSelectedMosque, setActiveTab, language } = useAppStore();
@@ -17,8 +17,9 @@ export default function SearchScreen() {
 
   const filteredMosques = useMemo(() => {
     return mosques.filter(mosque => {
+      const localizedName = getLocalizedName(mosque, language);
       const matchesQuery = 
-        mosque.name.toLowerCase().includes(query.toLowerCase()) ||
+        localizedName.toLowerCase().includes(query.toLowerCase()) ||
         mosque.address.toLowerCase().includes(query.toLowerCase());
       
       const matchesType = selectedType ? mosque.type === selectedType : true;
@@ -94,12 +95,12 @@ export default function SearchScreen() {
             >
               <img 
                 src={mosque.image} 
-                alt={mosque.name} 
+                alt={getLocalizedName(mosque, language)} 
                 className="w-20 h-20 rounded-xl object-cover"
               />
               <div className="flex-1 py-1">
                 <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
-                <h3 className="font-bold text-gray-900 leading-tight mb-1">{mosque.name}</h3>
+                <h3 className="font-bold text-gray-900 leading-tight mb-1">{getLocalizedName(mosque, language)}</h3>
                 <div className="flex items-start text-gray-500 text-xs">
                   <MapPin size={12} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                   <span className="line-clamp-1">{mosque.address}</span>

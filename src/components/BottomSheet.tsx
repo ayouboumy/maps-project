@@ -4,7 +4,7 @@ import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
-import { t } from '../utils/translations';
+import { t, getLocalizedName } from '../utils/translations';
 
 export default function BottomSheet() {
   const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language } = useAppStore();
@@ -32,7 +32,7 @@ export default function BottomSheet() {
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{selectedMosque.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{getLocalizedName(selectedMosque, language)}</h3>
                   <p className="text-sm text-gray-500 mt-1">{t(selectedMosque.type, language)}</p>
                 </div>
                 <button 
@@ -46,7 +46,7 @@ export default function BottomSheet() {
               <div className="flex gap-4 mb-5">
                 <img 
                   src={selectedMosque.image} 
-                  alt={selectedMosque.name} 
+                  alt={getLocalizedName(selectedMosque, language)} 
                   className="w-24 h-24 rounded-xl object-cover shadow-sm"
                 />
                 <div className="flex-1 flex flex-col justify-center">
