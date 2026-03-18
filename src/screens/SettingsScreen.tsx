@@ -31,7 +31,7 @@ export default function SettingsScreen() {
             };
 
             const id = getVal(['id']) || index + 1;
-            const name = getVal(['name', 'mosque name', 'mosque']) || 'Unknown Mosque';
+            const name = getVal(['dénomination en arabe', 'denomination en arabe', 'name', 'mosque name', 'mosque']) || 'Unknown Mosque';
             const latitude = Number(getVal(['latitude', 'lat'])) || 0;
             const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
             const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
@@ -48,7 +48,7 @@ export default function SettingsScreen() {
             };
 
             // Collect all other columns into extraData
-            const standardKeys = ['id', 'name', 'mosque name', 'mosque', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
+            const standardKeys = ['id', 'dénomination en arabe', 'denomination en arabe', 'name', 'mosque name', 'mosque', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
             const extraData: Record<string, any> = {};
             const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
             
