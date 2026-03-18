@@ -7,9 +7,10 @@ import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { LocateFixed } from 'lucide-react';
 import MapView from './components/MapView';
+import { t } from './utils/translations';
 
 export default function App() {
-  const { activeTab, setUserLocation } = useAppStore();
+  const { activeTab, setUserLocation, language } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
 
@@ -27,13 +28,13 @@ export default function App() {
         },
         (error) => {
           console.error("Error getting location:", error);
-          setLocationError("Location access denied or unavailable.");
+          setLocationError(t("Location access denied or unavailable.", language));
           setIsLocating(false);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
-      setLocationError("Geolocation is not supported by your browser.");
+      setLocationError(t("Geolocation is not supported by your browser.", language));
       setIsLocating(false);
     }
   };
@@ -43,7 +44,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-gray-100 overflow-hidden font-sans text-gray-900 flex justify-center">
+    <div 
+      className="fixed inset-0 bg-gray-100 overflow-hidden font-sans text-gray-900 flex justify-center"
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+    >
       {/* Mobile container constraint for desktop viewing */}
       <div className="w-full max-w-md h-full bg-white relative shadow-2xl overflow-hidden flex flex-col">
         
@@ -56,8 +60,8 @@ export default function App() {
               {/* Floating Location Button */}
               <button 
                 onClick={requestLocation}
-                className="absolute top-safe-4 right-4 z-[1000] p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors"
-                title="My Location"
+                className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors`}
+                title={t("My Location", language)}
               >
                 <LocateFixed size={24} className={isLocating ? "animate-pulse text-emerald-500" : ""} />
               </button>

@@ -1,10 +1,11 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe } from 'lucide-react';
 import { useRef, useState, ChangeEvent } from 'react';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
+import { t } from '../utils/translations';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques } = useAppStore();
+  const { mosques, importMosques, language, setLanguage } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -119,15 +120,15 @@ export default function SettingsScreen() {
           
           if (isValid && formattedMosques.length > 0) {
             importMosques(formattedMosques);
-            setStatus({ type: 'success', message: `Successfully imported ${formattedMosques.length} mosques from Excel.` });
+            setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques from Excel.', language)}` });
           } else {
-            throw new Error("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.");
+            throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
           }
         } else {
-          throw new Error("Invalid format: Expected rows of mosques in the Excel sheet.");
+          throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
         }
       } catch (error: any) {
-        setStatus({ type: 'error', message: error.message || "Failed to parse Excel file." });
+        setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
       }
       
       // Reset input so the same file can be uploaded again if needed
@@ -141,23 +142,53 @@ export default function SettingsScreen() {
   return (
     <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto">
       <div className="bg-white px-4 pt-safe-4 pb-4 shadow-sm z-10">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('Settings', language)}</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-24">
+      <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-4">
+        
+        {/* Language Selection */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mr-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mx-3">
+              <Globe size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{t('Language', language)}</h2>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {(['en', 'fr', 'ar'] as Language[]).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${
+                  language === lang 
+                    ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {lang === 'en' ? 'English' : lang === 'fr' ? 'Français' : 'العربية'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Data Management */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-3">
               <Database size={20} className="text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Data Management</h2>
-              <p className="text-sm text-gray-500">{mosques.length} mosques currently loaded</p>
+              <h2 className="text-lg font-bold text-gray-900">{t('Data Management', language)}</h2>
+              <p className="text-sm text-gray-500">{mosques.length} {t('mosques currently loaded', language)}</p>
             </div>
           </div>
           
           <p className="text-sm text-gray-600 mb-6">
-            Import an Excel file (.xlsx or .xls) to update the mosque database. The sheet should contain columns for name, latitude, longitude, address, type, services, and items.
+            {t('Import an Excel file', language)}
           </p>
           
           <input 
@@ -172,8 +203,8 @@ export default function SettingsScreen() {
             onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center justify-center py-3 bg-emerald-50 text-emerald-700 rounded-xl font-medium hover:bg-emerald-100 transition-colors"
           >
-            <FileSpreadsheet size={20} className="mr-2" />
-            Import Excel File
+            <FileSpreadsheet size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t('Import Excel File', language)}
           </button>
 
           {status && (
@@ -181,13 +212,14 @@ export default function SettingsScreen() {
               status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
             }`}>
               {status.type === 'success' 
-                ? <CheckCircle2 size={16} className="mr-2 mt-0.5 shrink-0" /> 
-                : <AlertCircle size={16} className="mr-2 mt-0.5 shrink-0" />
+                ? <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                : <AlertCircle size={16} className={`mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               }
               {status.message}
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

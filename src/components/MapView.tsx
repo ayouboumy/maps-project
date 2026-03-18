@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAppStore } from '../store/useAppStore';
@@ -32,43 +32,36 @@ const userIcon = new L.Icon({
 });
 
 function MapController() {
-  const { userLocation, mosques, setSelectedMosque } = useAppStore();
+  const { userLocation, mosques } = useAppStore();
   const map = useMap();
 
   useEffect(() => {
     if (userLocation) {
       map.flyTo([userLocation.latitude, userLocation.longitude], 13);
-      
-      // Find nearest mosque
-      if (mosques.length > 0) {
-        let nearest = mosques[0];
-        let minDistance = getDistance(
-          { latitude: userLocation.latitude, longitude: userLocation.longitude },
-          { latitude: nearest.latitude, longitude: nearest.longitude }
-        );
-
-        for (let i = 1; i < mosques.length; i++) {
-          const dist = getDistance(
-            { latitude: userLocation.latitude, longitude: userLocation.longitude },
-            { latitude: mosques[i].latitude, longitude: mosques[i].longitude }
-          );
-          if (dist < minDistance) {
-            minDistance = dist;
-            nearest = mosques[i];
-          }
-        }
-        
-        // Optionally highlight or select nearest
-        // setSelectedMosque(nearest);
-      }
     }
-  }, [userLocation, map, mosques]);
+  }, [userLocation, map]);
 
+  return null;
+}
+
+function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+  const map = useMapEvents({
+    zoomend: () => {
+      onZoomChange(map.getZoom());
+    },
+  });
+  
+  // Set initial zoom
+  useEffect(() => {
+    onZoomChange(map.getZoom());
+  }, [map, onZoomChange]);
+  
   return null;
 }
 
 export default function MapView() {
   const { mosques, userLocation, setSelectedMosque } = useAppStore();
+  const [zoom, setZoom] = useState(12);
 
   // Default center (Casablanca)
   const center = userLocation 
@@ -83,6 +76,8 @@ export default function MapView() {
         className="w-full h-full"
         zoomControl={false}
       >
+        <ZoomListener onZoomChange={setZoom} />
+        
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -105,7 +100,19 @@ export default function MapView() {
                 setSelectedMosque(mosque);
               },
             }}
-          />
+          >
+            {zoom >= 14 && (
+              <Tooltip 
+                direction="top" 
+                offset={[0, -40]} 
+                opacity={0.9} 
+                permanent 
+                className="bg-white/90 border-none shadow-md text-xs font-bold text-gray-800 rounded px-2 py-1"
+              >
+                {mosque.name}
+              </Tooltip>
+            )}
+          </Marker>
         ))}
         
         <MapController />

@@ -1,9 +1,10 @@
 import { Heart, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { motion } from 'motion/react';
+import { t } from '../utils/translations';
 
 export default function FavoritesScreen() {
-  const { mosques, favorites, setSelectedMosque, setActiveTab } = useAppStore();
+  const { mosques, favorites, setSelectedMosque, setActiveTab, language } = useAppStore();
 
   const favoriteMosques = mosques.filter(m => favorites.includes(m.id));
 
@@ -15,8 +16,8 @@ export default function FavoritesScreen() {
   return (
     <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto">
       <div className="bg-white px-4 pt-safe-4 pb-4 shadow-sm z-10">
-        <h1 className="text-2xl font-bold text-gray-900">Saved Mosques</h1>
-        <p className="text-gray-500 text-sm mt-1">{favoriteMosques.length} places saved</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('Saved Mosques', language)}</h1>
+        <p className="text-gray-500 text-sm mt-1">{favoriteMosques.length} {t('places saved', language)}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 pb-24">
@@ -42,10 +43,10 @@ export default function FavoritesScreen() {
                   </div>
                 </div>
                 <div className="p-4">
-                  <div className="text-xs font-medium text-emerald-600 mb-1">{mosque.type}</div>
+                  <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
                   <h3 className="font-bold text-gray-900 mb-1">{mosque.name}</h3>
                   <div className="flex items-start text-gray-500 text-sm">
-                    <MapPin size={14} className="mr-1 mt-0.5 shrink-0" />
+                    <MapPin size={14} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                     <span className="line-clamp-1">{mosque.address}</span>
                   </div>
                 </div>
@@ -57,15 +58,15 @@ export default function FavoritesScreen() {
             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Heart size={32} className="text-red-300" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No favorites yet</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No favorites yet', language)}</h3>
             <p className="text-gray-500 mb-6 max-w-[250px] mx-auto">
-              Save your favorite mosques to quickly access them later, even offline.
+              {t('Save your favorite mosques to quickly access them later, even offline.', language)}
             </p>
             <button 
               onClick={() => setActiveTab('search')}
               className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm"
             >
-              Explore Mosques
+              {t('Explore Mosques', language)}
             </button>
           </div>
         )}

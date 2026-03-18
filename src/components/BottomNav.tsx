@@ -1,9 +1,10 @@
 import { Map as MapIcon, Search, Heart, Settings } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
+import { t } from '../utils/translations';
 
 export default function BottomNav() {
-  const { activeTab, setActiveTab } = useAppStore();
+  const { activeTab, setActiveTab, language } = useAppStore();
 
   const tabs = [
     { id: 'map', label: 'Map', icon: MapIcon },
@@ -27,7 +28,7 @@ export default function BottomNav() {
               )}
             >
               <Icon size={24} className={cn(isActive && "fill-emerald-50")} />
-              <span className="text-[10px] font-medium">{label}</span>
+              <span className="text-[10px] font-medium">{t(label, language)}</span>
             </button>
           );
         })}

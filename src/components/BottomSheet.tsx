@@ -4,9 +4,10 @@ import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
+import { t } from '../utils/translations';
 
 export default function BottomSheet() {
-  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite } = useAppStore();
+  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
 
   if (!selectedMosque) return null;
@@ -32,7 +33,7 @@ export default function BottomSheet() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">{selectedMosque.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{selectedMosque.type}</p>
+                  <p className="text-sm text-gray-500 mt-1">{t(selectedMosque.type, language)}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedMosque(null)}
@@ -55,7 +56,7 @@ export default function BottomSheet() {
                   <div className="flex flex-wrap gap-1">
                     {selectedMosque.services.slice(0, 2).map(service => (
                       <span key={service} className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-medium rounded-md">
-                        {service}
+                        {t(service, language)}
                       </span>
                     ))}
                     {selectedMosque.services.length > 2 && (
@@ -73,7 +74,7 @@ export default function BottomSheet() {
                   className="flex flex-col items-center justify-center p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
                 >
                   <Navigation size={20} className="mb-1" />
-                  <span className="text-xs font-medium">Navigate</span>
+                  <span className="text-xs font-medium">{t('Navigate', language)}</span>
                 </button>
                 <button 
                   onClick={() => toggleFavorite(selectedMosque.id)}
@@ -85,14 +86,14 @@ export default function BottomSheet() {
                   )}
                 >
                   <Heart size={20} className={cn("mb-1", isFavorite && "fill-current")} />
-                  <span className="text-xs font-medium">Save</span>
+                  <span className="text-xs font-medium">{t('Save', language)}</span>
                 </button>
                 <button 
                   onClick={() => setShowProfile(true)}
                   className="flex flex-col items-center justify-center p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors"
                 >
                   <Info size={20} className="mb-1" />
-                  <span className="text-xs font-medium">Details</span>
+                  <span className="text-xs font-medium">{t('Details', language)}</span>
                 </button>
               </div>
             </div>
