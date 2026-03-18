@@ -8,6 +8,7 @@ export interface Mosque {
   services: string[];
   items: string[];
   image: string;
+  extraData?: Record<string, any>;
 }
 
 export type TabType = 'map' | 'search' | 'favorites' | 'settings';

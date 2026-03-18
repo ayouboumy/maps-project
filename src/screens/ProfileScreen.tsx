@@ -94,8 +94,25 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                 {item}
               </span>
             ))}
+            {mosque.items.length === 0 && (
+              <span className="text-sm text-gray-500 italic">No facilities listed</span>
+            )}
           </div>
         </div>
+
+        {mosque.extraData && Object.keys(mosque.extraData).length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Additional Information</h3>
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+              {Object.entries(mosque.extraData).map(([key, value], index) => (
+                <div key={key} className={cn("p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1", index !== 0 && "border-t border-gray-50")}>
+                  <span className="text-sm font-medium text-gray-500 capitalize">{key.replace(/_/g, ' ')}</span>
+                  <span className="text-sm text-gray-900 font-medium sm:text-right">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );

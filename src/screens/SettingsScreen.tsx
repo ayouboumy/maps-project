@@ -23,6 +23,22 @@ export default function SettingsScreen() {
         
         if (Array.isArray(parsed)) {
           const formattedMosques = parsed.map((item: any, index: number) => {
+            // Helper to find keys case-insensitively
+            const getVal = (keys: string[]) => {
+              const foundKey = Object.keys(item).find(k => keys.includes(k.toLowerCase().trim()));
+              return foundKey ? item[foundKey] : undefined;
+            };
+
+            const id = getVal(['id']) || index + 1;
+            const name = getVal(['name', 'mosque name', 'mosque']) || 'Unknown Mosque';
+            const latitude = Number(getVal(['latitude', 'lat'])) || 0;
+            const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
+            const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
+            const type = getVal(['type', 'category']) || 'Mosque';
+            const servicesRaw = getVal(['services', 'facilities']);
+            const itemsRaw = getVal(['items', 'amenities', 'features']);
+            const image = getVal(['image', 'photo', 'picture']) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+
             // Handle comma-separated strings for arrays
             const parseArray = (val: any) => {
               if (Array.isArray(val)) return val;
@@ -30,16 +46,69 @@ export default function SettingsScreen() {
               return [];
             };
 
+            // Collect all other columns into extraData
+            const standardKeys = ['id', 'name', 'mosque name', 'mosque', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
+            const extraData: Record<string, any> = {};
+            const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
+            
+            Object.keys(item).forEach(key => {
+              const lowerKey = key.toLowerCase().trim();
+              if (standardKeys.includes(lowerKey)) return;
+
+              const val = item[key];
+              
+              // Ignore missing values and "N"
+              if (val === null || val === undefined || val === '') return;
+              if (String(val).trim().toUpperCase() === 'N') return;
+
+              let isCombined = false;
+              
+              if (lowerKey.startsWith('nombre')) {
+                const base = lowerKey.replace(/^nombre\s*/, '').trim();
+                if (base) {
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^nombre\s*/i, '').trim() };
+                  combinedData[base].N = val;
+                  isCombined = true;
+                }
+              } else if (lowerKey.startsWith('surface')) {
+                const base = lowerKey.replace(/^surface\s*/, '').trim();
+                if (base) {
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^surface\s*/i, '').trim() };
+                  combinedData[base].S = val;
+                  isCombined = true;
+                }
+              }
+
+              if (!isCombined) {
+                extraData[key] = val;
+              }
+            });
+
+            // Process combined data
+            Object.keys(combinedData).forEach(base => {
+              const { N, S, originalKey } = combinedData[base];
+              const displayKey = originalKey || base;
+              
+              if (N !== undefined && S !== undefined) {
+                extraData[displayKey] = `N=${N}, S=${S}`;
+              } else if (N !== undefined) {
+                extraData[`Nombre ${displayKey}`] = N;
+              } else if (S !== undefined) {
+                extraData[`Surface ${displayKey}`] = S;
+              }
+            });
+
             return {
-              id: item.id || index + 1,
-              name: item.name || 'Unknown Mosque',
-              latitude: Number(item.latitude) || 0,
-              longitude: Number(item.longitude) || 0,
-              address: item.address || 'Unknown Address',
-              type: item.type || 'Mosque',
-              services: parseArray(item.services),
-              items: parseArray(item.items),
-              image: item.image || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000'
+              id,
+              name,
+              latitude,
+              longitude,
+              address,
+              type,
+              services: parseArray(servicesRaw),
+              items: parseArray(itemsRaw),
+              image,
+              extraData
             };
           });
 
