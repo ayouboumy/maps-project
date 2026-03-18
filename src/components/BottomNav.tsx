@@ -1,4 +1,4 @@
-import { Map as MapIcon, Search, Heart } from 'lucide-react';
+import { Map as MapIcon, Search, Heart, Settings } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 
@@ -9,6 +9,7 @@ export default function BottomNav() {
     { id: 'map', label: 'Map', icon: MapIcon },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'favorites', label: 'Favorites', icon: Heart },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ] as const;
 
   return (

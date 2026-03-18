@@ -14,6 +14,7 @@ interface AppState {
   setActiveTab: (tab: TabType) => void;
   setSelectedMosque: (mosque: Mosque | null) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
+  importMosques: (newMosques: Mosque[]) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -34,10 +35,11 @@ export const useAppStore = create<AppState>()(
       setActiveTab: (tab) => set({ activeTab: tab }),
       setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
       setUserLocation: (location) => set({ userLocation: location }),
+      importMosques: (newMosques) => set({ mosques: newMosques }),
     }),
     {
       name: 'mosque-finder-storage',
-      partialize: (state) => ({ favorites: state.favorites }),
+      partialize: (state) => ({ favorites: state.favorites, mosques: state.mosques }),
     }
   )
 );

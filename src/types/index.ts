@@ -10,4 +10,4 @@ export interface Mosque {
   image: string;
 }
 
-export type TabType = 'map' | 'search' | 'favorites';
+export type TabType = 'map' | 'search' | 'favorites' | 'settings';

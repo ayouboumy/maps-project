@@ -4,6 +4,7 @@ import BottomNav from './components/BottomNav';
 import BottomSheet from './components/BottomSheet';
 import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
+import SettingsScreen from './screens/SettingsScreen';
 import { LocateFixed } from 'lucide-react';
 import MapView from './components/MapView';
 
@@ -74,6 +75,8 @@ export default function App() {
           {activeTab === 'search' && <SearchScreen />}
           
           {activeTab === 'favorites' && <FavoritesScreen />}
+
+          {activeTab === 'settings' && <SettingsScreen />}
         </div>
 
         <BottomNav />
