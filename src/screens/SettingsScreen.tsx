@@ -1,4 +1,4 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, RefreshCw, Trash2, X } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin } from 'lucide-react';
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
@@ -6,12 +6,11 @@ import { t, dictionary } from '../utils/translations';
 import { translateTerms, mapExcelColumns } from '../utils/gemini';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune, resetApp } = useAppStore();
+  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const communes = useMemo(() => {
     const allCommunes = mosques.map(m => {
@@ -25,51 +24,26 @@ export default function SettingsScreen() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (limit to 10MB for safety)
-    console.log("File selected:", file.name, "Size:", file.size, "Type:", file.type);
-    if (file.size > 10 * 1024 * 1024) {
-      setStatus({ type: 'error', message: t('File is too large (max 10MB).', language) });
-      return;
-    }
-
     setStatus({ type: 'info', message: t('Parsing Excel file...', language) });
     setIsTranslating(true);
     setProgress(10);
 
     const reader = new FileReader();
-    reader.onerror = () => {
-      setStatus({ type: 'error', message: t('Failed to read file.', language) });
-      setIsTranslating(false);
-    };
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      if (!result) {
-        setStatus({ type: 'error', message: t('Failed to read file.', language) });
-        setIsTranslating(false);
-        return;
-      }
-
-      const data = new Uint8Array(result as ArrayBuffer);
-      
-      // Use a longer timeout on mobile/slower devices to ensure UI updates
+    reader.onload = async (e) => {
       setTimeout(async () => {
         try {
-          console.log("Starting Excel parse...");
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
-          if (!firstSheetName) {
-            throw new Error(t("The Excel file is empty.", language));
-          }
           const worksheet = workbook.Sheets[firstSheetName];
           const parsed = XLSX.utils.sheet_to_json(worksheet);
-          console.log("Parsed Excel Data (first 5 rows):", parsed.slice(0, 5));
         
           if (!Array.isArray(parsed) || parsed.length === 0) {
             throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
           }
 
-          setStatus({ type: 'info', message: `${t('Found', language)} ${parsed.length} ${t('rows. Mapping columns...', language)}` });
           setProgress(20);
+          setStatus({ type: 'info', message: t('Analyzing columns...', language) });
 
           // Get all unique headers from the first few rows, sanitized and limited
           const headers = Array.from(new Set(parsed.slice(0, 10).flatMap(row => Object.keys(row as object))))
@@ -78,69 +52,21 @@ export default function SettingsScreen() {
             .slice(0, 150); // Limit to 150 columns max
           
           // Use Gemini to map columns intelligently
-          let mapping = await mapExcelColumns(headers);
-          console.log("Detected Column Mapping:", mapping);
+          const mapping = await mapExcelColumns(headers);
           
-          // Fallback mapping if Gemini fails or returns empty
-          const findHeader = (patterns: RegExp[], excludePatterns: RegExp[] = []) => 
-            headers.find(h => 
-              patterns.some(p => p.test(h)) && 
-              !excludePatterns.some(p => p.test(h))
-            );
-
-          // Priority mapping for name to avoid picking up ID columns
-          if (!mapping.name) {
-            // Try to find a header that looks like a name but NOT an ID
-            mapping.name = findHeader(
-              [/nom/i, /mosqu/i, /intitul/i, /name/i, /label/i], 
-              [/id/i, /code/i, /num/i, /n°/i, /index/i]
-            );
-            // If still not found, take the first non-ID header that isn't coordinate
-            if (!mapping.name) {
-              mapping.name = headers.find(h => 
-                !/id/i.test(h) && !/code/i.test(h) && !/num/i.test(h) && 
-                !/lat/i.test(h) && !/long/i.test(h) && !/coord/i.test(h) &&
-                !/gps/i.test(h) && !/^x$/i.test(h) && !/^y$/i.test(h)
-              );
-            }
-          }
-
-          if (!mapping.latitude) mapping.latitude = findHeader([/lat/i, /coord_x/i, /gps_x/i, /^x$/i]);
-          if (!mapping.longitude) mapping.longitude = findHeader([/long/i, /coord_y/i, /gps_y/i, /^y$/i]);
-          if (!mapping.address) mapping.address = findHeader([/adresse/i, /localis/i, /lieu/i, /emplacement/i, /douar/i, /quartier/i]);
-          if (!mapping.commune) mapping.commune = findHeader([/commune/i, /ville/i, /municipalit/i, /province/i, /cercle/i]);
-          if (!mapping.type) mapping.type = findHeader([/type/i, /catégorie/i, /genre/i, /nature/i]);
-          if (!mapping.services) mapping.services = findHeader([/service/i, /prestation/i, /équipement/i, /equipement/i]);
-          if (!mapping.id) mapping.id = findHeader([/id/i, /code/i, /num/i, /n°/i, /index/i]);
-
           setProgress(40);
           setStatus({ type: 'info', message: t('Importing data...', language) });
 
           const formattedMosques = parsed.map((item: any, index: number) => {
             const getVal = (key?: string) => key ? item[key] : undefined;
-            const parseCoord = (val: any) => {
-              if (val === undefined || val === null || val === '') return 0;
-              // Handle French decimals (commas) and non-numeric characters
-              const str = String(val).replace(',', '.').replace(/[^\d.-]/g, '');
-              const num = parseFloat(str);
-              return isNaN(num) ? 0 : num;
-            };
 
             const id = getVal(mapping.id) || index + 1;
             const name_ar = getVal(mapping.name_ar);
             const name_fr = getVal(mapping.name_fr);
             const name_en = getVal(mapping.name_en);
-            
-            // Get raw name and ensure it's not just a number if possible
-            let rawName = getVal(mapping.name);
-            if (rawName && !isNaN(Number(rawName)) && (name_fr || name_ar || name_en)) {
-              // If name is a number but we have localized names, use one of them instead
-              rawName = name_fr || name_ar || name_en;
-            }
-            
-            const name = rawName || name_fr || name_ar || name_en || 'Unknown Mosque';
-            const latitude = parseCoord(getVal(mapping.latitude));
-            const longitude = parseCoord(getVal(mapping.longitude));
+            const name = getVal(mapping.name) || name_fr || name_ar || name_en || 'Unknown Mosque';
+            const latitude = Number(getVal(mapping.latitude)) || 0;
+            const longitude = Number(getVal(mapping.longitude)) || 0;
             
             const rawAddress = getVal(mapping.address);
             const addressStr = rawAddress ? String(rawAddress).trim() : '';
@@ -179,51 +105,59 @@ export default function SettingsScreen() {
               items: parseArray(itemsRaw),
               image, extraData
             };
-          }).filter(m => m.name && m.name !== 'Unknown Mosque' && m.latitude !== 0 && m.longitude !== 0);
+          });
 
-          console.log("Formatted Mosques for Import (after filtering):", formattedMosques.slice(0, 5));
-          if (formattedMosques.length === 0) {
-            throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
-          }
           setProgress(60);
-          setStatus({ type: 'info', message: t('Importing data...', language) });
+          setStatus({ type: 'info', message: t('Translating content...', language) });
 
-          try {
-            importMosques(formattedMosques);
-          } catch (storageError: any) {
-            if (storageError.name === 'QuotaExceededError' || storageError.message?.includes('quota')) {
-              throw new Error(t("The file is too large to store in the browser. Please try a smaller file (max 2000 mosques).", language));
+          // Extract terms for translation
+          const termCounts: Record<string, number> = {};
+          const addTerm = (term: any) => {
+            if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
+              const cleanTerm = term.trim();
+              termCounts[cleanTerm] = (termCounts[cleanTerm] || 0) + 1;
             }
-            throw storageError;
-          }
+          };
 
-          setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
-          setProgress(80);
+          formattedMosques.forEach(m => {
+            addTerm(m.type);
+            addTerm(m.commune);
+            if (Array.isArray(m.services)) m.services.forEach(addTerm);
+            if (Array.isArray(m.items)) m.items.forEach(addTerm);
+            if (m.extraData) {
+              Object.entries(m.extraData).forEach(([k, v]) => {
+                addTerm(k);
+                addTerm(v);
+              });
+            }
+          });
 
-          // Translate column headers in the background - with a timeout
-          if (headers.length > 0) {
-            setStatus({ type: 'info', message: t('Translating column titles...', language) });
-            
-            // Use a promise that resolves after a timeout to avoid hanging the UI
-            const translationPromise = translateTerms(headers);
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Translation timed out')), 15000)
-            );
+          const existingDict = useAppStore.getState().dynamicTranslations || {};
+          const filteredTerms = Object.keys(termCounts)
+            .filter(term => {
+              const lower = term.toLowerCase();
+              // Skip if in static dictionary
+              if (Object.keys(dictionary).some(k => k.toLowerCase() === lower)) return false;
+              // Skip if in dynamic translations
+              if (Object.keys(existingDict).some(k => k.toLowerCase() === lower)) return false;
+              // Skip if it's already a translation of something else
+              if (term === 'Unknown Address' || term === 'Unknown') return false;
+              if (term === t('Unknown Address', language) || term === t('Unknown', language)) return false;
+              return true;
+            })
+            .sort((a, b) => termCounts[b] - termCounts[a])
+            .slice(0, 400); // Increase limit to 400
 
-            try {
-              const headerTranslations = await Promise.race([translationPromise, timeoutPromise]) as Record<string, Record<Language, string>>;
-              if (Object.keys(headerTranslations).length > 0) {
-                addDynamicTranslations(headerTranslations);
-                setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)} (${t('Translations updated', language)})` });
-              }
-            } catch (transError) {
-              console.warn("Background translation failed or timed out:", transError);
-              // Final success message even if translation fails
-              setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
+          if (filteredTerms.length > 0) {
+            const newTranslations = await translateTerms(filteredTerms);
+            if (Object.keys(newTranslations).length > 0) {
+              addDynamicTranslations(newTranslations);
             }
           }
 
           setProgress(100);
+          importMosques(formattedMosques);
+          setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
         } catch (error: any) {
           setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
         } finally {
@@ -328,7 +262,7 @@ export default function SettingsScreen() {
           
           <input 
             type="file" 
-            accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+            accept=".xlsx, .xls, .csv" 
             className="hidden" 
             ref={fileInputRef}
             onChange={handleFileUpload}
@@ -379,49 +313,6 @@ export default function SettingsScreen() {
                 : <AlertCircle size={16} className={`mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               }
               {status.message}
-            </div>
-          )}
-        </div>
-
-        {/* Reset App */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mx-3">
-              <RefreshCw size={20} className="text-red-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">{t('Reset App', language)}</h2>
-              <p className="text-sm text-gray-500">{t('Clear all data and settings', language)}</p>
-            </div>
-          </div>
-          
-          {!showResetConfirm ? (
-            <button 
-              onClick={() => setShowResetConfirm(true)}
-              className="w-full flex items-center justify-center py-3 bg-red-50 text-red-700 rounded-xl font-medium hover:bg-red-100 transition-colors"
-            >
-              <Trash2 size={18} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-              {t('Reset App', language)}
-            </button>
-          ) : (
-            <div className="space-y-3 p-3 bg-red-50 rounded-xl border border-red-100">
-              <p className="text-sm text-red-800 font-medium">
-                {t('Resetting the app will clear all your favorites and imported data. This cannot be undone.', language)}
-              </p>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => resetApp()}
-                  className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
-                >
-                  {t('Reset Now', language)}
-                </button>
-                <button 
-                  onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  {t('Cancel', language)}
-                </button>
-              </div>
             </div>
           )}
         </div>

@@ -1,11 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Plus, Minus } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
-import { getLocalizedName, t } from '../utils/translations';
+import { getLocalizedName } from '../utils/translations';
 
 // Fix for default marker icons in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -47,33 +46,23 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
   const map = useMap();
 
   useEffect(() => {
-    if (!map) return;
-
     if (routingToMosque && userLocation) {
       const bounds = L.latLngBounds([
         [userLocation.latitude, userLocation.longitude],
         [routingToMosque.latitude, routingToMosque.longitude]
       ]);
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      map.fitBounds(bounds, { padding: [50, 50] });
     } else if (selectedMosque) {
       // Fly to selected mosque when it changes
-      map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 16, { 
-        duration: 1.5,
-        easeLinearity: 0.25
-      });
+      map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
     } else if (showNearest && userLocation && nearestMosques.length > 0) {
       const bounds = L.latLngBounds([
         [userLocation.latitude, userLocation.longitude],
         ...nearestMosques.map(m => [m.latitude, m.longitude] as [number, number])
       ]);
-      map.fitBounds(bounds, { padding: [70, 70], maxZoom: 16 });
+      map.fitBounds(bounds, { padding: [50, 50] });
     } else if (!showNearest && userLocation && !routingToMosque) {
-      // Only fly to user location if it's a valid coordinate
-      if (Math.abs(userLocation.latitude) > 0.1 || Math.abs(userLocation.longitude) > 0.1) {
-        map.flyTo([userLocation.latitude, userLocation.longitude], 15, {
-          duration: 1.5
-        });
-      }
+      map.flyTo([userLocation.latitude, userLocation.longitude], 13);
     }
   }, [userLocation, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
 
@@ -95,36 +84,6 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function CustomZoomControl() {
-  const map = useMap();
-  const { language, routingToMosque } = useAppStore();
-  
-  // If we are routing, the location buttons are hidden in App.tsx, 
-  // so we can move zoom buttons up or keep them consistent.
-  // The location buttons in App.tsx are at top-safe-4 (approx 16px + safe area)
-  // They take up about 110px in height.
-  const topPosition = routingToMosque ? 'top-safe-4' : 'top-40';
-
-  return (
-    <div className={`absolute ${topPosition} ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-2`}>
-      <button 
-        onClick={() => map.zoomIn()}
-        className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
-        title="Zoom In"
-      >
-        <Plus size={20} />
-      </button>
-      <button 
-        onClick={() => map.zoomOut()}
-        className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
-        title="Zoom Out"
-      >
-        <Minus size={20} />
-      </button>
-    </div>
-  );
-}
-
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, key?: string, isMainRoute?: boolean, routeProfile?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
@@ -133,12 +92,8 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
   useEffect(() => {
     let isMounted = true;
     const fetchRoute = async () => {
-      if (!start[0] || !start[1] || !end[0] || !end[1]) return;
-      
       try {
         const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
-        if (!response.ok) throw new Error(`OSRM error: ${response.status}`);
-        
         const data = await response.json();
         if (isMounted && data.routes && data.routes[0] && data.routes[0].geometry) {
           const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
@@ -155,10 +110,6 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         }
       } catch (error) {
         console.error("Error fetching route:", error);
-        // Fallback to straight line if OSRM fails
-        if (isMounted) {
-          setPositions([start, end]);
-        }
       }
     };
     fetchRoute();
@@ -258,35 +209,17 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   return (
     <div className="w-full h-full z-0">
       <MapContainer 
-        key={userLocation ? 'with-location' : 'no-location'}
         center={center} 
-        zoom={userLocation ? 15 : 12} 
+        zoom={12} 
         className="w-full h-full"
         zoomControl={false}
       >
         <ZoomListener onZoomChange={setZoom} />
-        <CustomZoomControl />
         
-        <LayersControl position={language === 'ar' ? 'topright' : 'topleft'}>
-          <LayersControl.BaseLayer checked name={t('Satellite', language)}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name={t('Streets', language)}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name={t('Terrain', language)}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-            />
-          </LayersControl.BaseLayer>
-        </LayersControl>
+        <TileLayer
+          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        />
         
         {userLocation && (
           <Marker 

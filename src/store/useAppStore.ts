@@ -1,21 +1,7 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { get, set, del } from 'idb-keyval';
+import { persist } from 'zustand/middleware';
 import { Mosque, TabType } from '../types';
 import mosquesData from '../data/mosques.json';
-
-// Custom storage for IndexedDB using idb-keyval
-const storage: StateStorage = {
-  getItem: async (name: string): Promise<string | null> => {
-    return (await get(name)) || null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await set(name, value);
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await del(name);
-  },
-};
 
 export type Language = 'en' | 'ar' | 'fr';
 export type RouteProfile = 'foot' | 'driving';
@@ -49,7 +35,6 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
   setSelectedCommune: (commune: string | null) => void;
-  resetApp: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -85,22 +70,15 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: { ...state.dynamicTranslations, ...translations } 
       })),
       setSelectedCommune: (commune) => set({ selectedCommune: commune }),
-      resetApp: async () => {
-        localStorage.clear();
-        await del('mosque-finder-storage-v2');
-        window.location.reload();
-      }
     }),
     {
-      name: 'mosque-finder-storage-v2',
-      storage: createJSONStorage(() => storage),
+      name: 'mosque-finder-storage',
       partialize: (state) => ({ 
         favorites: state.favorites, 
         mosques: state.mosques, 
         language: state.language,
         dynamicTranslations: state.dynamicTranslations,
-        selectedCommune: state.selectedCommune,
-        userLocation: state.userLocation
+        selectedCommune: state.selectedCommune
       }),
     }
   )

@@ -27,20 +27,7 @@ export const dictionary: Record<string, Record<Language, string>> = {
     fr: 'Appuyez sur l\'icône cœur d\'une mosquée pour l\'ajouter à vos favoris.', 
     ar: 'اضغط على أيقونة القلب على المسجد لإضافته إلى مفضلتك.' 
   },
-  'File is too large (max 10MB).': { en: 'File is too large (max 10MB).', fr: 'Le fichier est trop volumineux (max 10 Mo).', ar: 'الملف كبير جداً (بحد أقصى 10 ميجابايت).' },
-  'The file is too large to store in the browser. Please try a smaller file (max 2000 mosques).': { 
-    en: 'The file is too large to store in the browser. Please try a smaller file (max 2000 mosques).', 
-    fr: 'Le fichier est trop volumineux pour être stocké dans le navigateur. Veuillez essayer un fichier plus petit (max 2000 mosquées).', 
-    ar: 'الملف كبير جداً بحيث لا يمكن تخزينه في المتصفح. يرجى تجربة ملف أصغر (بحد أقصى 2000 مسجد).' 
-  },
-  'Translations updated': { en: 'Translations updated', fr: 'Traductions mises à jour', ar: 'تم تحديث الترجمات' },
   'Successfully imported': { en: 'Successfully imported', fr: 'Importation réussie de', ar: 'تم استيراد بنجاح' },
-  'Translating column titles...': { en: 'Translating column titles...', fr: 'Traduction des titres de colonnes...', ar: 'جاري ترجمة عناوين الأعمدة...' },
-  'The Excel file is empty.': { en: 'The Excel file is empty.', fr: 'Le fichier Excel est vide.', ar: 'ملف إكسل فارغ.' },
-  'Failed to read file.': { en: 'Failed to read file.', fr: 'Échec de la lecture du fichier.', ar: 'فشل في قراءة الملف.' },
-  'Found': { en: 'Found', fr: 'Trouvé', ar: 'تم العثور على' },
-  'rows. Mapping columns...': { en: 'rows. Mapping columns...', fr: 'lignes. Mappage des colonnes...', ar: 'صفوف. جاري ربط الأعمدة...' },
-  'The Excel file has no sheets.': { en: 'The Excel file has no sheets.', fr: 'Le fichier Excel n\'a pas de feuilles.', ar: 'ملف إكسل لا يحتوي على أوراق.' },
   'mosques from Excel.': { en: 'mosques from Excel.', fr: 'mosquées depuis Excel.', ar: 'مسجد من إكسل.' },
   'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.': { en: 'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.', fr: 'Format invalide : Impossible d\'extraire des données valides (nom, latitude, longitude) du fichier Excel.', ar: 'تنسيق غير صالح: تعذر استخراج بيانات مسجد صالحة (الاسم، خط العرض، خط الطول) من ملف إكسل.' },
   'Invalid format: Expected rows of mosques in the Excel sheet.': { en: 'Invalid format: Expected rows of mosques in the Excel sheet.', fr: 'Format invalide : Des lignes de mosquées étaient attendues dans la feuille Excel.', ar: 'تنسيق غير صالح: كان من المتوقع وجود صفوف من المساجد في ورقة إكسل.' },
@@ -89,23 +76,11 @@ export const dictionary: Record<string, Record<Language, string>> = {
   'Only mosques in': { en: 'Only mosques in', fr: 'Seules les mosquées de', ar: 'فقط المساجد في' },
   'will be shown on the map.': { en: 'will be shown on the map.', fr: 'seront affichées sur la carte.', ar: 'ستظهر على الخريطة.' },
   'Street View': { en: 'Street View', fr: 'Street View', ar: 'عرض الشارع' },
-  'Satellite': { en: 'Satellite', fr: 'Satellite', ar: 'قمر صناعي' },
-  'Streets': { en: 'Streets', fr: 'Rues', ar: 'شوارع' },
-  'Terrain': { en: 'Terrain', fr: 'Terrain', ar: 'تضاريس' },
   'Analyzing columns...': { en: 'Analyzing columns...', fr: 'Analyse des colonnes...', ar: 'تحليل الأعمدة...' },
   'Importing data...': { en: 'Importing data...', fr: 'Importation des données...', ar: 'استيراد البيانات...' },
   'Translating content...': { en: 'Translating content...', fr: 'Traduction du contenu...', ar: 'ترجمة المحتوى...' },
   'Import Progress': { en: 'Import Progress', fr: 'Progression de l\'importation', ar: 'تقدم الاستيراد' },
   'mosques.': { en: 'mosques.', fr: 'mosquées.', ar: 'مساجد.' },
-  'Reset App': { en: 'Reset App', fr: 'Réinitialiser l\'application', ar: 'إعادة ضبط التطبيق' },
-  'Clear all data and settings': { en: 'Clear all data and settings', fr: 'Effacer toutes les données et paramètres', ar: 'مسح جميع البيانات والإعدادات' },
-  'Resetting the app will clear all your favorites and imported data. This cannot be undone.': { 
-    en: 'Resetting the app will clear all your favorites and imported data. This cannot be undone.', 
-    fr: 'La réinitialisation de l\'application effacera tous vos favoris et données importées. Cette action est irréversible.', 
-    ar: 'سيؤدي إعادة ضبط التطبيق إلى مسح جميع مفضلاتك والبيانات المستوردة. لا يمكن التراجع عن هذا الإجراء.' 
-  },
-  'Reset Now': { en: 'Reset Now', fr: 'Réinitialiser maintenant', ar: 'إعادة الضبط الآن' },
-  'Cancel': { en: 'Cancel', fr: 'Annuler', ar: 'إلغاء' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

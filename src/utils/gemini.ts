@@ -1,27 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Language } from "../store/useAppStore";
 
-function cleanJson(str: string): string {
-  // Remove markdown code blocks if present
-  let cleaned = str.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-  
-  // If it still doesn't look like JSON, try to find the first { or [ and last } or ]
-  if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
-    const startObj = cleaned.indexOf('{');
-    const startArr = cleaned.indexOf('[');
-    
-    if (startObj !== -1 && (startArr === -1 || startObj < startArr)) {
-      const endObj = cleaned.lastIndexOf('}');
-      if (endObj !== -1) cleaned = cleaned.slice(startObj, endObj + 1);
-    } else if (startArr !== -1) {
-      const endArr = cleaned.lastIndexOf(']');
-      if (endArr !== -1) cleaned = cleaned.slice(startArr, endArr + 1);
-    }
-  }
-  
-  return cleaned;
-}
-
 export async function translateTerms(terms: string[]): Promise<Record<string, Record<Language, string>>> {
   if (terms.length === 0) return {};
   
@@ -72,7 +51,7 @@ ${JSON.stringify(chunk)}`,
           }
         }
       }).then(response => {
-        const jsonStr = cleanJson(response.text || "[]");
+        const jsonStr = response.text?.trim() || "[]";
         try {
           const parsed = JSON.parse(jsonStr);
           for (const item of parsed) {
@@ -176,7 +155,7 @@ Instructions:
       }
     });
 
-    const jsonStr = cleanJson(response.text || "{}");
+    const jsonStr = response.text?.trim() || "{}";
     try {
       return JSON.parse(jsonStr);
     } catch (e) {
