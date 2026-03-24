@@ -82,16 +82,36 @@ export default function SettingsScreen() {
           console.log("Detected Column Mapping:", mapping);
           
           // Fallback mapping if Gemini fails or returns empty
-          const findHeader = (patterns: RegExp[]) => 
-            headers.find(h => patterns.some(p => p.test(h)));
+          const findHeader = (patterns: RegExp[], excludePatterns: RegExp[] = []) => 
+            headers.find(h => 
+              patterns.some(p => p.test(h)) && 
+              !excludePatterns.some(p => p.test(h))
+            );
 
-          if (!mapping.name) mapping.name = findHeader([/nom/i, /mosqu/i, /intitul/i, /name/i]);
+          // Priority mapping for name to avoid picking up ID columns
+          if (!mapping.name) {
+            // Try to find a header that looks like a name but NOT an ID
+            mapping.name = findHeader(
+              [/nom/i, /mosqu/i, /intitul/i, /name/i, /label/i], 
+              [/id/i, /code/i, /num/i, /n°/i, /index/i]
+            );
+            // If still not found, take the first non-ID header that isn't coordinate
+            if (!mapping.name) {
+              mapping.name = headers.find(h => 
+                !/id/i.test(h) && !/code/i.test(h) && !/num/i.test(h) && 
+                !/lat/i.test(h) && !/long/i.test(h) && !/coord/i.test(h) &&
+                !/gps/i.test(h) && !/^x$/i.test(h) && !/^y$/i.test(h)
+              );
+            }
+          }
+
           if (!mapping.latitude) mapping.latitude = findHeader([/lat/i, /coord_x/i, /gps_x/i, /^x$/i]);
           if (!mapping.longitude) mapping.longitude = findHeader([/long/i, /coord_y/i, /gps_y/i, /^y$/i]);
           if (!mapping.address) mapping.address = findHeader([/adresse/i, /localis/i, /lieu/i, /emplacement/i, /douar/i, /quartier/i]);
           if (!mapping.commune) mapping.commune = findHeader([/commune/i, /ville/i, /municipalit/i, /province/i, /cercle/i]);
           if (!mapping.type) mapping.type = findHeader([/type/i, /catégorie/i, /genre/i, /nature/i]);
           if (!mapping.services) mapping.services = findHeader([/service/i, /prestation/i, /équipement/i, /equipement/i]);
+          if (!mapping.id) mapping.id = findHeader([/id/i, /code/i, /num/i, /n°/i, /index/i]);
 
           setProgress(40);
           setStatus({ type: 'info', message: t('Importing data...', language) });
@@ -110,7 +130,15 @@ export default function SettingsScreen() {
             const name_ar = getVal(mapping.name_ar);
             const name_fr = getVal(mapping.name_fr);
             const name_en = getVal(mapping.name_en);
-            const name = getVal(mapping.name) || name_fr || name_ar || name_en || 'Unknown Mosque';
+            
+            // Get raw name and ensure it's not just a number if possible
+            let rawName = getVal(mapping.name);
+            if (rawName && !isNaN(Number(rawName)) && (name_fr || name_ar || name_en)) {
+              // If name is a number but we have localized names, use one of them instead
+              rawName = name_fr || name_ar || name_en;
+            }
+            
+            const name = rawName || name_fr || name_ar || name_en || 'Unknown Mosque';
             const latitude = parseCoord(getVal(mapping.latitude));
             const longitude = parseCoord(getVal(mapping.longitude));
             
@@ -172,18 +200,26 @@ export default function SettingsScreen() {
           setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
           setProgress(80);
 
-          // Translate column headers in the background
+          // Translate column headers in the background - with a timeout
           if (headers.length > 0) {
             setStatus({ type: 'info', message: t('Translating column titles...', language) });
+            
+            // Use a promise that resolves after a timeout to avoid hanging the UI
+            const translationPromise = translateTerms(headers);
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Translation timed out')), 15000)
+            );
+
             try {
-              const headerTranslations = await translateTerms(headers);
+              const headerTranslations = await Promise.race([translationPromise, timeoutPromise]) as Record<string, Record<Language, string>>;
               if (Object.keys(headerTranslations).length > 0) {
                 addDynamicTranslations(headerTranslations);
                 setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)} (${t('Translations updated', language)})` });
               }
             } catch (transError) {
-              console.warn("Background translation failed:", transError);
-              // Don't throw, we already imported the data
+              console.warn("Background translation failed or timed out:", transError);
+              // Final success message even if translation fails
+              setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
             }
           }
 
