@@ -68,6 +68,46 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
+function RouteLine({ start, end, straightDistance }: { start: [number, number], end: [number, number], straightDistance: number }) {
+  const [positions, setPositions] = useState<[number, number][]>([start, end]);
+  const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRoute = async () => {
+      try {
+        const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
+        const data = await response.json();
+        if (isMounted && data.routes && data.routes[0] && data.routes[0].geometry) {
+          const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+          setPositions(coords);
+          if (data.routes[0].distance) {
+            setRouteDistance(data.routes[0].distance);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching route:", error);
+      }
+    };
+    fetchRoute();
+    return () => { isMounted = false; };
+  }, [start[0], start[1], end[0], end[1]]);
+
+  return (
+    <Polyline 
+      positions={positions}
+      color="#059669"
+      weight={4}
+      opacity={0.8}
+      dashArray={positions.length === 2 ? "5, 10" : undefined}
+    >
+      <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+        {(routeDistance / 1000).toFixed(1)} km
+      </Tooltip>
+    </Polyline>
+  );
+}
+
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
   const { mosques, userLocation, setSelectedMosque, language } = useAppStore();
   const [zoom, setZoom] = useState(12);
@@ -118,21 +158,12 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         )}
 
         {showNearest && userLocation && nearestMosques.map((mosque) => (
-          <Polyline 
-            key={`line-${mosque.id}`}
-            positions={[
-              [userLocation.latitude, userLocation.longitude],
-              [mosque.latitude, mosque.longitude]
-            ]}
-            color="#059669"
-            weight={3}
-            dashArray="5, 10"
-            opacity={0.7}
-          >
-            <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-              {((mosque as any).distance / 1000).toFixed(1)} km
-            </Tooltip>
-          </Polyline>
+          <RouteLine 
+            key={`route-${mosque.id}`}
+            start={[userLocation.latitude, userLocation.longitude]}
+            end={[mosque.latitude, mosque.longitude]}
+            straightDistance={(mosque as any).distance}
+          />
         ))}
 
         {displayedMosques.map((mosque) => (
