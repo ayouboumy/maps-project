@@ -277,9 +277,9 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   <div className="flex flex-col items-center">
                     <div 
                       className={`max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center ${isDestination ? 'text-red-600' : 'text-gray-800'}`}
-                      title={getLocalizedName(mosque, language)}
+                      title={mosque.name}
                     >
-                      {getLocalizedName(mosque, language)}
+                      {mosque.name}
                     </div>
                   </div>
                 </Tooltip>

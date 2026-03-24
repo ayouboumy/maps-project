@@ -14,6 +14,7 @@ export const dictionary: Record<string, Record<Language, string>> = {
   'Parsing Excel file...': { en: 'Parsing Excel file...', fr: 'Analyse du fichier Excel...', ar: 'جاري تحليل ملف إكسل...' },
   'Translating new terms intelligently...': { en: 'Translating new terms intelligently...', fr: 'Traduction intelligente des nouveaux termes...', ar: 'جاري ترجمة المصطلحات الجديدة بذكاء...' },
   'Translating...': { en: 'Translating...', fr: 'Traduction...', ar: 'جاري الترجمة...' },
+  'Importing...': { en: 'Importing...', fr: 'Importation...', ar: 'جاري الاستيراد...' },
   'Language': { en: 'Language', fr: 'Langue', ar: 'اللغة' },
   'Select Language': { en: 'Select Language', fr: 'Choisir la langue', ar: 'اختر اللغة' },
   'Map': { en: 'Map', fr: 'Carte', ar: 'الخريطة' },

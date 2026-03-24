@@ -90,11 +90,6 @@ export interface ColumnMapping {
   latitude?: string;
   longitude?: string;
   address?: string;
-  commune?: string;
-  type?: string;
-  services?: string;
-  items?: string;
-  image?: string;
 }
 
 export async function mapExcelColumns(headers: string[]): Promise<ColumnMapping> {
@@ -106,7 +101,7 @@ export async function mapExcelColumns(headers: string[]): Promise<ColumnMapping>
     
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `You are an expert data analyst specializing in Moroccan geographic data. I have an Excel file with the following column headers:
+      contents: `You are an expert data analyst. I have an Excel file with the following column headers:
 ${JSON.stringify(headers)}
 
 Your task is to map these headers to the following standard fields for a mosque database. 
@@ -120,18 +115,13 @@ Mapping Guide (Standard Field -> Common French equivalents):
 - name_en: Nom en anglais
 - latitude: Latitude, Lat, GPS_X, Coord_X, X
 - longitude: Longitude, Long, GPS_Y, Coord_Y, Y
-- address: Adresse, Localisation, Emplacement, Lieu, Douar, Quartier, Rue
-- commune: Commune, Municipalité, Ville, District, Cercle, Caidat, Province
-- type: Type, Catégorie, Genre, Nature (e.g., Grande Mosquée, Mosquée de quartier)
-- services: Services, Prestations, Equipements (e.g., Salle de prière femmes, Sanitaires)
-- items: Articles, Equipements, Détails
-- image: Image, Photo, URL, Path
+- address: Adresse, Localisation, Emplacement, Lieu, Douar, Quartier, Rue, Commune, Province, Ville
 
 Instructions:
 1. Return a JSON object where the keys are the standard fields and the values are the corresponding headers from the Excel file.
-2. If a field has no clear match, omit it.
-3. Be flexible with case and accents (e.g., "Commune" matches "commune").
-4. If multiple headers could match "address", pick the most descriptive one or the one that contains "Adresse".`,
+2. Focus ONLY on mapping the ID, Names (ar/fr/en), Position (Latitude/Longitude), and Address.
+3. If a field has no clear match, omit it.
+4. Be flexible with case and accents.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -144,12 +134,7 @@ Instructions:
             name_en: { type: Type.STRING },
             latitude: { type: Type.STRING },
             longitude: { type: Type.STRING },
-            address: { type: Type.STRING },
-            commune: { type: Type.STRING },
-            type: { type: Type.STRING },
-            services: { type: Type.STRING },
-            items: { type: Type.STRING },
-            image: { type: Type.STRING }
+            address: { type: Type.STRING }
           }
         }
       }

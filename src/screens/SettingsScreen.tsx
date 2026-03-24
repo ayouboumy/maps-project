@@ -71,25 +71,12 @@ export default function SettingsScreen() {
             const rawAddress = getVal(mapping.address);
             const addressStr = rawAddress ? String(rawAddress).trim() : '';
             
-            const rawCommune = getVal(mapping.commune);
-            const communeStr = rawCommune ? String(rawCommune).trim() : (addressStr ? addressStr.split(',')[0].trim() : '');
-            
             const address = addressStr || t('Unknown Address', language);
-            const commune = communeStr || t('Unknown', language);
+            const commune = (addressStr ? addressStr.split(',')[0].trim() : '') || t('Unknown', language);
             
-            const rawType = getVal(mapping.type);
-            const type = rawType ? String(rawType).trim() : 'Mosque';
-            const servicesRaw = getVal(mapping.services);
-            const itemsRaw = getVal(mapping.items);
-            const image = getVal(mapping.image) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+            const image = 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
 
-            const parseArray = (val: any) => {
-              if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
-              if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
-              return [];
-            };
-
-            // Collect extra data
+            // Collect extra data (everything not mapped)
             const mappedValues = Object.values(mapping);
             const extraData: Record<string, any> = {};
             Object.keys(item).forEach(key => {
@@ -100,60 +87,13 @@ export default function SettingsScreen() {
             });
 
             return {
-              id, name, name_ar, name_fr, name_en, latitude, longitude, address, commune, type,
-              services: parseArray(servicesRaw),
-              items: parseArray(itemsRaw),
+              id, name, name_ar, name_fr, name_en, latitude, longitude, address, commune, 
+              type: 'Mosque',
+              services: [],
+              items: [],
               image, extraData
             };
           });
-
-          setProgress(60);
-          setStatus({ type: 'info', message: t('Translating content...', language) });
-
-          // Extract terms for translation
-          const termCounts: Record<string, number> = {};
-          const addTerm = (term: any) => {
-            if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
-              const cleanTerm = term.trim();
-              termCounts[cleanTerm] = (termCounts[cleanTerm] || 0) + 1;
-            }
-          };
-
-          formattedMosques.forEach(m => {
-            addTerm(m.type);
-            addTerm(m.commune);
-            if (Array.isArray(m.services)) m.services.forEach(addTerm);
-            if (Array.isArray(m.items)) m.items.forEach(addTerm);
-            if (m.extraData) {
-              Object.entries(m.extraData).forEach(([k, v]) => {
-                addTerm(k);
-                addTerm(v);
-              });
-            }
-          });
-
-          const existingDict = useAppStore.getState().dynamicTranslations || {};
-          const filteredTerms = Object.keys(termCounts)
-            .filter(term => {
-              const lower = term.toLowerCase();
-              // Skip if in static dictionary
-              if (Object.keys(dictionary).some(k => k.toLowerCase() === lower)) return false;
-              // Skip if in dynamic translations
-              if (Object.keys(existingDict).some(k => k.toLowerCase() === lower)) return false;
-              // Skip if it's already a translation of something else
-              if (term === 'Unknown Address' || term === 'Unknown') return false;
-              if (term === t('Unknown Address', language) || term === t('Unknown', language)) return false;
-              return true;
-            })
-            .sort((a, b) => termCounts[b] - termCounts[a])
-            .slice(0, 400); // Increase limit to 400
-
-          if (filteredTerms.length > 0) {
-            const newTranslations = await translateTerms(filteredTerms);
-            if (Object.keys(newTranslations).length > 0) {
-              addDynamicTranslations(newTranslations);
-            }
-          }
 
           setProgress(100);
           importMosques(formattedMosques);
@@ -282,7 +222,7 @@ export default function SettingsScreen() {
             ) : (
               <FileSpreadsheet size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
             )}
-            {isTranslating ? t('Translating...', language) : t('Import Excel File', language)}
+            {isTranslating ? t('Importing...', language) : t('Import Excel File', language)}
           </button>
 
           {progress > 0 && (
