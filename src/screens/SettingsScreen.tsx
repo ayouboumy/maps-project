@@ -25,6 +25,12 @@ export default function SettingsScreen() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check file size (limit to 10MB for safety)
+    if (file.size > 10 * 1024 * 1024) {
+      setStatus({ type: 'error', message: t('File is too large (max 10MB).', language) });
+      return;
+    }
+
     setStatus({ type: 'info', message: t('Parsing Excel file...', language) });
     setIsTranslating(true);
     setProgress(10);
@@ -49,6 +55,7 @@ export default function SettingsScreen() {
           }
           const worksheet = workbook.Sheets[firstSheetName];
           const parsed = XLSX.utils.sheet_to_json(worksheet);
+          console.log("Parsed Excel Data (first 5 rows):", parsed.slice(0, 5));
         
           if (!Array.isArray(parsed) || parsed.length === 0) {
             throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
@@ -65,6 +72,7 @@ export default function SettingsScreen() {
           
           // Use Gemini to map columns intelligently
           let mapping = await mapExcelColumns(headers);
+          console.log("Detected Column Mapping:", mapping);
           
           // Fallback mapping if Gemini fails or returns empty
           const findHeader = (patterns: RegExp[]) => 
@@ -138,20 +146,38 @@ export default function SettingsScreen() {
             };
           });
 
+          console.log("Formatted Mosques for Import:", formattedMosques.slice(0, 5));
           setProgress(60);
-          setStatus({ type: 'info', message: t('Translating column titles...', language) });
+          setStatus({ type: 'info', message: t('Importing data...', language) });
 
-          // Only translate column headers as requested by the user
+          try {
+            importMosques(formattedMosques);
+          } catch (storageError: any) {
+            if (storageError.name === 'QuotaExceededError' || storageError.message?.includes('quota')) {
+              throw new Error(t("The file is too large to store in the browser. Please try a smaller file (max 2000 mosques).", language));
+            }
+            throw storageError;
+          }
+
+          setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
+          setProgress(80);
+
+          // Translate column headers in the background
           if (headers.length > 0) {
-            const headerTranslations = await translateTerms(headers);
-            if (Object.keys(headerTranslations).length > 0) {
-              addDynamicTranslations(headerTranslations);
+            setStatus({ type: 'info', message: t('Translating column titles...', language) });
+            try {
+              const headerTranslations = await translateTerms(headers);
+              if (Object.keys(headerTranslations).length > 0) {
+                addDynamicTranslations(headerTranslations);
+                setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)} (${t('Translations updated', language)})` });
+              }
+            } catch (transError) {
+              console.warn("Background translation failed:", transError);
+              // Don't throw, we already imported the data
             }
           }
 
           setProgress(100);
-          importMosques(formattedMosques);
-          setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
         } catch (error: any) {
           setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
         } finally {

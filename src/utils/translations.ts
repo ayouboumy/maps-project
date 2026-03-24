@@ -27,6 +27,13 @@ export const dictionary: Record<string, Record<Language, string>> = {
     fr: 'Appuyez sur l\'icône cœur d\'une mosquée pour l\'ajouter à vos favoris.', 
     ar: 'اضغط على أيقونة القلب على المسجد لإضافته إلى مفضلتك.' 
   },
+  'File is too large (max 10MB).': { en: 'File is too large (max 10MB).', fr: 'Le fichier est trop volumineux (max 10 Mo).', ar: 'الملف كبير جداً (بحد أقصى 10 ميجابايت).' },
+  'The file is too large to store in the browser. Please try a smaller file (max 2000 mosques).': { 
+    en: 'The file is too large to store in the browser. Please try a smaller file (max 2000 mosques).', 
+    fr: 'Le fichier est trop volumineux pour être stocké dans le navigateur. Veuillez essayer un fichier plus petit (max 2000 mosquées).', 
+    ar: 'الملف كبير جداً بحيث لا يمكن تخزينه في المتصفح. يرجى تجربة ملف أصغر (بحد أقصى 2000 مسجد).' 
+  },
+  'Translations updated': { en: 'Translations updated', fr: 'Traductions mises à jour', ar: 'تم تحديث الترجمات' },
   'Successfully imported': { en: 'Successfully imported', fr: 'Importation réussie de', ar: 'تم استيراد بنجاح' },
   'Translating column titles...': { en: 'Translating column titles...', fr: 'Traduction des titres de colonnes...', ar: 'جاري ترجمة عناوين الأعمدة...' },
   'The Excel file is empty.': { en: 'The Excel file is empty.', fr: 'Le fichier Excel est vide.', ar: 'ملف إكسل فارغ.' },
