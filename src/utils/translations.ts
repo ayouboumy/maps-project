@@ -67,6 +67,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Your Location': { en: 'Your Location', fr: 'Votre position', ar: 'موقعك' },
   'Share': { en: 'Share', fr: 'Partager', ar: 'مشاركة' },
   'View Full Details': { en: 'View Full Details', fr: 'Voir les détails complets', ar: 'عرض التفاصيل الكاملة' },
+  'Nearby Mosques': { en: 'Nearby Mosques', fr: 'Mosquées à proximité', ar: 'مساجد قريبة' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

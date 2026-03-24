@@ -2,14 +2,30 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
 
 export default function BottomSheet() {
-  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation } = useAppStore();
+  const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
+
+  const nearbyMosques = useMemo(() => {
+    if (!selectedMosque) return [];
+    
+    return mosques
+      .filter(m => m.id !== selectedMosque.id)
+      .map(m => ({
+        ...m,
+        distanceToSelected: getDistance(
+          { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude },
+          { latitude: m.latitude, longitude: m.longitude }
+        )
+      }))
+      .sort((a, b) => a.distanceToSelected - b.distanceToSelected)
+      .slice(0, 3);
+  }, [mosques, selectedMosque]);
 
   if (!selectedMosque) return null;
 
@@ -156,6 +172,35 @@ export default function BottomSheet() {
                 <Info size={18} />
                 {t('View Full Details', language)}
               </button>
+
+              {/* Nearby Mosques */}
+              {nearbyMosques.length > 0 && (
+                <div className="mt-6 pt-5 border-t border-gray-100">
+                  <h4 className="text-sm font-bold text-gray-900 mb-3 px-1">{t('Nearby Mosques', language)}</h4>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5">
+                    {nearbyMosques.map(mosque => (
+                      <button
+                        key={mosque.id}
+                        onClick={() => setSelectedMosque(mosque)}
+                        className="flex flex-col gap-2 p-2.5 bg-gray-50 rounded-2xl min-w-[140px] max-w-[140px] text-left hover:bg-gray-100 transition-colors border border-gray-200/50 shrink-0"
+                      >
+                        <img 
+                          src={mosque.image} 
+                          alt={getLocalizedName(mosque, language)} 
+                          className="w-full h-20 rounded-xl object-cover"
+                        />
+                        <div>
+                          <h5 className="font-semibold text-gray-900 text-sm line-clamp-1">{mosque.name}</h5>
+                          <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500">
+                            <MapPin size={10} className="shrink-0" />
+                            <span>{(mosque.distanceToSelected / 1000).toFixed(1)} km</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

@@ -41,7 +41,7 @@ const userIcon = L.divIcon({
   iconAnchor: [9, 9]
 });
 
-function MapController({ showNearest, nearestMosques, routingToMosque }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any }) {
+function MapController({ showNearest, nearestMosques, routingToMosque, selectedMosque }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any, selectedMosque: any }) {
   const { userLocation } = useAppStore();
   const map = useMap();
 
@@ -52,6 +52,9 @@ function MapController({ showNearest, nearestMosques, routingToMosque }: { showN
         [routingToMosque.latitude, routingToMosque.longitude]
       ]);
       map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (selectedMosque) {
+      // Fly to selected mosque when it changes
+      map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
     } else if (showNearest && userLocation && nearestMosques.length > 0) {
       const bounds = L.latLngBounds([
         [userLocation.latitude, userLocation.longitude],
@@ -61,7 +64,7 @@ function MapController({ showNearest, nearestMosques, routingToMosque }: { showN
     } else if (!showNearest && userLocation && !routingToMosque) {
       map.flyTo([userLocation.latitude, userLocation.longitude], 13);
     }
-  }, [userLocation, map, showNearest, nearestMosques, routingToMosque]);
+  }, [userLocation, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
 
   return null;
 }
@@ -172,7 +175,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile } = useAppStore();
+  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   // Default center (Casablanca)
@@ -280,7 +283,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           );
         })}
         
-        <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} />
+        <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} selectedMosque={selectedMosque} />
       </MapContainer>
     </div>
   );
