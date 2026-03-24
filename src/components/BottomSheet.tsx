@@ -1,13 +1,14 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Navigation, Heart, Info, Map, Route } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
 import { t, getLocalizedName } from '../utils/translations';
+import { getDistance } from 'geolib';
 
 export default function BottomSheet() {
-  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque } = useAppStore();
+  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
 
   if (!selectedMosque) return null;
@@ -23,6 +24,25 @@ export default function BottomSheet() {
     setSelectedMosque(null);
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: selectedMosque.name,
+          text: `${selectedMosque.name} - ${selectedMosque.address}`,
+          url: `https://www.google.com/maps/search/?api=1&query=${selectedMosque.latitude},${selectedMosque.longitude}`,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    }
+  };
+
+  const distance = userLocation ? (getDistance(
+    { latitude: userLocation.latitude, longitude: userLocation.longitude },
+    { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude }
+  ) / 1000).toFixed(1) : null;
+
   return (
     <>
       <AnimatePresence>
@@ -32,82 +52,110 @@ export default function BottomSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-16 left-0 right-0 z-[1001] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] max-w-md mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-[1001] bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] max-w-md mx-auto pb-safe"
           >
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{selectedMosque.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{t(selectedMosque.type, language)}</p>
+            {/* Drag Handle */}
+            <div className="w-full flex justify-center pt-3 pb-1">
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+            </div>
+
+            <div className="px-5 pb-6 pt-2 max-h-[80vh] overflow-y-auto scrollbar-hide">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-3">
+                <div className="pr-4">
+                  <h3 className="text-2xl font-bold text-gray-900 leading-tight">{selectedMosque.name}</h3>
+                  <div className="flex items-center gap-2 mt-1.5 text-sm">
+                    <span className="text-emerald-600 font-medium">{t(selectedMosque.type, language)}</span>
+                    {distance && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-gray-600">{distance} km</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <button 
                   onClick={() => setSelectedMosque(null)}
-                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors shrink-0 mt-1"
                 >
                   <X size={20} className="text-gray-600" />
                 </button>
               </div>
 
-              <div className="flex gap-4 mb-5">
+              {/* Quick Actions (Horizontal Scroll) */}
+              <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 scrollbar-hide -mx-5 px-5">
+                <button 
+                  onClick={handleDirections}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-sm shrink-0"
+                >
+                  <Route size={18} />
+                  {t('Directions', language)}
+                </button>
+                <button 
+                  onClick={handleOpenMaps}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors shrink-0"
+                >
+                  <Navigation size={18} />
+                  {t('Start', language)}
+                </button>
+                <button 
+                  onClick={() => toggleFavorite(selectedMosque.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-colors shrink-0 border",
+                    isFavorite 
+                      ? "bg-red-50 text-red-600 border-red-100" 
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  )}
+                >
+                  <Heart size={18} className={cn(isFavorite && "fill-current")} />
+                  {t('Save', language)}
+                </button>
+                <button 
+                  onClick={handleShare}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full font-medium hover:bg-gray-50 transition-colors shrink-0"
+                >
+                  <Share2 size={18} />
+                  {t('Share', language)}
+                </button>
+              </div>
+
+              {/* Image & Info Grid */}
+              <div className="mt-2 flex gap-4">
                 <img 
                   src={selectedMosque.image} 
                   alt={getLocalizedName(selectedMosque, language)} 
-                  className="w-24 h-24 rounded-xl object-cover shadow-sm"
+                  className="w-28 h-28 rounded-2xl object-cover shadow-sm shrink-0"
                 />
-                <div className="flex-1 flex flex-col justify-center">
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                    {selectedMosque.address}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedMosque.services.slice(0, 2).map(service => (
-                      <span key={service} className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-medium rounded-md">
+                <div className="flex-1 flex flex-col justify-center gap-3">
+                  <div className="flex items-start gap-2 text-gray-600 text-sm">
+                    <MapPin size={16} className="shrink-0 mt-0.5 text-gray-400" />
+                    <span className="line-clamp-2 leading-snug">{selectedMosque.address}</span>
+                  </div>
+                  
+                  {/* Quick Services Preview */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedMosque.services.slice(0, 3).map(service => (
+                      <span key={service} className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-medium rounded-md border border-emerald-100/50">
                         {t(service, language)}
                       </span>
                     ))}
-                    {selectedMosque.services.length > 2 && (
-                      <span className="px-2 py-1 bg-gray-50 text-gray-600 text-[10px] font-medium rounded-md">
-                        +{selectedMosque.services.length - 2}
+                    {selectedMosque.services.length > 3 && (
+                      <span className="px-2 py-1 bg-gray-50 text-gray-600 text-[10px] font-medium rounded-md border border-gray-200/50">
+                        +{selectedMosque.services.length - 3}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-2">
-                <button 
-                  onClick={handleOpenMaps}
-                  className="flex flex-col items-center justify-center p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-                >
-                  <Map size={20} className="mb-1" />
-                  <span className="text-xs font-medium">{t('Map', language)}</span>
-                </button>
-                <button 
-                  onClick={handleDirections}
-                  className="flex flex-col items-center justify-center p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors"
-                >
-                  <Route size={20} className="mb-1" />
-                  <span className="text-xs font-medium">{t('Directions', language)}</span>
-                </button>
-                <button 
-                  onClick={() => toggleFavorite(selectedMosque.id)}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-3 rounded-xl transition-colors",
-                    isFavorite 
-                      ? "bg-red-50 text-red-500 hover:bg-red-100" 
-                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                  )}
-                >
-                  <Heart size={20} className={cn("mb-1", isFavorite && "fill-current")} />
-                  <span className="text-xs font-medium">{t('Save', language)}</span>
-                </button>
-                <button 
-                  onClick={() => setShowProfile(true)}
-                  className="flex flex-col items-center justify-center p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors"
-                >
-                  <Info size={20} className="mb-1" />
-                  <span className="text-xs font-medium">{t('Details', language)}</span>
-                </button>
-              </div>
+              {/* Full Details Button */}
+              <button 
+                onClick={() => setShowProfile(true)}
+                className="w-full mt-5 flex items-center justify-center gap-2 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-medium hover:bg-gray-100 transition-colors border border-gray-200/60"
+              >
+                <Info size={18} />
+                {t('View Full Details', language)}
+              </button>
             </div>
           </motion.div>
         )}

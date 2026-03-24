@@ -169,9 +169,14 @@ export default function SearchScreen() {
                 alt={getLocalizedName(mosque, language)} 
                 className="w-20 h-20 rounded-xl object-cover"
               />
-              <div className={`flex-1 py-1 ${language === 'ar' ? 'pl-6' : 'pr-6'}`}>
+              <div className={`flex-1 py-1 ${language === 'ar' ? 'pl-2' : 'pr-2'}`}>
                 <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
-                <h3 className="font-bold text-gray-900 leading-tight mb-1">{mosque.name}</h3>
+                <h3 className="font-bold text-gray-900 leading-tight mb-1 flex items-center gap-1.5">
+                  <span className="line-clamp-1">{mosque.name}</span>
+                  {favorites.includes(mosque.id) && (
+                    <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
+                  )}
+                </h3>
                 <div className="flex items-start text-gray-500 text-xs">
                   <MapPin size={12} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                   <span className="line-clamp-1">{mosque.address}</span>
@@ -185,11 +190,6 @@ export default function SearchScreen() {
                   </div>
                 )}
               </div>
-              {favorites.includes(mosque.id) && (
-                <div className={`absolute top-4 ${language === 'ar' ? 'left-4' : 'right-4'} text-red-500`}>
-                  <Heart size={16} className="fill-current" />
-                </div>
-              )}
             </motion.div>
           ))}
           
