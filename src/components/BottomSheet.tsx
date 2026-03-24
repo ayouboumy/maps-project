@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Navigation, Heart, Info } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, Route } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
@@ -16,6 +16,10 @@ export default function BottomSheet() {
 
   const handleOpenMaps = () => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
+  };
+
+  const handleDirections = () => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
   };
 
   return (
@@ -68,13 +72,20 @@ export default function BottomSheet() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 <button 
                   onClick={handleOpenMaps}
                   className="flex flex-col items-center justify-center p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
                 >
-                  <Navigation size={20} className="mb-1" />
-                  <span className="text-xs font-medium">{t('Navigate', language)}</span>
+                  <Map size={20} className="mb-1" />
+                  <span className="text-xs font-medium">{t('Map', language)}</span>
+                </button>
+                <button 
+                  onClick={handleDirections}
+                  className="flex flex-col items-center justify-center p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors"
+                >
+                  <Route size={20} className="mb-1" />
+                  <span className="text-xs font-medium">{t('Directions', language)}</span>
                 </button>
                 <button 
                   onClick={() => toggleFavorite(selectedMosque.id)}

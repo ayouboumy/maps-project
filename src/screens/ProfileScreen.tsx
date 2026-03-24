@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
@@ -16,6 +16,10 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
   const handleOpenMaps = () => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${mosque.latitude},${mosque.longitude}`, '_blank');
+  };
+
+  const handleDirections = () => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${mosque.latitude},${mosque.longitude}`, '_blank');
   };
 
   return (
@@ -57,15 +61,22 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         <div className="flex gap-3 mb-8">
           <button 
             onClick={handleOpenMaps}
+            className="flex-1 flex items-center justify-center py-3 bg-blue-50 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition-colors shadow-sm"
+          >
+            <Map size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t('Map', language)}
+          </button>
+          <button 
+            onClick={handleDirections}
             className="flex-1 flex items-center justify-center py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm"
           >
-            <Navigation size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Open in Maps', language)}
+            <Route size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t('Directions', language)}
           </button>
           <button 
             onClick={() => toggleFavorite(mosque.id)}
             className={cn(
-              "flex items-center justify-center px-6 rounded-xl font-medium transition-colors shadow-sm border",
+              "flex items-center justify-center px-4 rounded-xl font-medium transition-colors shadow-sm border",
               isFavorite 
                 ? "bg-red-50 text-red-500 border-red-100 hover:bg-red-100" 
                 : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"

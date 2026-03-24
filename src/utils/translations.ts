@@ -58,6 +58,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Nearest Mosques': { en: 'Nearest Mosques', fr: 'Mosquées les plus proches', ar: 'أقرب المساجد' },
   'Location access is required to find nearest mosques.': { en: 'Location access is required to find nearest mosques.', fr: 'L\'accès à la position est requis pour trouver les mosquées les plus proches.', ar: 'الوصول إلى الموقع مطلوب للعثور على أقرب المساجد.' },
   'No mosques found.': { en: 'No mosques found.', fr: 'Aucune mosquée trouvée.', ar: 'لم يتم العثور على مساجد.' },
+  'Directions': { en: 'Directions', fr: 'Itinéraire', ar: 'الاتجاهات' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

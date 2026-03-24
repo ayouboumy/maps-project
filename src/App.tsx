@@ -7,7 +7,6 @@ import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { LocateFixed, MapPin } from 'lucide-react';
 import MapView from './components/MapView';
-import NearestMosques from './components/NearestMosques';
 import { t } from './utils/translations';
 
 export default function App() {
@@ -57,7 +56,7 @@ export default function App() {
         <div className="flex-1 relative overflow-hidden">
           {activeTab === 'map' && (
             <>
-              <MapView />
+              <MapView showNearest={showNearest} />
               
               {/* Floating Location Button */}
               <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3`}>
@@ -69,8 +68,8 @@ export default function App() {
                   <LocateFixed size={24} className={isLocating ? "animate-pulse text-emerald-500" : ""} />
                 </button>
                 <button 
-                  onClick={() => setShowNearest(true)}
-                  className="p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors"
+                  onClick={() => setShowNearest(!showNearest)}
+                  className={`p-3 rounded-full shadow-md transition-colors ${showNearest ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:text-emerald-600'}`}
                   title={t("Nearest Mosques", language)}
                 >
                   <MapPin size={24} />
@@ -84,7 +83,6 @@ export default function App() {
               )}
 
               <BottomSheet />
-              <NearestMosques isOpen={showNearest} onClose={() => setShowNearest(false)} />
             </>
           )}
 
