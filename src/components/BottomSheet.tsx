@@ -32,7 +32,7 @@ export default function BottomSheet() {
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{getLocalizedName(selectedMosque, language)}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedMosque.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">{t(selectedMosque.type, language)}</p>
                 </div>
                 <button 

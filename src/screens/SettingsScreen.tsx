@@ -41,7 +41,8 @@ export default function SettingsScreen() {
             const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar']);
             const name_fr = getVal(['dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'name_fr', 'name fr']);
             const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
-            const name = name_ar || name_fr || name_en || getVal(['name', 'mosque name', 'mosque']) || 'Unknown Mosque';
+            const genericName = getVal(['nom', 'dénomination', 'denomination', 'name', 'mosque name', 'mosque']);
+            const name = genericName || name_fr || name_ar || name_en || 'Unknown Mosque';
             const latitude = Number(getVal(['latitude', 'lat'])) || 0;
             const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
             const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
@@ -58,7 +59,7 @@ export default function SettingsScreen() {
             };
 
             // Collect all other columns into extraData
-            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
+            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
             const extraData: Record<string, any> = {};
             const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
             
@@ -132,39 +133,46 @@ export default function SettingsScreen() {
           );
           
           if (isValid && formattedMosques.length > 0) {
-            setStatus({ type: 'info', message: t('Translating new terms intelligently...', language) });
+            importMosques(formattedMosques);
+            setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques from Excel.', language)}` });
+            setIsTranslating(false); // Stop loading spinner immediately
             
-            // Extract unique terms for translation
-            const termsToTranslate = new Set<string>();
+            // Extract terms for translation in the background
+            const termCounts: Record<string, number> = {};
+            const addTerm = (term: any) => {
+              if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
+                termCounts[term] = (termCounts[term] || 0) + 1;
+              }
+            };
+
             formattedMosques.forEach(m => {
-              if (m.type && typeof m.type === 'string') termsToTranslate.add(m.type);
-              if (Array.isArray(m.services)) m.services.forEach(s => typeof s === 'string' && termsToTranslate.add(s));
-              if (Array.isArray(m.items)) m.items.forEach(i => typeof i === 'string' && termsToTranslate.add(i));
+              addTerm(m.type);
+              if (Array.isArray(m.services)) m.services.forEach(addTerm);
+              if (Array.isArray(m.items)) m.items.forEach(addTerm);
               if (m.extraData) {
                 Object.entries(m.extraData).forEach(([k, v]) => {
-                  termsToTranslate.add(k);
-                  if (typeof v === 'string' && isNaN(Number(v))) {
-                    termsToTranslate.add(v);
-                  }
+                  addTerm(k);
+                  addTerm(v);
                 });
               }
             });
 
             const existingDict = useAppStore.getState().dynamicTranslations || {};
-            const filteredTerms = Array.from(termsToTranslate).filter(term => {
-              if (!term || term.trim().length < 2) return false;
-              if (!isNaN(Number(term))) return false; // Skip numbers
-              if (existingDict[term]) return false; // Skip already translated
-              return true;
-            });
+            
+            // Sort by frequency and take top 100 to avoid long API calls
+            const filteredTerms = Object.keys(termCounts)
+              .filter(term => !existingDict[term])
+              .sort((a, b) => termCounts[b] - termCounts[a])
+              .slice(0, 100);
 
             if (filteredTerms.length > 0) {
-              const newTranslations = await translateTerms(filteredTerms);
-              addDynamicTranslations(newTranslations);
+              // Run translation in background without awaiting
+              translateTerms(filteredTerms).then(newTranslations => {
+                if (Object.keys(newTranslations).length > 0) {
+                  addDynamicTranslations(newTranslations);
+                }
+              }).catch(console.error);
             }
-
-            importMosques(formattedMosques);
-            setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques from Excel.', language)}` });
           } else {
             throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
           }

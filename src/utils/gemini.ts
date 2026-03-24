@@ -16,11 +16,12 @@ export async function translateTerms(terms: string[]): Promise<Record<string, Re
     // Chunk terms if there are too many to avoid hitting token limits
     const chunkSize = 50;
     const results: Record<string, Record<Language, string>> = {};
+    const promises: Promise<void>[] = [];
     
     for (let i = 0; i < terms.length; i += chunkSize) {
       const chunk = terms.slice(i, i + chunkSize);
       
-      const response = await ai.models.generateContent({
+      const promise = ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `You are an expert translator. The following JSON array contains terms extracted from a French dataset about mosques, their facilities, and location data.
         
@@ -47,22 +48,27 @@ ${JSON.stringify(chunk)}`,
             }
           }
         }
+      }).then(response => {
+        const jsonStr = response.text?.trim() || "[]";
+        const parsed = JSON.parse(jsonStr);
+        
+        for (const item of parsed) {
+          if (item.originalTerm && item.en && item.fr && item.ar) {
+            results[item.originalTerm] = {
+              en: item.en,
+              fr: item.fr,
+              ar: item.ar
+            };
+          }
+        }
+      }).catch(err => {
+        console.error("Error translating chunk:", err);
       });
       
-      const jsonStr = response.text?.trim() || "[]";
-      const parsed = JSON.parse(jsonStr);
-      
-      for (const item of parsed) {
-        if (item.originalTerm && item.en && item.fr && item.ar) {
-          results[item.originalTerm] = {
-            en: item.en,
-            fr: item.fr,
-            ar: item.ar
-          };
-        }
-      }
+      promises.push(promise);
     }
     
+    await Promise.all(promises);
     return results;
   } catch (error) {
     console.error("Translation error:", error);

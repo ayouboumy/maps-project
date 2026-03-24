@@ -45,7 +45,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           <div className="inline-block px-3 py-1 bg-emerald-500/80 backdrop-blur-sm rounded-full text-xs font-medium mb-2">
             {t(mosque.type, language)}
           </div>
-          <h1 className="text-3xl font-bold mb-1">{getLocalizedName(mosque, language)}</h1>
+          <h1 className="text-3xl font-bold mb-1">{mosque.name}</h1>
           <div className="flex items-center text-white/80 text-sm">
             <MapPin size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
             {mosque.address}

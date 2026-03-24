@@ -44,7 +44,7 @@ export default function FavoritesScreen() {
                 </div>
                 <div className="p-4">
                   <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
-                  <h3 className="font-bold text-gray-900 mb-1">{getLocalizedName(mosque, language)}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1">{mosque.name}</h3>
                   <div className="flex items-start text-gray-500 text-sm">
                     <MapPin size={14} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                     <span className="line-clamp-1">{mosque.address}</span>
