@@ -1,4 +1,4 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, RefreshCw, Trash2, X } from 'lucide-react';
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
@@ -6,11 +6,12 @@ import { t, dictionary } from '../utils/translations';
 import { translateTerms, mapExcelColumns } from '../utils/gemini';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune } = useAppStore();
+  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune, resetApp } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const communes = useMemo(() => {
     const allCommunes = mosques.map(m => {
@@ -313,6 +314,49 @@ export default function SettingsScreen() {
                 : <AlertCircle size={16} className={`mt-0.5 shrink-0 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               }
               {status.message}
+            </div>
+          )}
+        </div>
+
+        {/* Reset App */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mx-3">
+              <RefreshCw size={20} className="text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{t('Reset App', language)}</h2>
+              <p className="text-sm text-gray-500">{t('Clear all data and settings', language)}</p>
+            </div>
+          </div>
+          
+          {!showResetConfirm ? (
+            <button 
+              onClick={() => setShowResetConfirm(true)}
+              className="w-full flex items-center justify-center py-3 bg-red-50 text-red-700 rounded-xl font-medium hover:bg-red-100 transition-colors"
+            >
+              <Trash2 size={18} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+              {t('Reset App', language)}
+            </button>
+          ) : (
+            <div className="space-y-3 p-3 bg-red-50 rounded-xl border border-red-100">
+              <p className="text-sm text-red-800 font-medium">
+                {t('Resetting the app will clear all your favorites and imported data. This cannot be undone.', language)}
+              </p>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => resetApp()}
+                  className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
+                >
+                  {t('Reset Now', language)}
+                </button>
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  {t('Cancel', language)}
+                </button>
+              </div>
             </div>
           )}
         </div>

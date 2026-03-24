@@ -84,6 +84,15 @@ export const dictionary: Record<string, Record<Language, string>> = {
   'Translating content...': { en: 'Translating content...', fr: 'Traduction du contenu...', ar: 'ترجمة المحتوى...' },
   'Import Progress': { en: 'Import Progress', fr: 'Progression de l\'importation', ar: 'تقدم الاستيراد' },
   'mosques.': { en: 'mosques.', fr: 'mosquées.', ar: 'مساجد.' },
+  'Reset App': { en: 'Reset App', fr: 'Réinitialiser l\'application', ar: 'إعادة ضبط التطبيق' },
+  'Clear all data and settings': { en: 'Clear all data and settings', fr: 'Effacer toutes les données et paramètres', ar: 'مسح جميع البيانات والإعدادات' },
+  'Resetting the app will clear all your favorites and imported data. This cannot be undone.': { 
+    en: 'Resetting the app will clear all your favorites and imported data. This cannot be undone.', 
+    fr: 'La réinitialisation de l\'application effacera tous vos favoris et données importées. Cette action est irréversible.', 
+    ar: 'سيؤدي إعادة ضبط التطبيق إلى مسح جميع مفضلاتك والبيانات المستوردة. لا يمكن التراجع عن هذا الإجراء.' 
+  },
+  'Reset Now': { en: 'Reset Now', fr: 'Réinitialiser maintenant', ar: 'إعادة الضبط الآن' },
+  'Cancel': { en: 'Cancel', fr: 'Annuler', ar: 'إلغاء' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

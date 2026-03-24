@@ -35,6 +35,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
   setSelectedCommune: (commune: string | null) => void;
+  resetApp: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -70,6 +71,10 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: { ...state.dynamicTranslations, ...translations } 
       })),
       setSelectedCommune: (commune) => set({ selectedCommune: commune }),
+      resetApp: () => {
+        localStorage.clear();
+        window.location.reload();
+      }
     }),
     {
       name: 'mosque-finder-storage',

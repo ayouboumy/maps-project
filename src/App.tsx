@@ -51,7 +51,7 @@ export default function App() {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {/* Mobile container constraint for desktop viewing */}
-      <div className="w-full max-w-md h-full bg-white relative shadow-2xl overflow-hidden flex flex-col">
+      <div className="w-full max-w-md h-[100dvh] bg-white relative shadow-2xl overflow-hidden flex flex-col">
         
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden">
