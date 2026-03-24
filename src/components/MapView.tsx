@@ -24,14 +24,21 @@ const customIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-const userIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+const destinationIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   tooltipAnchor: [0, -28],
   shadowSize: [41, 41]
+});
+
+const userIcon = L.divIcon({
+  className: 'custom-user-icon',
+  html: `<div style="width: 18px; height: 18px; background-color: #4285F4; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3);"></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9]
 });
 
 function MapController({ showNearest, nearestMosques, routingToMosque }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any }) {
@@ -115,29 +122,44 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     };
   }, [isMainRoute, setRouteInfo]);
 
-  const mainColor = routeProfile === 'driving' ? '#3b82f6' : '#10b981';
-  const outlineColor = routeProfile === 'driving' ? '#1e3a8a' : '#064e3b';
+  const isDriving = routeProfile === 'driving';
+  
+  // Google Maps Colors
+  const mainInnerColor = isDriving ? '#4285F4' : '#1A73E8'; // Google Blue
+  const mainOuterColor = isDriving ? '#174EA6' : '#FFFFFF'; // Dark blue casing for driving, white halo for walking
+  
+  const altInnerColor = '#80868B'; // Gray
+  const altOuterColor = '#5F6368'; // Dark Gray
+
+  const innerColor = isMainRoute ? mainInnerColor : altInnerColor;
+  const outerColor = isMainRoute ? mainOuterColor : altOuterColor;
+
+  const innerWeight = isDriving ? 6 : 6;
+  const outerWeight = isDriving ? 10 : 10;
+
+  const dashArray = isDriving ? undefined : (isMainRoute ? "1, 14" : "5, 12");
 
   return (
     <>
-      {/* Outer stroke for better visibility on satellite map */}
+      {/* Outer stroke (Casing/Halo) */}
       <Polyline 
         positions={positions}
-        color={isMainRoute ? outlineColor : "#000000"}
-        weight={isMainRoute ? 8 : 5}
-        opacity={isMainRoute ? 0.8 : 0.5}
+        color={outerColor}
+        weight={outerWeight}
+        opacity={isMainRoute ? 1 : 0.8}
         lineCap="round"
         lineJoin="round"
+        dashArray={dashArray}
       />
       {/* Inner colored stroke */}
       <Polyline 
         positions={positions}
-        color={isMainRoute ? mainColor : "#94a3b8"}
-        weight={isMainRoute ? 4 : 3}
+        color={innerColor}
+        weight={innerWeight}
         opacity={1}
-        dashArray={!isMainRoute ? "8, 8" : undefined}
         lineCap="round"
         lineJoin="round"
+        dashArray={dashArray}
       >
         {!isMainRoute && (
           <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
@@ -222,38 +244,41 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         ))}
 
-        {displayedMosques.map((mosque) => (
-          <Marker
-            key={mosque.id}
-            position={[mosque.latitude, mosque.longitude]}
-            icon={customIcon}
-            eventHandlers={{
-              click: () => {
-                setSelectedMosque(mosque);
-                setRoutingToMosque(null); // Clear routing when selecting a new mosque
-              },
-            }}
-          >
-            {(zoom >= 14 || showNearest || (routingToMosque && routingToMosque.id === mosque.id)) && (
-              <Tooltip 
-                direction="top" 
-                offset={[0, -10]} 
-                opacity={0.9} 
-                permanent 
-                className="bg-white/90 border-none shadow-md rounded px-2 py-1"
-              >
-                <div className="flex flex-col items-center">
-                  <div 
-                    className="max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-gray-800 text-center"
-                    title={getLocalizedName(mosque, language)}
-                  >
-                    {getLocalizedName(mosque, language)}
+        {displayedMosques.map((mosque) => {
+          const isDestination = routingToMosque && routingToMosque.id === mosque.id;
+          return (
+            <Marker
+              key={mosque.id}
+              position={[mosque.latitude, mosque.longitude]}
+              icon={isDestination ? destinationIcon : customIcon}
+              eventHandlers={{
+                click: () => {
+                  setSelectedMosque(mosque);
+                  setRoutingToMosque(null); // Clear routing when selecting a new mosque
+                },
+              }}
+            >
+              {(zoom >= 14 || showNearest || isDestination) && (
+                <Tooltip 
+                  direction="top" 
+                  offset={[0, -10]} 
+                  opacity={0.9} 
+                  permanent 
+                  className={`bg-white/90 border-none shadow-md rounded px-2 py-1 ${isDestination ? 'ring-2 ring-red-500' : ''}`}
+                >
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className={`max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center ${isDestination ? 'text-red-600' : 'text-gray-800'}`}
+                      title={getLocalizedName(mosque, language)}
+                    >
+                      {getLocalizedName(mosque, language)}
+                    </div>
                   </div>
-                </div>
-              </Tooltip>
-            )}
-          </Marker>
-        ))}
+                </Tooltip>
+              )}
+            </Marker>
+          );
+        })}
         
         <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} />
       </MapContainer>

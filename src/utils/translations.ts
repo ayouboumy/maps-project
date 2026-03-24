@@ -64,6 +64,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Start': { en: 'Start', fr: 'Démarrer', ar: 'ابدأ' },
   'Walking': { en: 'Walking', fr: 'À pied', ar: 'مشي' },
   'Driving': { en: 'Driving', fr: 'En voiture', ar: 'قيادة' },
+  'Your Location': { en: 'Your Location', fr: 'Votre position', ar: 'موقعك' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

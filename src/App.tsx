@@ -60,22 +60,24 @@ export default function App() {
               <MapView showNearest={showNearest} />
               
               {/* Floating Location Button */}
-              <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3`}>
-                <button 
-                  onClick={requestLocation}
-                  className="p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors"
-                  title={t("My Location", language)}
-                >
-                  <LocateFixed size={24} className={isLocating ? "animate-pulse text-emerald-500" : ""} />
-                </button>
-                <button 
-                  onClick={() => setShowNearest(!showNearest)}
-                  className={`p-3 rounded-full shadow-md transition-colors ${showNearest ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:text-emerald-600'}`}
-                  title={t("Nearest Mosques", language)}
-                >
-                  <MapPin size={24} />
-                </button>
-              </div>
+              {!routingToMosque && (
+                <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3`}>
+                  <button 
+                    onClick={requestLocation}
+                    className="p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-blue-600 transition-colors"
+                    title={t("My Location", language)}
+                  >
+                    <LocateFixed size={24} className={isLocating ? "animate-pulse text-blue-500" : ""} />
+                  </button>
+                  <button 
+                    onClick={() => setShowNearest(!showNearest)}
+                    className={`p-3 rounded-full shadow-md transition-colors ${showNearest ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:text-blue-600'}`}
+                    title={t("Nearest Mosques", language)}
+                  >
+                    <MapPin size={24} />
+                  </button>
+                </div>
+              )}
 
               {locationError && (
                 <div className="absolute top-safe-20 left-4 right-4 z-[1000] p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl shadow-sm">
@@ -95,7 +97,7 @@ export default function App() {
           {activeTab === 'settings' && <SettingsScreen />}
         </div>
 
-        <BottomNav />
+        {!routingToMosque && <BottomNav />}
       </div>
     </div>
   );
