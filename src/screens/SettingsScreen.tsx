@@ -30,12 +30,23 @@ export default function SettingsScreen() {
     setProgress(10);
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (!result) {
+        setStatus({ type: 'error', message: t('Failed to read file.', language) });
+        setIsTranslating(false);
+        return;
+      }
+
+      const data = new Uint8Array(result as ArrayBuffer);
+      
       setTimeout(async () => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
+          if (!firstSheetName) {
+            throw new Error(t("The Excel file is empty.", language));
+          }
           const worksheet = workbook.Sheets[firstSheetName];
           const parsed = XLSX.utils.sheet_to_json(worksheet);
         
@@ -43,8 +54,8 @@ export default function SettingsScreen() {
             throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
           }
 
+          setStatus({ type: 'info', message: `${t('Found', language)} ${parsed.length} ${t('rows. Mapping columns...', language)}` });
           setProgress(20);
-          setStatus({ type: 'info', message: t('Analyzing columns...', language) });
 
           // Get all unique headers from the first few rows, sanitized and limited
           const headers = Array.from(new Set(parsed.slice(0, 10).flatMap(row => Object.keys(row as object))))
@@ -53,21 +64,40 @@ export default function SettingsScreen() {
             .slice(0, 150); // Limit to 150 columns max
           
           // Use Gemini to map columns intelligently
-          const mapping = await mapExcelColumns(headers);
+          let mapping = await mapExcelColumns(headers);
           
+          // Fallback mapping if Gemini fails or returns empty
+          const findHeader = (patterns: RegExp[]) => 
+            headers.find(h => patterns.some(p => p.test(h)));
+
+          if (!mapping.name) mapping.name = findHeader([/nom/i, /mosqu/i, /intitul/i, /name/i]);
+          if (!mapping.latitude) mapping.latitude = findHeader([/lat/i, /coord_x/i, /gps_x/i, /^x$/i]);
+          if (!mapping.longitude) mapping.longitude = findHeader([/long/i, /coord_y/i, /gps_y/i, /^y$/i]);
+          if (!mapping.address) mapping.address = findHeader([/adresse/i, /localis/i, /lieu/i, /emplacement/i, /douar/i, /quartier/i]);
+          if (!mapping.commune) mapping.commune = findHeader([/commune/i, /ville/i, /municipalit/i, /province/i, /cercle/i]);
+          if (!mapping.type) mapping.type = findHeader([/type/i, /catégorie/i, /genre/i, /nature/i]);
+          if (!mapping.services) mapping.services = findHeader([/service/i, /prestation/i, /équipement/i, /equipement/i]);
+
           setProgress(40);
           setStatus({ type: 'info', message: t('Importing data...', language) });
 
           const formattedMosques = parsed.map((item: any, index: number) => {
             const getVal = (key?: string) => key ? item[key] : undefined;
+            const parseCoord = (val: any) => {
+              if (val === undefined || val === null || val === '') return 0;
+              // Handle French decimals (commas) and non-numeric characters
+              const str = String(val).replace(',', '.').replace(/[^\d.-]/g, '');
+              const num = parseFloat(str);
+              return isNaN(num) ? 0 : num;
+            };
 
             const id = getVal(mapping.id) || index + 1;
             const name_ar = getVal(mapping.name_ar);
             const name_fr = getVal(mapping.name_fr);
             const name_en = getVal(mapping.name_en);
             const name = getVal(mapping.name) || name_fr || name_ar || name_en || 'Unknown Mosque';
-            const latitude = Number(getVal(mapping.latitude)) || 0;
-            const longitude = Number(getVal(mapping.longitude)) || 0;
+            const latitude = parseCoord(getVal(mapping.latitude));
+            const longitude = parseCoord(getVal(mapping.longitude));
             
             const rawAddress = getVal(mapping.address);
             const addressStr = rawAddress ? String(rawAddress).trim() : '';

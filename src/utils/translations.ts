@@ -28,6 +28,11 @@ export const dictionary: Record<string, Record<Language, string>> = {
     ar: 'اضغط على أيقونة القلب على المسجد لإضافته إلى مفضلتك.' 
   },
   'Successfully imported': { en: 'Successfully imported', fr: 'Importation réussie de', ar: 'تم استيراد بنجاح' },
+  'The Excel file is empty.': { en: 'The Excel file is empty.', fr: 'Le fichier Excel est vide.', ar: 'ملف إكسل فارغ.' },
+  'Failed to read file.': { en: 'Failed to read file.', fr: 'Échec de la lecture du fichier.', ar: 'فشل في قراءة الملف.' },
+  'Found': { en: 'Found', fr: 'Trouvé', ar: 'تم العثور على' },
+  'rows. Mapping columns...': { en: 'rows. Mapping columns...', fr: 'lignes. Mappage des colonnes...', ar: 'صفوف. جاري ربط الأعمدة...' },
+  'The Excel file has no sheets.': { en: 'The Excel file has no sheets.', fr: 'Le fichier Excel n\'a pas de feuilles.', ar: 'ملف إكسل لا يحتوي على أوراق.' },
   'mosques from Excel.': { en: 'mosques from Excel.', fr: 'mosquées depuis Excel.', ar: 'مسجد من إكسل.' },
   'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.': { en: 'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.', fr: 'Format invalide : Impossible d\'extraire des données valides (nom, latitude, longitude) du fichier Excel.', ar: 'تنسيق غير صالح: تعذر استخراج بيانات مسجد صالحة (الاسم، خط العرض، خط الطول) من ملف إكسل.' },
   'Invalid format: Expected rows of mosques in the Excel sheet.': { en: 'Invalid format: Expected rows of mosques in the Excel sheet.', fr: 'Format invalide : Des lignes de mosquées étaient attendues dans la feuille Excel.', ar: 'تنسيق غير صالح: كان من المتوقع وجود صفوف من المساجد في ورقة إكسل.' },
