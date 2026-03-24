@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Plus, Minus } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
-import { getLocalizedName } from '../utils/translations';
+import { getLocalizedName, t } from '../utils/translations';
 
 // Fix for default marker icons in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -82,6 +83,36 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   }, [map, onZoomChange]);
   
   return null;
+}
+
+function CustomZoomControl() {
+  const map = useMap();
+  const { language, routingToMosque } = useAppStore();
+  
+  // If we are routing, the location buttons are hidden in App.tsx, 
+  // so we can move zoom buttons up or keep them consistent.
+  // The location buttons in App.tsx are at top-safe-4 (approx 16px + safe area)
+  // They take up about 110px in height.
+  const topPosition = routingToMosque ? 'top-safe-4' : 'top-40';
+
+  return (
+    <div className={`absolute ${topPosition} ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-2`}>
+      <button 
+        onClick={() => map.zoomIn()}
+        className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
+        title="Zoom In"
+      >
+        <Plus size={20} />
+      </button>
+      <button 
+        onClick={() => map.zoomOut()}
+        className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
+        title="Zoom Out"
+      >
+        <Minus size={20} />
+      </button>
+    </div>
+  );
 }
 
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, key?: string, isMainRoute?: boolean, routeProfile?: string }) {
@@ -215,11 +246,28 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         zoomControl={false}
       >
         <ZoomListener onZoomChange={setZoom} />
+        <CustomZoomControl />
         
-        <TileLayer
-          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        />
+        <LayersControl position={language === 'ar' ? 'topright' : 'topleft'}>
+          <LayersControl.BaseLayer checked name={t('Satellite', language)}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name={t('Streets', language)}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name={t('Terrain', language)}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
         
         {userLocation && (
           <Marker 
