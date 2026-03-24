@@ -22,6 +22,7 @@ interface AppState {
   userLocation: { latitude: number; longitude: number } | null;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
+  selectedCommune: string | null;
   
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
@@ -33,6 +34,7 @@ interface AppState {
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
+  setSelectedCommune: (commune: string | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -48,6 +50,7 @@ export const useAppStore = create<AppState>()(
       userLocation: null,
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
+      selectedCommune: null,
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -66,6 +69,7 @@ export const useAppStore = create<AppState>()(
       addDynamicTranslations: (translations) => set((state) => ({ 
         dynamicTranslations: { ...state.dynamicTranslations, ...translations } 
       })),
+      setSelectedCommune: (commune) => set({ selectedCommune: commune }),
     }),
     {
       name: 'mosque-finder-storage',
@@ -73,7 +77,8 @@ export const useAppStore = create<AppState>()(
         favorites: state.favorites, 
         mosques: state.mosques, 
         language: state.language,
-        dynamicTranslations: state.dynamicTranslations
+        dynamicTranslations: state.dynamicTranslations,
+        selectedCommune: state.selectedCommune
       }),
     }
   )

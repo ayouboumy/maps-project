@@ -11,6 +11,7 @@ export interface Mosque {
   services: string[];
   items: string[];
   image: string;
+  commune: string;
   extraData?: Record<string, any>;
 }
 

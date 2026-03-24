@@ -1,6 +1,6 @@
 import { Language, useAppStore } from '../store/useAppStore';
 
-const dictionary: Record<string, Record<Language, string>> = {
+export const dictionary: Record<string, Record<Language, string>> = {
   // UI Elements
   'Settings': { en: 'Settings', fr: 'Paramètres', ar: 'الإعدادات' },
   'Data Management': { en: 'Data Management', fr: 'Gestion des données', ar: 'إدارة البيانات' },
@@ -68,6 +68,19 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Share': { en: 'Share', fr: 'Partager', ar: 'مشاركة' },
   'View Full Details': { en: 'View Full Details', fr: 'Voir les détails complets', ar: 'عرض التفاصيل الكاملة' },
   'Nearby Mosques': { en: 'Nearby Mosques', fr: 'Mosquées à proximité', ar: 'مساجد قريبة' },
+  'Commune': { en: 'Commune', fr: 'Commune', ar: 'الجماعة' },
+  'Map Settings': { en: 'Map Settings', fr: 'Paramètres de la carte', ar: 'إعدادات الخريطة' },
+  'Filter by Commune': { en: 'Filter by Commune', fr: 'Filtrer par commune', ar: 'تصفية حسب الجماعة' },
+  'Select Commune': { en: 'Select Commune', fr: 'Sélectionner une commune', ar: 'اختر الجماعة' },
+  'None': { en: 'None', fr: 'Aucun', ar: 'لا شيء' },
+  'Only mosques in': { en: 'Only mosques in', fr: 'Seules les mosquées de', ar: 'فقط المساجد في' },
+  'will be shown on the map.': { en: 'will be shown on the map.', fr: 'seront affichées sur la carte.', ar: 'ستظهر على الخريطة.' },
+  'Street View': { en: 'Street View', fr: 'Street View', ar: 'عرض الشارع' },
+  'Analyzing columns...': { en: 'Analyzing columns...', fr: 'Analyse des colonnes...', ar: 'تحليل الأعمدة...' },
+  'Importing data...': { en: 'Importing data...', fr: 'Importation des données...', ar: 'استيراد البيانات...' },
+  'Translating content...': { en: 'Translating content...', fr: 'Traduction du contenu...', ar: 'ترجمة المحتوى...' },
+  'Import Progress': { en: 'Import Progress', fr: 'Progression de l\'importation', ar: 'تقدم الاستيراد' },
+  'mosques.': { en: 'mosques.', fr: 'mosquées.', ar: 'مساجد.' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },
@@ -94,6 +107,23 @@ const dictionary: Record<string, Record<Language, string>> = {
   'en construction': { en: 'Under construction', fr: 'En construction', ar: 'قيد الإنشاء' },
   'fermé': { en: 'Closed', fr: 'Fermé', ar: 'مغلق' },
   'ouvert': { en: 'Open', fr: 'Ouvert', ar: 'مفتوح' },
+  'mosquée de quartier': { en: 'Neighborhood Mosque', fr: 'Mosquée de quartier', ar: 'مسجد حي' },
+  'grande mosquée': { en: 'Grand Mosque', fr: 'Grande mosquée', ar: 'مسجد كبير' },
+  'salle de prière rurale': { en: 'Rural Prayer Room', fr: 'Salle de prière rurale', ar: 'قاعة صلاة قروية' },
+  'salle de prière urbaine': { en: 'Urban Prayer Room', fr: 'Salle de prière urbaine', ar: 'قاعة صلاة حضرية' },
+  'mosquée rurale': { en: 'Rural Mosque', fr: 'Mosquée rurale', ar: 'مسجد قروي' },
+  'mosquée urbaine': { en: 'Urban Mosque', fr: 'Mosquée urbaine', ar: 'مسجد حضري' },
+  'commune': { en: 'Commune', fr: 'Commune', ar: 'الجماعة' },
+  'province': { en: 'Province', fr: 'Province', ar: 'الإقليم' },
+  'region': { en: 'Region', fr: 'Région', ar: 'الجهة' },
+  'adresse': { en: 'Address', fr: 'Adresse', ar: 'العنوان' },
+  'nom': { en: 'Name', fr: 'Nom', ar: 'الاسم' },
+  'type': { en: 'Type', fr: 'Type', ar: 'النوع' },
+  'statut': { en: 'Status', fr: 'Statut', ar: 'الوضعية' },
+  'propriété': { en: 'Property', fr: 'Propriété', ar: 'الملكية' },
+  'habous': { en: 'Habous', fr: 'Habous', ar: 'حبوس' },
+  'privé': { en: 'Private', fr: 'Privé', ar: 'خاص' },
+  'public': { en: 'Public', fr: 'Public', ar: 'عام' },
 };
 
 export function t(key: string, lang: Language): string {

@@ -1,15 +1,24 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2 } from 'lucide-react';
-import { useRef, useState, ChangeEvent } from 'react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin } from 'lucide-react';
+import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
-import { t } from '../utils/translations';
-import { translateTerms } from '../utils/gemini';
+import { t, dictionary } from '../utils/translations';
+import { translateTerms, mapExcelColumns } from '../utils/gemini';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage, addDynamicTranslations } = useAppStore();
+  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const communes = useMemo(() => {
+    const allCommunes = mosques.map(m => {
+      if (m.commune) return m.commune;
+      return (m.address.split(',')[0] || 'Unknown').trim();
+    }).filter(Boolean);
+    return Array.from(new Set(allCommunes)).sort();
+  }, [mosques]);
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -17,10 +26,10 @@ export default function SettingsScreen() {
 
     setStatus({ type: 'info', message: t('Parsing Excel file...', language) });
     setIsTranslating(true);
+    setProgress(10);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      // Use setTimeout to allow the UI to render the "Parsing..." state before blocking the main thread
       setTimeout(async () => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -29,160 +38,131 @@ export default function SettingsScreen() {
           const worksheet = workbook.Sheets[firstSheetName];
           const parsed = XLSX.utils.sheet_to_json(worksheet);
         
-        if (Array.isArray(parsed)) {
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
+          }
+
+          setProgress(20);
+          setStatus({ type: 'info', message: t('Analyzing columns...', language) });
+
+          // Get all unique headers from the first few rows, sanitized and limited
+          const headers = Array.from(new Set(parsed.slice(0, 10).flatMap(row => Object.keys(row as object))))
+            .map(h => String(h).trim().slice(0, 200)) // Truncate extremely long headers
+            .filter(h => h.length > 0)
+            .slice(0, 150); // Limit to 150 columns max
+          
+          // Use Gemini to map columns intelligently
+          const mapping = await mapExcelColumns(headers);
+          
+          setProgress(40);
+          setStatus({ type: 'info', message: t('Importing data...', language) });
+
           const formattedMosques = parsed.map((item: any, index: number) => {
-            // Helper to find keys case-insensitively
-            const getVal = (keys: string[]) => {
-              const foundKey = Object.keys(item).find(k => keys.includes(k.toLowerCase().trim()));
-              return foundKey ? item[foundKey] : undefined;
-            };
+            const getVal = (key?: string) => key ? item[key] : undefined;
 
-            const id = getVal(['id']) || index + 1;
-            const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar']);
-            const name_fr = getVal(['dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'name_fr', 'name fr']);
-            const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
-            const genericName = getVal(['nom', 'dénomination', 'denomination', 'name', 'mosque name', 'mosque']);
-            const name = genericName || name_fr || name_ar || name_en || 'Unknown Mosque';
-            const latitude = Number(getVal(['latitude', 'lat'])) || 0;
-            const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
-            const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
-            const type = getVal(['type', 'category']) || 'Mosque';
-            const servicesRaw = getVal(['services', 'facilities']);
-            const itemsRaw = getVal(['items', 'amenities', 'features']);
-            const image = getVal(['image', 'photo', 'picture']) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+            const id = getVal(mapping.id) || index + 1;
+            const name_ar = getVal(mapping.name_ar);
+            const name_fr = getVal(mapping.name_fr);
+            const name_en = getVal(mapping.name_en);
+            const name = getVal(mapping.name) || name_fr || name_ar || name_en || 'Unknown Mosque';
+            const latitude = Number(getVal(mapping.latitude)) || 0;
+            const longitude = Number(getVal(mapping.longitude)) || 0;
+            
+            const rawAddress = getVal(mapping.address);
+            const addressStr = rawAddress ? String(rawAddress).trim() : '';
+            
+            const rawCommune = getVal(mapping.commune);
+            const communeStr = rawCommune ? String(rawCommune).trim() : (addressStr ? addressStr.split(',')[0].trim() : '');
+            
+            const address = addressStr || t('Unknown Address', language);
+            const commune = communeStr || t('Unknown', language);
+            
+            const rawType = getVal(mapping.type);
+            const type = rawType ? String(rawType).trim() : 'Mosque';
+            const servicesRaw = getVal(mapping.services);
+            const itemsRaw = getVal(mapping.items);
+            const image = getVal(mapping.image) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
 
-            // Handle comma-separated strings for arrays
             const parseArray = (val: any) => {
-              if (Array.isArray(val)) return val;
+              if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
               if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
               return [];
             };
 
-            // Collect all other columns into extraData
-            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture'];
+            // Collect extra data
+            const mappedValues = Object.values(mapping);
             const extraData: Record<string, any> = {};
-            const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
-            
             Object.keys(item).forEach(key => {
-              const lowerKey = key.toLowerCase().trim();
-              if (standardKeys.includes(lowerKey)) return;
-
+              if (mappedValues.includes(key)) return;
               const val = item[key];
-              
-              // Ignore missing values and "N"
-              if (val === null || val === undefined || val === '') return;
-              if (String(val).trim().toUpperCase() === 'N') return;
-
-              let isCombined = false;
-              
-              if (lowerKey.startsWith('nombre')) {
-                const base = lowerKey.replace(/^nombre\s*/, '').trim();
-                if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^nombre\s*/i, '').trim() };
-                  combinedData[base].N = val;
-                  isCombined = true;
-                }
-              } else if (lowerKey.startsWith('surface')) {
-                const base = lowerKey.replace(/^surface\s*/, '').trim();
-                if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^surface\s*/i, '').trim() };
-                  combinedData[base].S = val;
-                  isCombined = true;
-                }
-              }
-
-              if (!isCombined) {
-                extraData[key] = val;
-              }
-            });
-
-            // Process combined data
-            Object.keys(combinedData).forEach(base => {
-              const { N, S, originalKey } = combinedData[base];
-              const displayKey = originalKey || base;
-              
-              if (N !== undefined && S !== undefined) {
-                extraData[displayKey] = `N=${N}, S=${S}`;
-              } else if (N !== undefined) {
-                extraData[`Nombre ${displayKey}`] = N;
-              } else if (S !== undefined) {
-                extraData[`Surface ${displayKey}`] = S;
-              }
+              if (val === null || val === undefined || val === '' || String(val).trim().toUpperCase() === 'N') return;
+              extraData[key] = val;
             });
 
             return {
-              id,
-              name,
-              name_ar,
-              name_fr,
-              name_en,
-              latitude,
-              longitude,
-              address,
-              type,
+              id, name, name_ar, name_fr, name_en, latitude, longitude, address, commune, type,
               services: parseArray(servicesRaw),
               items: parseArray(itemsRaw),
-              image,
-              extraData
+              image, extraData
             };
           });
 
-          // Basic validation to ensure it looks like mosque data
-          const isValid = formattedMosques.every(item => 
-            item.name && !isNaN(item.latitude) && !isNaN(item.longitude)
-          );
-          
-          if (isValid && formattedMosques.length > 0) {
-            importMosques(formattedMosques);
-            setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques from Excel.', language)}` });
-            setIsTranslating(false); // Stop loading spinner immediately
-            
-            // Extract terms for translation in the background
-            const termCounts: Record<string, number> = {};
-            const addTerm = (term: any) => {
-              if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
-                termCounts[term] = (termCounts[term] || 0) + 1;
-              }
-            };
+          setProgress(60);
+          setStatus({ type: 'info', message: t('Translating content...', language) });
 
-            formattedMosques.forEach(m => {
-              addTerm(m.type);
-              if (Array.isArray(m.services)) m.services.forEach(addTerm);
-              if (Array.isArray(m.items)) m.items.forEach(addTerm);
-              if (m.extraData) {
-                Object.entries(m.extraData).forEach(([k, v]) => {
-                  addTerm(k);
-                  addTerm(v);
-                });
-              }
-            });
-
-            const existingDict = useAppStore.getState().dynamicTranslations || {};
-            
-            // Sort by frequency and take top 100 to avoid long API calls
-            const filteredTerms = Object.keys(termCounts)
-              .filter(term => !existingDict[term])
-              .sort((a, b) => termCounts[b] - termCounts[a])
-              .slice(0, 100);
-
-            if (filteredTerms.length > 0) {
-              // Run translation in background without awaiting
-              translateTerms(filteredTerms).then(newTranslations => {
-                if (Object.keys(newTranslations).length > 0) {
-                  addDynamicTranslations(newTranslations);
-                }
-              }).catch(console.error);
+          // Extract terms for translation
+          const termCounts: Record<string, number> = {};
+          const addTerm = (term: any) => {
+            if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
+              const cleanTerm = term.trim();
+              termCounts[cleanTerm] = (termCounts[cleanTerm] || 0) + 1;
             }
-          } else {
-            throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
+          };
+
+          formattedMosques.forEach(m => {
+            addTerm(m.type);
+            addTerm(m.commune);
+            if (Array.isArray(m.services)) m.services.forEach(addTerm);
+            if (Array.isArray(m.items)) m.items.forEach(addTerm);
+            if (m.extraData) {
+              Object.entries(m.extraData).forEach(([k, v]) => {
+                addTerm(k);
+                addTerm(v);
+              });
+            }
+          });
+
+          const existingDict = useAppStore.getState().dynamicTranslations || {};
+          const filteredTerms = Object.keys(termCounts)
+            .filter(term => {
+              const lower = term.toLowerCase();
+              // Skip if in static dictionary
+              if (Object.keys(dictionary).some(k => k.toLowerCase() === lower)) return false;
+              // Skip if in dynamic translations
+              if (Object.keys(existingDict).some(k => k.toLowerCase() === lower)) return false;
+              // Skip if it's already a translation of something else
+              if (term === 'Unknown Address' || term === 'Unknown') return false;
+              if (term === t('Unknown Address', language) || term === t('Unknown', language)) return false;
+              return true;
+            })
+            .sort((a, b) => termCounts[b] - termCounts[a])
+            .slice(0, 400); // Increase limit to 400
+
+          if (filteredTerms.length > 0) {
+            const newTranslations = await translateTerms(filteredTerms);
+            if (Object.keys(newTranslations).length > 0) {
+              addDynamicTranslations(newTranslations);
+            }
           }
-        } else {
-          throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
-        }
+
+          setProgress(100);
+          importMosques(formattedMosques);
+          setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
         } catch (error: any) {
           setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
         } finally {
           setIsTranslating(false);
+          setTimeout(() => setProgress(0), 2000);
         }
         
         // Reset input so the same file can be uploaded again if needed
@@ -230,6 +210,40 @@ export default function SettingsScreen() {
           </div>
         </div>
 
+        {/* Map Settings */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center mx-3">
+              <MapPin size={20} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{t('Map Settings', language)}</h2>
+              <p className="text-sm text-gray-500">{t('Filter by Commune', language)}</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              {t('Select Commune', language)}
+            </label>
+            <select
+              value={selectedCommune || ''}
+              onChange={(e) => setSelectedCommune(e.target.value || null)}
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+            >
+              <option value="">{t('None', language)}</option>
+              {communes.map(commune => (
+                <option key={commune} value={commune}>{commune}</option>
+              ))}
+            </select>
+            {selectedCommune && (
+              <p className="text-xs text-indigo-600 font-medium">
+                {t('Only mosques in', language)} "{selectedCommune}" {t('will be shown on the map.', language)}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Data Management */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center mb-4">
@@ -270,6 +284,21 @@ export default function SettingsScreen() {
             )}
             {isTranslating ? t('Translating...', language) : t('Import Excel File', language)}
           </button>
+
+          {progress > 0 && (
+            <div className="mt-4">
+              <div className="flex justify-between text-xs font-medium text-gray-500 mb-1.5">
+                <span>{t('Import Progress', language)}</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {status && (
             <div className={`mt-4 p-3 rounded-xl flex items-start text-sm ${

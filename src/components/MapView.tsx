@@ -175,7 +175,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile } = useAppStore();
+  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   // Default center (Casablanca)
@@ -183,10 +183,15 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     ? [userLocation.latitude, userLocation.longitude] as [number, number]
     : [33.5731, -7.5898] as [number, number];
 
+  const filteredByCommune = useMemo(() => {
+    if (!selectedCommune) return mosques;
+    return mosques.filter(m => m.commune === selectedCommune);
+  }, [mosques, selectedCommune]);
+
   const nearestMosques = useMemo(() => {
-    if (!userLocation || mosques.length === 0) return [];
+    if (!userLocation || filteredByCommune.length === 0) return [];
     
-    const withDistance = mosques.map(mosque => ({
+    const withDistance = filteredByCommune.map(mosque => ({
       ...mosque,
       distance: getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
@@ -197,9 +202,9 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return withDistance
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 3);
-  }, [mosques, userLocation]);
+  }, [filteredByCommune, userLocation]);
 
-  const displayedMosques = showNearest && userLocation ? nearestMosques : mosques;
+  const displayedMosques = showNearest && userLocation ? nearestMosques : filteredByCommune;
 
   return (
     <div className="w-full h-full z-0">
