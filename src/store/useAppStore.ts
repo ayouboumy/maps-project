@@ -83,7 +83,8 @@ export const useAppStore = create<AppState>()(
         mosques: state.mosques, 
         language: state.language,
         dynamicTranslations: state.dynamicTranslations,
-        selectedCommune: state.selectedCommune
+        selectedCommune: state.selectedCommune,
+        userLocation: state.userLocation
       }),
     }
   )

@@ -47,23 +47,33 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
   const map = useMap();
 
   useEffect(() => {
+    if (!map) return;
+
     if (routingToMosque && userLocation) {
       const bounds = L.latLngBounds([
         [userLocation.latitude, userLocation.longitude],
         [routingToMosque.latitude, routingToMosque.longitude]
       ]);
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
     } else if (selectedMosque) {
       // Fly to selected mosque when it changes
-      map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
+      map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 16, { 
+        duration: 1.5,
+        easeLinearity: 0.25
+      });
     } else if (showNearest && userLocation && nearestMosques.length > 0) {
       const bounds = L.latLngBounds([
         [userLocation.latitude, userLocation.longitude],
         ...nearestMosques.map(m => [m.latitude, m.longitude] as [number, number])
       ]);
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [70, 70], maxZoom: 16 });
     } else if (!showNearest && userLocation && !routingToMosque) {
-      map.flyTo([userLocation.latitude, userLocation.longitude], 13);
+      // Only fly to user location if it's a valid coordinate
+      if (Math.abs(userLocation.latitude) > 0.1 || Math.abs(userLocation.longitude) > 0.1) {
+        map.flyTo([userLocation.latitude, userLocation.longitude], 15, {
+          duration: 1.5
+        });
+      }
     }
   }, [userLocation, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
 
@@ -123,8 +133,12 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
   useEffect(() => {
     let isMounted = true;
     const fetchRoute = async () => {
+      if (!start[0] || !start[1] || !end[0] || !end[1]) return;
+      
       try {
         const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
+        if (!response.ok) throw new Error(`OSRM error: ${response.status}`);
+        
         const data = await response.json();
         if (isMounted && data.routes && data.routes[0] && data.routes[0].geometry) {
           const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
@@ -141,6 +155,10 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         }
       } catch (error) {
         console.error("Error fetching route:", error);
+        // Fallback to straight line if OSRM fails
+        if (isMounted) {
+          setPositions([start, end]);
+        }
       }
     };
     fetchRoute();
@@ -240,8 +258,9 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   return (
     <div className="w-full h-full z-0">
       <MapContainer 
+        key={userLocation ? 'with-location' : 'no-location'}
         center={center} 
-        zoom={12} 
+        zoom={userLocation ? 15 : 12} 
         className="w-full h-full"
         zoomControl={false}
       >
