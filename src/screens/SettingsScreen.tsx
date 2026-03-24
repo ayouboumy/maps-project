@@ -26,6 +26,7 @@ export default function SettingsScreen() {
     if (!file) return;
 
     // Check file size (limit to 10MB for safety)
+    console.log("File selected:", file.name, "Size:", file.size, "Type:", file.type);
     if (file.size > 10 * 1024 * 1024) {
       setStatus({ type: 'error', message: t('File is too large (max 10MB).', language) });
       return;
@@ -36,6 +37,10 @@ export default function SettingsScreen() {
     setProgress(10);
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setStatus({ type: 'error', message: t('Failed to read file.', language) });
+      setIsTranslating(false);
+    };
     reader.onload = (e) => {
       const result = e.target?.result;
       if (!result) {
@@ -46,8 +51,10 @@ export default function SettingsScreen() {
 
       const data = new Uint8Array(result as ArrayBuffer);
       
+      // Use a longer timeout on mobile/slower devices to ensure UI updates
       setTimeout(async () => {
         try {
+          console.log("Starting Excel parse...");
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           if (!firstSheetName) {
@@ -144,9 +151,12 @@ export default function SettingsScreen() {
               items: parseArray(itemsRaw),
               image, extraData
             };
-          });
+          }).filter(m => m.name && m.name !== 'Unknown Mosque' && m.latitude !== 0 && m.longitude !== 0);
 
-          console.log("Formatted Mosques for Import:", formattedMosques.slice(0, 5));
+          console.log("Formatted Mosques for Import (after filtering):", formattedMosques.slice(0, 5));
+          if (formattedMosques.length === 0) {
+            throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
+          }
           setProgress(60);
           setStatus({ type: 'info', message: t('Importing data...', language) });
 
@@ -282,7 +292,7 @@ export default function SettingsScreen() {
           
           <input 
             type="file" 
-            accept=".xlsx, .xls, .csv" 
+            accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
             className="hidden" 
             ref={fileInputRef}
             onChange={handleFileUpload}
