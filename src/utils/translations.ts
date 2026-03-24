@@ -28,6 +28,7 @@ export const dictionary: Record<string, Record<Language, string>> = {
     ar: 'اضغط على أيقونة القلب على المسجد لإضافته إلى مفضلتك.' 
   },
   'Successfully imported': { en: 'Successfully imported', fr: 'Importation réussie de', ar: 'تم استيراد بنجاح' },
+  'Translating column titles...': { en: 'Translating column titles...', fr: 'Traduction des titres de colonnes...', ar: 'جاري ترجمة عناوين الأعمدة...' },
   'The Excel file is empty.': { en: 'The Excel file is empty.', fr: 'Le fichier Excel est vide.', ar: 'ملف إكسل فارغ.' },
   'Failed to read file.': { en: 'Failed to read file.', fr: 'Échec de la lecture du fichier.', ar: 'فشل في قراءة الملف.' },
   'Found': { en: 'Found', fr: 'Trouvé', ar: 'تم العثور على' },

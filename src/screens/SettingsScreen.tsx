@@ -139,50 +139,13 @@ export default function SettingsScreen() {
           });
 
           setProgress(60);
-          setStatus({ type: 'info', message: t('Translating content...', language) });
+          setStatus({ type: 'info', message: t('Translating column titles...', language) });
 
-          // Extract terms for translation
-          const termCounts: Record<string, number> = {};
-          const addTerm = (term: any) => {
-            if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
-              const cleanTerm = term.trim();
-              termCounts[cleanTerm] = (termCounts[cleanTerm] || 0) + 1;
-            }
-          };
-
-          formattedMosques.forEach(m => {
-            addTerm(m.type);
-            addTerm(m.commune);
-            if (Array.isArray(m.services)) m.services.forEach(addTerm);
-            if (Array.isArray(m.items)) m.items.forEach(addTerm);
-            if (m.extraData) {
-              Object.entries(m.extraData).forEach(([k, v]) => {
-                addTerm(k);
-                addTerm(v);
-              });
-            }
-          });
-
-          const existingDict = useAppStore.getState().dynamicTranslations || {};
-          const filteredTerms = Object.keys(termCounts)
-            .filter(term => {
-              const lower = term.toLowerCase();
-              // Skip if in static dictionary
-              if (Object.keys(dictionary).some(k => k.toLowerCase() === lower)) return false;
-              // Skip if in dynamic translations
-              if (Object.keys(existingDict).some(k => k.toLowerCase() === lower)) return false;
-              // Skip if it's already a translation of something else
-              if (term === 'Unknown Address' || term === 'Unknown') return false;
-              if (term === t('Unknown Address', language) || term === t('Unknown', language)) return false;
-              return true;
-            })
-            .sort((a, b) => termCounts[b] - termCounts[a])
-            .slice(0, 400); // Increase limit to 400
-
-          if (filteredTerms.length > 0) {
-            const newTranslations = await translateTerms(filteredTerms);
-            if (Object.keys(newTranslations).length > 0) {
-              addDynamicTranslations(newTranslations);
+          // Only translate column headers as requested by the user
+          if (headers.length > 0) {
+            const headerTranslations = await translateTerms(headers);
+            if (Object.keys(headerTranslations).length > 0) {
+              addDynamicTranslations(headerTranslations);
             }
           }
 
