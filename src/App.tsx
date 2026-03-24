@@ -5,14 +5,16 @@ import BottomSheet from './components/BottomSheet';
 import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { LocateFixed } from 'lucide-react';
+import { LocateFixed, MapPin } from 'lucide-react';
 import MapView from './components/MapView';
+import NearestMosques from './components/NearestMosques';
 import { t } from './utils/translations';
 
 export default function App() {
   const { activeTab, setUserLocation, language } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [showNearest, setShowNearest] = useState(false);
 
   const requestLocation = () => {
     setIsLocating(true);
@@ -58,13 +60,22 @@ export default function App() {
               <MapView />
               
               {/* Floating Location Button */}
-              <button 
-                onClick={requestLocation}
-                className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors`}
-                title={t("My Location", language)}
-              >
-                <LocateFixed size={24} className={isLocating ? "animate-pulse text-emerald-500" : ""} />
-              </button>
+              <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3`}>
+                <button 
+                  onClick={requestLocation}
+                  className="p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors"
+                  title={t("My Location", language)}
+                >
+                  <LocateFixed size={24} className={isLocating ? "animate-pulse text-emerald-500" : ""} />
+                </button>
+                <button 
+                  onClick={() => setShowNearest(true)}
+                  className="p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-emerald-600 transition-colors"
+                  title={t("Nearest Mosques", language)}
+                >
+                  <MapPin size={24} />
+                </button>
+              </div>
 
               {locationError && (
                 <div className="absolute top-safe-20 left-4 right-4 z-[1000] p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl shadow-sm">
@@ -73,6 +84,7 @@ export default function App() {
               )}
 
               <BottomSheet />
+              <NearestMosques isOpen={showNearest} onClose={() => setShowNearest(false)} />
             </>
           )}
 
