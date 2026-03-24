@@ -34,21 +34,27 @@ const userIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-function MapController({ showNearest, nearestMosques }: { showNearest?: boolean, nearestMosques: any[] }) {
+function MapController({ showNearest, nearestMosques, routingToMosque }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any }) {
   const { userLocation } = useAppStore();
   const map = useMap();
 
   useEffect(() => {
-    if (showNearest && userLocation && nearestMosques.length > 0) {
+    if (routingToMosque && userLocation) {
+      const bounds = L.latLngBounds([
+        [userLocation.latitude, userLocation.longitude],
+        [routingToMosque.latitude, routingToMosque.longitude]
+      ]);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (showNearest && userLocation && nearestMosques.length > 0) {
       const bounds = L.latLngBounds([
         [userLocation.latitude, userLocation.longitude],
         ...nearestMosques.map(m => [m.latitude, m.longitude] as [number, number])
       ]);
       map.fitBounds(bounds, { padding: [50, 50] });
-    } else if (!showNearest && userLocation) {
+    } else if (!showNearest && userLocation && !routingToMosque) {
       map.flyTo([userLocation.latitude, userLocation.longitude], 13);
     }
-  }, [userLocation, map, showNearest, nearestMosques]);
+  }, [userLocation, map, showNearest, nearestMosques, routingToMosque]);
 
   return null;
 }
@@ -68,7 +74,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function RouteLine({ start, end, straightDistance }: { start: [number, number], end: [number, number], straightDistance: number }) {
+function RouteLine({ start, end, straightDistance }: { start: [number, number], end: [number, number], straightDistance: number, key?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
 
@@ -109,7 +115,7 @@ function RouteLine({ start, end, straightDistance }: { start: [number, number], 
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, setSelectedMosque, language } = useAppStore();
+  const { mosques, userLocation, setSelectedMosque, language, routingToMosque, setRoutingToMosque } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   // Default center (Casablanca)
@@ -146,8 +152,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         <ZoomListener onZoomChange={setZoom} />
         
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         />
         
         {userLocation && (
@@ -157,7 +163,19 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
 
-        {showNearest && userLocation && nearestMosques.map((mosque) => (
+        {routingToMosque && userLocation && (
+          <RouteLine 
+            key={`route-single-${routingToMosque.id}`}
+            start={[userLocation.latitude, userLocation.longitude]}
+            end={[routingToMosque.latitude, routingToMosque.longitude]}
+            straightDistance={getDistance(
+              { latitude: userLocation.latitude, longitude: userLocation.longitude },
+              { latitude: routingToMosque.latitude, longitude: routingToMosque.longitude }
+            )}
+          />
+        )}
+
+        {showNearest && userLocation && !routingToMosque && nearestMosques.map((mosque) => (
           <RouteLine 
             key={`route-${mosque.id}`}
             start={[userLocation.latitude, userLocation.longitude]}
@@ -174,10 +192,11 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             eventHandlers={{
               click: () => {
                 setSelectedMosque(mosque);
+                setRoutingToMosque(null); // Clear routing when selecting a new mosque
               },
             }}
           >
-            {(zoom >= 14 || showNearest) && (
+            {(zoom >= 14 || showNearest || (routingToMosque && routingToMosque.id === mosque.id)) && (
               <Tooltip 
                 direction="top" 
                 offset={[0, -10]} 
@@ -198,7 +217,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           </Marker>
         ))}
         
-        <MapController showNearest={showNearest} nearestMosques={nearestMosques} />
+        <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} />
       </MapContainer>
     </div>
   );

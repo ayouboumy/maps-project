@@ -7,7 +7,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import { t, getLocalizedName } from '../utils/translations';
 
 export default function BottomSheet() {
-  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language } = useAppStore();
+  const { selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
 
   if (!selectedMosque) return null;
@@ -19,7 +19,8 @@ export default function BottomSheet() {
   };
 
   const handleDirections = () => {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
+    setRoutingToMosque(selectedMosque);
+    setSelectedMosque(null);
   };
 
   return (

@@ -11,7 +11,7 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
-  const { favorites, toggleFavorite, language } = useAppStore();
+  const { favorites, toggleFavorite, language, setRoutingToMosque, setSelectedMosque } = useAppStore();
   const isFavorite = favorites.includes(mosque.id);
 
   const handleOpenMaps = () => {
@@ -19,7 +19,9 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   };
 
   const handleDirections = () => {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${mosque.latitude},${mosque.longitude}`, '_blank');
+    setRoutingToMosque(mosque);
+    setSelectedMosque(null);
+    onClose();
   };
 
   return (

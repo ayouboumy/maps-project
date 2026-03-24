@@ -10,6 +10,7 @@ interface AppState {
   favorites: number[];
   activeTab: TabType;
   selectedMosque: Mosque | null;
+  routingToMosque: Mosque | null;
   userLocation: { latitude: number; longitude: number } | null;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
@@ -17,6 +18,7 @@ interface AppState {
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
   setSelectedMosque: (mosque: Mosque | null) => void;
+  setRoutingToMosque: (mosque: Mosque | null) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
@@ -30,6 +32,7 @@ export const useAppStore = create<AppState>()(
       favorites: [],
       activeTab: 'map',
       selectedMosque: null,
+      routingToMosque: null,
       userLocation: null,
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
@@ -42,6 +45,7 @@ export const useAppStore = create<AppState>()(
         })),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
+      setRoutingToMosque: (mosque) => set({ routingToMosque: mosque }),
       setUserLocation: (location) => set({ userLocation: location }),
       importMosques: (newMosques) => set({ mosques: newMosques }),
       setLanguage: (lang) => set({ language: lang }),
