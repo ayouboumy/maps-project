@@ -60,6 +60,8 @@ const dictionary: Record<string, Record<Language, string>> = {
   'No mosques found.': { en: 'No mosques found.', fr: 'Aucune mosquée trouvée.', ar: 'لم يتم العثور على مساجد.' },
   'Directions': { en: 'Directions', fr: 'Itinéraire', ar: 'الاتجاهات' },
   'Clear Route': { en: 'Clear Route', fr: 'Effacer l\'itinéraire', ar: 'مسح المسار' },
+  'Calculating...': { en: 'Calculating...', fr: 'Calcul en cours...', ar: 'جاري الحساب...' },
+  'Start': { en: 'Start', fr: 'Démarrer', ar: 'ابدأ' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

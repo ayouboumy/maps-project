@@ -74,9 +74,10 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function RouteLine({ start, end, straightDistance }: { start: [number, number], end: [number, number], straightDistance: number, key?: string }) {
+function RouteLine({ start, end, straightDistance, isMainRoute }: { start: [number, number], end: [number, number], straightDistance: number, key?: string, isMainRoute?: boolean }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
+  const { setRouteInfo } = useAppStore();
 
   useEffect(() => {
     let isMounted = true;
@@ -89,6 +90,12 @@ function RouteLine({ start, end, straightDistance }: { start: [number, number], 
           setPositions(coords);
           if (data.routes[0].distance) {
             setRouteDistance(data.routes[0].distance);
+            if (isMainRoute) {
+              setRouteInfo({
+                distance: data.routes[0].distance,
+                duration: data.routes[0].duration
+              });
+            }
           }
         }
       } catch (error) {
@@ -97,20 +104,45 @@ function RouteLine({ start, end, straightDistance }: { start: [number, number], 
     };
     fetchRoute();
     return () => { isMounted = false; };
-  }, [start[0], start[1], end[0], end[1]]);
+  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo]);
+
+  // Clean up route info when unmounting if it's the main route
+  useEffect(() => {
+    return () => {
+      if (isMainRoute) {
+        setRouteInfo(null);
+      }
+    };
+  }, [isMainRoute, setRouteInfo]);
 
   return (
-    <Polyline 
-      positions={positions}
-      color="#059669"
-      weight={4}
-      opacity={0.8}
-      dashArray={positions.length === 2 ? "5, 10" : undefined}
-    >
-      <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-        {(routeDistance / 1000).toFixed(1)} km
-      </Tooltip>
-    </Polyline>
+    <>
+      {/* Outer white stroke for better visibility on satellite map */}
+      <Polyline 
+        positions={positions}
+        color="#ffffff"
+        weight={isMainRoute ? 8 : 6}
+        opacity={0.9}
+        lineCap="round"
+        lineJoin="round"
+      />
+      {/* Inner colored stroke */}
+      <Polyline 
+        positions={positions}
+        color={isMainRoute ? "#3b82f6" : "#059669"}
+        weight={isMainRoute ? 4 : 3}
+        opacity={1}
+        dashArray={isMainRoute ? "10, 10" : (positions.length === 2 ? "5, 10" : undefined)}
+        lineCap="round"
+        lineJoin="round"
+      >
+        {!isMainRoute && (
+          <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+            {(routeDistance / 1000).toFixed(1)} km
+          </Tooltip>
+        )}
+      </Polyline>
+    </>
   );
 }
 
@@ -172,6 +204,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               { latitude: userLocation.latitude, longitude: userLocation.longitude },
               { latitude: routingToMosque.latitude, longitude: routingToMosque.longitude }
             )}
+            isMainRoute={true}
           />
         )}
 

@@ -5,12 +5,13 @@ import BottomSheet from './components/BottomSheet';
 import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { LocateFixed, MapPin, X } from 'lucide-react';
+import { LocateFixed, MapPin } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
+import DirectionsPanel from './components/DirectionsPanel';
 
 export default function App() {
-  const { activeTab, setUserLocation, language, routingToMosque, setRoutingToMosque } = useAppStore();
+  const { activeTab, setUserLocation, language, routingToMosque } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
@@ -76,18 +77,6 @@ export default function App() {
                 </button>
               </div>
 
-              {routingToMosque && (
-                <div className="absolute top-safe-4 left-1/2 -translate-x-1/2 z-[1000]">
-                  <button 
-                    onClick={() => setRoutingToMosque(null)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md text-emerald-700 font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    <X size={18} />
-                    <span className="text-sm">{t('Clear Route', language)}</span>
-                  </button>
-                </div>
-              )}
-
               {locationError && (
                 <div className="absolute top-safe-20 left-4 right-4 z-[1000] p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl shadow-sm">
                   {locationError}
@@ -95,6 +84,7 @@ export default function App() {
               )}
 
               <BottomSheet />
+              <DirectionsPanel />
             </>
           )}
 

@@ -5,12 +5,18 @@ import mosquesData from '../data/mosques.json';
 
 export type Language = 'en' | 'ar' | 'fr';
 
+export interface RouteInfo {
+  distance: number;
+  duration: number;
+}
+
 interface AppState {
   mosques: Mosque[];
   favorites: number[];
   activeTab: TabType;
   selectedMosque: Mosque | null;
   routingToMosque: Mosque | null;
+  routeInfo: RouteInfo | null;
   userLocation: { latitude: number; longitude: number } | null;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
@@ -19,6 +25,7 @@ interface AppState {
   setActiveTab: (tab: TabType) => void;
   setSelectedMosque: (mosque: Mosque | null) => void;
   setRoutingToMosque: (mosque: Mosque | null) => void;
+  setRouteInfo: (info: RouteInfo | null) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
@@ -33,6 +40,7 @@ export const useAppStore = create<AppState>()(
       activeTab: 'map',
       selectedMosque: null,
       routingToMosque: null,
+      routeInfo: null,
       userLocation: null,
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
@@ -46,6 +54,7 @@ export const useAppStore = create<AppState>()(
       setActiveTab: (tab) => set({ activeTab: tab }),
       setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
       setRoutingToMosque: (mosque) => set({ routingToMosque: mosque }),
+      setRouteInfo: (info) => set({ routeInfo: info }),
       setUserLocation: (location) => set({ userLocation: location }),
       importMosques: (newMosques) => set({ mosques: newMosques }),
       setLanguage: (lang) => set({ language: lang }),
