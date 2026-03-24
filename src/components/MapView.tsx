@@ -74,7 +74,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function RouteLine({ start, end, straightDistance, isMainRoute }: { start: [number, number], end: [number, number], straightDistance: number, key?: string, isMainRoute?: boolean }) {
+function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, key?: string, isMainRoute?: boolean, routeProfile?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
   const { setRouteInfo } = useAppStore();
@@ -83,7 +83,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute }: { start: [numb
     let isMounted = true;
     const fetchRoute = async () => {
       try {
-        const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
+        const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
         const data = await response.json();
         if (isMounted && data.routes && data.routes[0] && data.routes[0].geometry) {
           const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
@@ -104,7 +104,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute }: { start: [numb
     };
     fetchRoute();
     return () => { isMounted = false; };
-  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo]);
+  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo, routeProfile]);
 
   // Clean up route info when unmounting if it's the main route
   useEffect(() => {
@@ -115,29 +115,32 @@ function RouteLine({ start, end, straightDistance, isMainRoute }: { start: [numb
     };
   }, [isMainRoute, setRouteInfo]);
 
+  const mainColor = routeProfile === 'driving' ? '#3b82f6' : '#10b981';
+  const outlineColor = routeProfile === 'driving' ? '#1e3a8a' : '#064e3b';
+
   return (
     <>
-      {/* Outer white stroke for better visibility on satellite map */}
+      {/* Outer stroke for better visibility on satellite map */}
       <Polyline 
         positions={positions}
-        color="#ffffff"
-        weight={isMainRoute ? 8 : 6}
-        opacity={0.9}
+        color={isMainRoute ? outlineColor : "#000000"}
+        weight={isMainRoute ? 8 : 5}
+        opacity={isMainRoute ? 0.8 : 0.5}
         lineCap="round"
         lineJoin="round"
       />
       {/* Inner colored stroke */}
       <Polyline 
         positions={positions}
-        color={isMainRoute ? "#3b82f6" : "#059669"}
+        color={isMainRoute ? mainColor : "#94a3b8"}
         weight={isMainRoute ? 4 : 3}
         opacity={1}
-        dashArray={isMainRoute ? "10, 10" : (positions.length === 2 ? "5, 10" : undefined)}
+        dashArray={!isMainRoute ? "8, 8" : undefined}
         lineCap="round"
         lineJoin="round"
       >
         {!isMainRoute && (
-          <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+          <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
             {(routeDistance / 1000).toFixed(1)} km
           </Tooltip>
         )}
@@ -147,7 +150,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute }: { start: [numb
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, setSelectedMosque, language, routingToMosque, setRoutingToMosque } = useAppStore();
+  const { mosques, userLocation, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   // Default center (Casablanca)
@@ -197,7 +200,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         {routingToMosque && userLocation && (
           <RouteLine 
-            key={`route-single-${routingToMosque.id}`}
+            key={`route-single-${routingToMosque.id}-${routeProfile}`}
             start={[userLocation.latitude, userLocation.longitude]}
             end={[routingToMosque.latitude, routingToMosque.longitude]}
             straightDistance={getDistance(
@@ -205,15 +208,17 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               { latitude: routingToMosque.latitude, longitude: routingToMosque.longitude }
             )}
             isMainRoute={true}
+            routeProfile={routeProfile}
           />
         )}
 
         {showNearest && userLocation && !routingToMosque && nearestMosques.map((mosque) => (
           <RouteLine 
-            key={`route-${mosque.id}`}
+            key={`route-${mosque.id}-${routeProfile}`}
             start={[userLocation.latitude, userLocation.longitude]}
             end={[mosque.latitude, mosque.longitude]}
             straightDistance={(mosque as any).distance}
+            routeProfile={routeProfile}
           />
         ))}
 
