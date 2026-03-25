@@ -29,6 +29,11 @@ const dictionary: Record<string, Record<Language, string>> = {
   },
   'Successfully imported': { en: 'Successfully imported', fr: 'Importation réussie de', ar: 'تم استيراد بنجاح' },
   'mosques from Excel.': { en: 'mosques from Excel.', fr: 'mosquées depuis Excel.', ar: 'مسجد من إكسل.' },
+  'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file. If your coordinates are in Lambert projection, please convert them to WGS84 (GPS) first.': { 
+    en: 'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file. If your coordinates are in Lambert projection, please convert them to WGS84 (GPS) first.', 
+    fr: 'Format invalide : Impossible d\'extraire des données valides (nom, latitude, longitude) du fichier Excel. Si vos coordonnées sont en projection Lambert, veuillez d\'abord les convertir en WGS84 (GPS).', 
+    ar: 'تنسيق غير صالح: تعذر استخراج بيانات مسجد صالحة (الاسم، خط العرض، خط الطول) من ملف إكسل. إذا كانت إحداثياتك بنظام لامبرت، يرجى تحويلها إلى WGS84 (GPS) أولاً.' 
+  },
   'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.': { en: 'Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.', fr: 'Format invalide : Impossible d\'extraire des données valides (nom, latitude, longitude) du fichier Excel.', ar: 'تنسيق غير صالح: تعذر استخراج بيانات مسجد صالحة (الاسم، خط العرض، خط الطول) من ملف إكسل.' },
   'Invalid format: Expected rows of mosques in the Excel sheet.': { en: 'Invalid format: Expected rows of mosques in the Excel sheet.', fr: 'Format invalide : Des lignes de mosquées étaient attendues dans la feuille Excel.', ar: 'تنسيق غير صالح: كان من المتوقع وجود صفوف من المساجد في ورقة إكسل.' },
   'Failed to parse Excel file.': { en: 'Failed to parse Excel file.', fr: 'Échec de l\'analyse du fichier Excel.', ar: 'فشل في تحليل ملف إكسل.' },
