@@ -5,9 +5,10 @@ import { Mosque } from '../types';
 import { motion } from 'motion/react';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
+import PullToRefresh from '../components/PullToRefresh';
 
 export default function SearchScreen() {
-  const { mosques, favorites, setSelectedMosque, setActiveTab, language, userLocation } = useAppStore();
+  const { mosques, favorites, setSelectedMosque, setActiveTab, language, userLocation, refreshLocation } = useAppStore();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export default function SearchScreen() {
   }, [query]);
 
   const types = useMemo(() => {
-    const allTypes = mosques.map(m => m.type);
+    const allTypes = mosques.map(m => m.type).filter(Boolean);
     return Array.from(new Set(allTypes)).sort();
   }, [mosques]);
 
@@ -105,7 +106,7 @@ export default function SearchScreen() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <div className={`flex items-center text-gray-500 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
               <Filter size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
-              <span className="text-xs font-medium uppercase tracking-wider">{t('Filters', language)}</span>
+              <span className="text-xs font-medium uppercase tracking-wider">{t('Type', language)}</span>
             </div>
             <button
               onClick={() => setSelectedType(null)}
@@ -193,10 +194,11 @@ export default function SearchScreen() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-24">
-        <div className="space-y-3">
-          {filteredMosques.map((mosque, i) => (
-            <motion.div
+      <div className="flex-1 overflow-hidden">
+        <PullToRefresh onRefresh={refreshLocation}>
+          <div className="p-4 pb-24 space-y-3">
+            {filteredMosques.map((mosque, i) => (
+              <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -246,6 +248,7 @@ export default function SearchScreen() {
             </div>
           )}
         </div>
+        </PullToRefresh>
       </div>
     </div>
   );

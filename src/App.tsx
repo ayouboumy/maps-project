@@ -9,9 +9,10 @@ import { LocateFixed, MapPin } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
+import PullToRefresh from './components/PullToRefresh';
 
 export default function App() {
-  const { activeTab, setUserLocation, language, routingToMosque } = useAppStore();
+  const { activeTab, setUserLocation, language, routingToMosque, refreshLocation } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
@@ -56,7 +57,7 @@ export default function App() {
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden">
           {activeTab === 'map' && (
-            <>
+            <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
               
               {/* Floating Location Button */}
@@ -87,7 +88,7 @@ export default function App() {
 
               <BottomSheet />
               <DirectionsPanel />
-            </>
+            </PullToRefresh>
           )}
 
           {activeTab === 'search' && <SearchScreen />}

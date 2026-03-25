@@ -35,6 +35,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
   setSelectedCommune: (commune: string | null) => void;
+  refreshLocation: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -70,6 +71,28 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: { ...state.dynamicTranslations, ...translations } 
       })),
       setSelectedCommune: (commune) => set({ selectedCommune: commune }),
+      refreshLocation: () => new Promise((resolve) => {
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              set({
+                userLocation: {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                }
+              });
+              resolve();
+            },
+            (error) => {
+              console.error("Error getting location:", error);
+              resolve();
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+        } else {
+          resolve();
+        }
+      }),
     }),
     {
       name: 'mosque-finder-storage',

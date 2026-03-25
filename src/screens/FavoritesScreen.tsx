@@ -2,9 +2,10 @@ import { Heart, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { motion } from 'motion/react';
 import { t, getLocalizedName } from '../utils/translations';
+import PullToRefresh from '../components/PullToRefresh';
 
 export default function FavoritesScreen() {
-  const { mosques, favorites, setSelectedMosque, setActiveTab, language } = useAppStore();
+  const { mosques, favorites, setSelectedMosque, setActiveTab, language, refreshLocation } = useAppStore();
 
   const favoriteMosques = mosques.filter(m => favorites.includes(m.id));
 
@@ -20,33 +21,36 @@ export default function FavoritesScreen() {
         <p className="text-gray-500 text-sm mt-1">{favoriteMosques.length} {t('places saved', language)}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-24">
-        {favoriteMosques.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
-            {favoriteMosques.map((mosque, i) => (
+      <div className="flex-1 overflow-hidden">
+        <PullToRefresh onRefresh={refreshLocation}>
+          <div className="p-4 pb-24">
+            {favoriteMosques.length > 0 ? (
+              <div className="space-y-3">
+                {favoriteMosques.map((mosque, i) => (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={mosque.id}
                 onClick={() => handleSelect(mosque)}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:shadow-md transition-shadow relative"
               >
-                <div className="h-32 relative">
-                  <img 
-                    src={mosque.image} 
-                    alt={getLocalizedName(mosque, language)} 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-500">
-                    <Heart size={16} className="fill-current" />
+                <img 
+                  src={mosque.image} 
+                  alt={getLocalizedName(mosque, language)} 
+                  className="w-20 h-20 rounded-xl object-cover shrink-0"
+                />
+                <div className={`flex-1 py-1 ${language === 'ar' ? 'pl-2' : 'pr-2'}`}>
+                  <div className="flex justify-between items-start">
+                    <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
+                    <div className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{mosque.commune}</div>
                   </div>
-                </div>
-                <div className="p-4">
-                  <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
-                  <h3 className="font-bold text-gray-900 mb-1">{mosque.name}</h3>
-                  <div className="flex items-start text-gray-500 text-sm">
-                    <MapPin size={14} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
+                  <h3 className="font-bold text-gray-900 leading-tight mb-1 flex items-center gap-1.5">
+                    <span className="line-clamp-1">{mosque.name}</span>
+                    <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
+                  </h3>
+                  <div className="flex items-start text-gray-500 text-xs">
+                    <MapPin size={12} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                     <span className="line-clamp-1">{mosque.address}</span>
                   </div>
                 </div>
@@ -70,6 +74,8 @@ export default function FavoritesScreen() {
             </button>
           </div>
         )}
+          </div>
+        </PullToRefresh>
       </div>
     </div>
   );

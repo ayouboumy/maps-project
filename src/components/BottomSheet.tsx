@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Eye } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState, useMemo } from 'react';
@@ -33,6 +33,10 @@ export default function BottomSheet() {
 
   const handleOpenMaps = () => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
+  };
+
+  const handleStreetView = () => {
+    window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
   };
 
   const handleDirections = () => {
@@ -113,6 +117,13 @@ export default function BottomSheet() {
                 >
                   <Navigation size={18} />
                   {t('Start', language)}
+                </button>
+                <button 
+                  onClick={handleStreetView}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors shrink-0"
+                >
+                  <Eye size={18} />
+                  {t('Street View', language)}
                 </button>
                 <button 
                   onClick={() => toggleFavorite(selectedMosque.id)}
