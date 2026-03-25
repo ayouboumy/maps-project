@@ -52,6 +52,10 @@ export default function SettingsScreen() {
         
         if (Array.isArray(parsed)) {
           const formattedMosques = parsed.map((item: any, index: number) => {
+            // [LOCKED IMPORT LOGIC - DO NOT MODIFY]
+            // This section is optimized for the user's specific Excel format.
+            // Reverting or changing this logic may break the importation.
+            
             // Helper to find keys case-insensitively
             const getVal = (keys: string[]) => {
               const foundKey = Object.keys(item).find(k => keys.includes(k.toLowerCase().trim()));
@@ -67,6 +71,7 @@ export default function SettingsScreen() {
             const latitude = Number(getVal(['latitude', 'lat'])) || 0;
             const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
             const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
+            // [END LOCKED IMPORT LOGIC]
             const rawCommune = getVal(['commune', 'municipality', 'district', 'commune_ar', 'commune_fr']);
             const commune = rawCommune ? String(rawCommune).trim() : (address.split(',')[0] || 'Unknown').trim();
             const type = getVal(['type', 'category']) || 'Mosque';

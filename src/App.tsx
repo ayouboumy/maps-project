@@ -60,11 +60,6 @@ export default function App() {
             <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
               
-              {/* Debug Indicator - can be removed later */}
-              <div className="absolute bottom-24 left-4 z-[1000] bg-white/80 px-2 py-1 rounded text-[10px] text-gray-500">
-                {mosques.length} mosques loaded
-              </div>
-              
               {/* Floating Location Button */}
               {!routingToMosque && (
                 <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3`}>
