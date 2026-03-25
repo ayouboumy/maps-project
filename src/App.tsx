@@ -12,7 +12,7 @@ import DirectionsPanel from './components/DirectionsPanel';
 import PullToRefresh from './components/PullToRefresh';
 
 export default function App() {
-  const { activeTab, setUserLocation, language, routingToMosque, refreshLocation } = useAppStore();
+  const { activeTab, setUserLocation, language, routingToMosque, refreshLocation, mosques } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
@@ -59,6 +59,11 @@ export default function App() {
           {activeTab === 'map' && (
             <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
+              
+              {/* Debug Indicator - can be removed later */}
+              <div className="absolute bottom-24 left-4 z-[1000] bg-white/80 px-2 py-1 rounded text-[10px] text-gray-500">
+                {mosques.length} mosques loaded
+              </div>
               
               {/* Floating Location Button */}
               {!routingToMosque && (

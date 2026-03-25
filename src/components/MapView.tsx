@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAppStore } from '../store/useAppStore';
@@ -15,13 +14,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const customIcon = new L.Icon({
+const mosqueIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  tooltipAnchor: [0, -28],
+  tooltipAnchor: [16, -28],
   shadowSize: [41, 41]
 });
 
@@ -31,7 +30,7 @@ const destinationIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  tooltipAnchor: [0, -28],
+  tooltipAnchor: [16, -28],
   shadowSize: [41, 41]
 });
 
@@ -42,11 +41,18 @@ const userIcon = L.divIcon({
   iconAnchor: [9, 9]
 });
 
-function MapController({ showNearest, nearestMosques, routingToMosque, selectedMosque, displayedMosques }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any, selectedMosque: any, displayedMosques: any[] }) {
+function MapController({ showNearest, nearestMosques, routingToMosque, selectedMosque }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any, selectedMosque: any }) {
   const { userLocation } = useAppStore();
   const map = useMap();
 
-  // Handle routing and selected mosque
+  // Invalidate size on mount and when location changes to ensure correct rendering on mobile
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [map]);
+
   useEffect(() => {
     if (routingToMosque && userLocation) {
       const bounds = L.latLngBounds([
@@ -55,6 +61,7 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
       ]);
       map.fitBounds(bounds, { padding: [50, 50] });
     } else if (selectedMosque) {
+      // Fly to selected mosque when it changes
       map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
     } else if (showNearest && userLocation && nearestMosques.length > 0) {
       const bounds = L.latLngBounds([
@@ -62,19 +69,10 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
         ...nearestMosques.map(m => [m.latitude, m.longitude] as [number, number])
       ]);
       map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (!showNearest && userLocation && !routingToMosque) {
+      map.flyTo([userLocation.latitude, userLocation.longitude], 13);
     }
-  }, [routingToMosque, selectedMosque, showNearest, nearestMosques, userLocation, map]);
-
-  // Handle displayed mosques changes (e.g., after import or commune filter)
-  useEffect(() => {
-    if (!routingToMosque && !selectedMosque && !showNearest && displayedMosques && displayedMosques.length > 0) {
-      const bounds = L.latLngBounds(displayedMosques.map(m => [m.latitude, m.longitude] as [number, number]));
-      if (userLocation) {
-        bounds.extend([userLocation.latitude, userLocation.longitude]);
-      }
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-    }
-  }, [displayedMosques, map]); // Only re-run when displayedMosques changes
+  }, [userLocation, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
 
   return null;
 }
@@ -217,7 +215,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   const displayedMosques = showNearest && userLocation ? nearestMosques : filteredByCommune;
 
   return (
-    <div className="w-full h-full z-0">
+    <div className="w-full h-full">
       <MapContainer 
         center={center} 
         zoom={12} 
@@ -227,8 +225,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         <ZoomListener onZoomChange={setZoom} />
         
         <TileLayer
-          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
         {userLocation && (
@@ -262,45 +260,43 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         ))}
 
-        <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
-          {displayedMosques.map((mosque) => {
-            const isDestination = routingToMosque && routingToMosque.id === mosque.id;
-            return (
-              <Marker
-                key={mosque.id}
-                position={[mosque.latitude, mosque.longitude]}
-                icon={isDestination ? destinationIcon : customIcon}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedMosque(mosque);
-                    setRoutingToMosque(null); // Clear routing when selecting a new mosque
-                  },
-                }}
-              >
-                {(zoom >= 14 || showNearest || isDestination) && (
-                  <Tooltip 
-                    direction="top" 
-                    offset={[0, -10]} 
-                    opacity={0.9} 
-                    permanent 
-                    className={`bg-white/90 border-none shadow-md rounded px-2 py-1 ${isDestination ? 'ring-2 ring-red-500' : ''}`}
-                  >
-                    <div className="flex flex-col items-center">
-                      <div 
-                        className={`max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center ${isDestination ? 'text-red-600' : 'text-gray-800'}`}
-                        title={mosque.name}
-                      >
-                        {mosque.name}
-                      </div>
+        {displayedMosques.map((mosque) => {
+          const isDestination = routingToMosque && routingToMosque.id === mosque.id;
+          return (
+            <Marker
+              key={mosque.id}
+              position={[mosque.latitude, mosque.longitude]}
+              icon={isDestination ? destinationIcon : mosqueIcon}
+              eventHandlers={{
+                click: () => {
+                  setSelectedMosque(mosque);
+                  setRoutingToMosque(null); // Clear routing when selecting a new mosque
+                },
+              }}
+            >
+              {(zoom >= 14 || showNearest || isDestination) && (
+                <Tooltip 
+                  direction="top" 
+                  offset={[0, -10]} 
+                  opacity={0.9} 
+                  permanent 
+                  className={`bg-white/90 border-none shadow-md rounded px-2 py-1 ${isDestination ? 'ring-2 ring-red-500' : ''}`}
+                >
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className={`max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center ${isDestination ? 'text-red-600' : 'text-gray-800'}`}
+                      title={getLocalizedName(mosque, language)}
+                    >
+                      {getLocalizedName(mosque, language)}
                     </div>
-                  </Tooltip>
-                )}
-              </Marker>
-            );
-          })}
-        </MarkerClusterGroup>
+                  </div>
+                </Tooltip>
+              )}
+            </Marker>
+          );
+        })}
         
-        <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} selectedMosque={selectedMosque} displayedMosques={displayedMosques} />
+        <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} selectedMosque={selectedMosque} />
       </MapContainer>
     </div>
   );
