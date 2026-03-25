@@ -64,17 +64,8 @@ export default function SettingsScreen() {
             const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
             const genericName = getVal(['nom', 'dénomination', 'denomination', 'name', 'mosque name', 'mosque']);
             const name = genericName || name_fr || name_ar || name_en || 'Unknown Mosque';
-            const parseCoordinate = (val: any) => {
-              if (typeof val === 'number') return val;
-              if (typeof val === 'string') {
-                const parsed = Number(val.replace(',', '.').replace(/\s/g, ''));
-                return isNaN(parsed) ? 0 : parsed;
-              }
-              return 0;
-            };
-
-            const latitude = parseCoordinate(getVal(['latitude', 'lat', 'y', 'nord']));
-            const longitude = parseCoordinate(getVal(['longitude', 'lng', 'long', 'x', 'est']));
+            const latitude = Number(getVal(['latitude', 'lat'])) || 0;
+            const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
             const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
             const rawCommune = getVal(['commune', 'municipality', 'district', 'commune_ar', 'commune_fr']);
             const commune = rawCommune ? String(rawCommune).trim() : (address.split(',')[0] || 'Unknown').trim();
@@ -161,16 +152,8 @@ export default function SettingsScreen() {
           });
 
           // Basic validation to ensure it looks like mosque data
-          const hasLambert = formattedMosques.some(item => 
-            Math.abs(item.latitude) > 90 || Math.abs(item.longitude) > 180
-          );
-
-          if (hasLambert) {
-            throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file. If your coordinates are in Lambert projection, please convert them to WGS84 (GPS) first.", language));
-          }
-
           const isValid = formattedMosques.every(item => 
-            item.name && item.latitude !== 0 && item.longitude !== 0
+            item.name && !isNaN(item.latitude) && !isNaN(item.longitude)
           );
           
           if (isValid && formattedMosques.length > 0) {
