@@ -90,12 +90,41 @@ export interface ColumnMapping {
   latitude?: string;
   longitude?: string;
   address?: string;
+  commune?: string;
+  type?: string;
+  services?: string;
+  items?: string;
+  image?: string;
 }
 
 export async function mapExcelColumns(headers: string[]): Promise<ColumnMapping> {
+  const fallbackMapping: ColumnMapping = {};
+  
+  const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+  const findHeader = (keywords: string[]) => {
+    return headers.find((h, i) => {
+      const lowerH = lowerHeaders[i];
+      return keywords.some(k => lowerH === k || lowerH.startsWith(k + ' ') || lowerH.startsWith(k + '_'));
+    });
+  };
+
+  fallbackMapping.id = findHeader(['id', 'n°', 'numéro', 'numero', 'code']);
+  fallbackMapping.name = findHeader(['nom', 'mosquee', 'mosquée', 'intitulé', 'name']);
+  fallbackMapping.name_ar = findHeader(['arabe', 'اسم']);
+  fallbackMapping.name_fr = findHeader(['français', 'francais']);
+  fallbackMapping.name_en = findHeader(['anglais', 'english']);
+  fallbackMapping.latitude = findHeader(['lat', 'latitude', 'gps_x', 'coord_x', 'x']);
+  fallbackMapping.longitude = findHeader(['long', 'longitude', 'gps_y', 'coord_y', 'y']);
+  fallbackMapping.address = findHeader(['adresse', 'localisation', 'lieu', 'douar', 'quartier', 'rue', 'address']);
+  fallbackMapping.commune = findHeader(['commune', 'municipalité', 'جماعة']);
+  fallbackMapping.type = findHeader(['type', 'catégorie', 'nature', 'صنف']);
+  fallbackMapping.services = findHeader(['services', 'activités', 'prestations', 'خدمات']);
+  fallbackMapping.items = findHeader(['équipements', 'installations', 'مرافق', 'items']);
+  fallbackMapping.image = findHeader(['image', 'photo', 'url', 'lien']);
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return {};
+    if (!apiKey) return fallbackMapping;
 
     const ai = new GoogleGenAI({ apiKey });
     
@@ -115,11 +144,16 @@ Mapping Guide (Standard Field -> Common French equivalents):
 - name_en: Nom en anglais
 - latitude: Latitude, Lat, GPS_X, Coord_X, X
 - longitude: Longitude, Long, GPS_Y, Coord_Y, Y
-- address: Adresse, Localisation, Emplacement, Lieu, Douar, Quartier, Rue, Commune, Province, Ville
+- address: Adresse, Localisation, Emplacement, Lieu, Douar, Quartier, Rue, Province, Ville
+- commune: Commune, Municipalité, الجماعة
+- type: Type, Catégorie, Nature, الصنف
+- services: Services, Activités, Prestations, خدمات
+- items: Équipements, Installations, المرافق
+- image: Image, Photo, URL, Lien image
 
 Instructions:
 1. Return a JSON object where the keys are the standard fields and the values are the corresponding headers from the Excel file.
-2. Focus ONLY on mapping the ID, Names (ar/fr/en), Position (Latitude/Longitude), and Address.
+2. Focus ONLY on mapping the ID, Names (ar/fr/en), Position (Latitude/Longitude), Address, Commune, Type, Services, Items, and Image.
 3. If a field has no clear match, omit it.
 4. Be flexible with case and accents.`,
       config: {
@@ -134,7 +168,12 @@ Instructions:
             name_en: { type: Type.STRING },
             latitude: { type: Type.STRING },
             longitude: { type: Type.STRING },
-            address: { type: Type.STRING }
+            address: { type: Type.STRING },
+            commune: { type: Type.STRING },
+            type: { type: Type.STRING },
+            services: { type: Type.STRING },
+            items: { type: Type.STRING },
+            image: { type: Type.STRING }
           }
         }
       }
@@ -142,17 +181,21 @@ Instructions:
 
     const jsonStr = response.text?.trim() || "{}";
     try {
-      return JSON.parse(jsonStr);
+      const aiMapping = JSON.parse(jsonStr);
+      // Merge AI mapping with fallback mapping (AI takes precedence if it found a value)
+      return { ...fallbackMapping, ...Object.fromEntries(Object.entries(aiMapping).filter(([_, v]) => v != null)) };
     } catch (e) {
       console.error("JSON Parse Error in mapExcelColumns. String length:", jsonStr.length, "Error:", e);
-      // Fallback: if it's truncated, try to close it if it looks like a simple object
       if (jsonStr.startsWith('{') && !jsonStr.endsWith('}')) {
-        try { return JSON.parse(jsonStr + '}'); } catch {}
+        try { 
+          const aiMapping = JSON.parse(jsonStr + '}'); 
+          return { ...fallbackMapping, ...Object.fromEntries(Object.entries(aiMapping).filter(([_, v]) => v != null)) };
+        } catch {}
       }
-      return {};
+      return fallbackMapping;
     }
   } catch (error) {
     console.error("Column mapping error:", error);
-    return {};
+    return fallbackMapping;
   }
 }

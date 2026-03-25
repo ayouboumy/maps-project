@@ -65,16 +65,38 @@ export default function SettingsScreen() {
             const name_fr = getVal(mapping.name_fr);
             const name_en = getVal(mapping.name_en);
             const name = getVal(mapping.name) || name_fr || name_ar || name_en || 'Unknown Mosque';
-            const latitude = Number(getVal(mapping.latitude)) || 0;
-            const longitude = Number(getVal(mapping.longitude)) || 0;
+            const parseNumber = (val: any) => {
+              if (typeof val === 'number') return val;
+              if (typeof val === 'string') {
+                const parsed = Number(val.replace(',', '.'));
+                return isNaN(parsed) ? 0 : parsed;
+              }
+              return 0;
+            };
+
+            const latitude = parseNumber(getVal(mapping.latitude));
+            const longitude = parseNumber(getVal(mapping.longitude));
             
             const rawAddress = getVal(mapping.address);
             const addressStr = rawAddress ? String(rawAddress).trim() : '';
             
-            const address = addressStr || t('Unknown Address', language);
-            const commune = (addressStr ? addressStr.split(',')[0].trim() : '') || t('Unknown', language);
+            const rawCommune = getVal(mapping.commune);
+            const communeStr = rawCommune ? String(rawCommune).trim() : (addressStr ? addressStr.split(',')[0].trim() : '');
             
-            const image = 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+            const address = addressStr || t('Unknown Address', language);
+            const commune = communeStr || t('Unknown', language);
+            
+            const rawType = getVal(mapping.type);
+            const type = rawType ? String(rawType).trim() : 'Mosque';
+            const servicesRaw = getVal(mapping.services);
+            const itemsRaw = getVal(mapping.items);
+            const image = getVal(mapping.image) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+
+            const parseArray = (val: any) => {
+              if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+              if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+              return [];
+            };
 
             // Collect extra data (everything not mapped)
             const mappedValues = Object.values(mapping);
@@ -88,12 +110,16 @@ export default function SettingsScreen() {
 
             return {
               id, name, name_ar, name_fr, name_en, latitude, longitude, address, commune, 
-              type: 'Mosque',
-              services: [],
-              items: [],
+              type,
+              services: parseArray(servicesRaw),
+              items: parseArray(itemsRaw),
               image, extraData
             };
-          });
+          }).filter((m: any) => m.latitude !== 0 && m.longitude !== 0);
+
+          if (formattedMosques.length === 0) {
+            throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
+          }
 
           setProgress(100);
           importMosques(formattedMosques);
