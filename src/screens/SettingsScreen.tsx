@@ -2,21 +2,17 @@ import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Lo
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
-import { t, dictionary } from '../utils/translations';
-import { translateTerms, mapExcelColumns } from '../utils/gemini';
+import { t } from '../utils/translations';
+import { translateTerms } from '../utils/gemini';
 
 export default function SettingsScreen() {
   const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   const communes = useMemo(() => {
-    const allCommunes = mosques.map(m => {
-      if (m.commune) return m.commune;
-      return (m.address.split(',')[0] || 'Unknown').trim();
-    }).filter(Boolean);
+    const allCommunes = mosques.map(m => m.commune);
     return Array.from(new Set(allCommunes)).sort();
   }, [mosques]);
 
@@ -26,10 +22,10 @@ export default function SettingsScreen() {
 
     setStatus({ type: 'info', message: t('Parsing Excel file...', language) });
     setIsTranslating(true);
-    setProgress(10);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
+      // Use setTimeout to allow the UI to render the "Parsing..." state before blocking the main thread
       setTimeout(async () => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -38,97 +34,163 @@ export default function SettingsScreen() {
           const worksheet = workbook.Sheets[firstSheetName];
           const parsed = XLSX.utils.sheet_to_json(worksheet);
         
-          if (!Array.isArray(parsed) || parsed.length === 0) {
-            throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
-          }
-
-          setProgress(20);
-          setStatus({ type: 'info', message: t('Analyzing columns...', language) });
-
-          // Get all unique headers from the first few rows, sanitized and limited
-          const headers = Array.from(new Set(parsed.slice(0, 10).flatMap(row => Object.keys(row as object))))
-            .map(h => String(h).trim().slice(0, 200)) // Truncate extremely long headers
-            .filter(h => h.length > 0)
-            .slice(0, 150); // Limit to 150 columns max
-          
-          // Use Gemini to map columns intelligently
-          const mapping = await mapExcelColumns(headers);
-          
-          setProgress(40);
-          setStatus({ type: 'info', message: t('Importing data...', language) });
-
+        if (Array.isArray(parsed)) {
           const formattedMosques = parsed.map((item: any, index: number) => {
-            const getVal = (key?: string) => key ? item[key] : undefined;
-
-            const id = getVal(mapping.id) || index + 1;
-            const name_ar = getVal(mapping.name_ar);
-            const name_fr = getVal(mapping.name_fr);
-            const name_en = getVal(mapping.name_en);
-            const name = getVal(mapping.name) || name_fr || name_ar || name_en || 'Unknown Mosque';
-            const parseNumber = (val: any) => {
-              if (typeof val === 'number') return val;
-              if (typeof val === 'string') {
-                const parsed = Number(val.replace(',', '.'));
-                return isNaN(parsed) ? 0 : parsed;
-              }
-              return 0;
+            // Helper to find keys case-insensitively
+            const getVal = (keys: string[]) => {
+              const foundKey = Object.keys(item).find(k => keys.includes(k.toLowerCase().trim()));
+              return foundKey ? item[foundKey] : undefined;
             };
 
-            const latitude = parseNumber(getVal(mapping.latitude));
-            const longitude = parseNumber(getVal(mapping.longitude));
-            
-            const rawAddress = getVal(mapping.address);
-            const addressStr = rawAddress ? String(rawAddress).trim() : '';
-            
-            const rawCommune = getVal(mapping.commune);
-            const communeStr = rawCommune ? String(rawCommune).trim() : (addressStr ? addressStr.split(',')[0].trim() : '');
-            
-            const address = addressStr || t('Unknown Address', language);
-            const commune = communeStr || t('Unknown', language);
-            
-            const rawType = getVal(mapping.type);
-            const type = rawType ? String(rawType).trim() : 'Mosque';
-            const servicesRaw = getVal(mapping.services);
-            const itemsRaw = getVal(mapping.items);
-            const image = getVal(mapping.image) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+            const id = getVal(['id']) || index + 1;
+            const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar']);
+            const name_fr = getVal(['dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'name_fr', 'name fr']);
+            const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
+            const genericName = getVal(['nom', 'dénomination', 'denomination', 'name', 'mosque name', 'mosque']);
+            const name = genericName || name_fr || name_ar || name_en || 'Unknown Mosque';
+            const latitude = Number(getVal(['latitude', 'lat'])) || 0;
+            const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
+            const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
+            const rawCommune = getVal(['commune', 'municipality', 'district', 'commune_ar', 'commune_fr']);
+            const commune = rawCommune ? String(rawCommune).trim() : (address.split(',')[0] || 'Unknown').trim();
+            const type = getVal(['type', 'category']) || 'Mosque';
+            const servicesRaw = getVal(['services', 'facilities']);
+            const itemsRaw = getVal(['items', 'amenities', 'features']);
+            const image = getVal(['image', 'photo', 'picture']) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
 
+            // Handle comma-separated strings for arrays
             const parseArray = (val: any) => {
-              if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+              if (Array.isArray(val)) return val;
               if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
               return [];
             };
 
-            // Collect extra data (everything not mapped)
-            const mappedValues = Object.values(mapping);
+            // Collect all other columns into extraData
+            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture', 'commune', 'municipality', 'district', 'commune_ar', 'commune_fr'];
             const extraData: Record<string, any> = {};
+            const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
+            
             Object.keys(item).forEach(key => {
-              if (mappedValues.includes(key)) return;
+              const lowerKey = key.toLowerCase().trim();
+              if (standardKeys.includes(lowerKey)) return;
+
               const val = item[key];
-              if (val === null || val === undefined || val === '' || String(val).trim().toUpperCase() === 'N') return;
-              extraData[key] = val;
+              
+              // Ignore missing values and "N"
+              if (val === null || val === undefined || val === '') return;
+              if (String(val).trim().toUpperCase() === 'N') return;
+
+              let isCombined = false;
+              
+              if (lowerKey.startsWith('nombre')) {
+                const base = lowerKey.replace(/^nombre\s*/, '').trim();
+                if (base) {
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^nombre\s*/i, '').trim() };
+                  combinedData[base].N = val;
+                  isCombined = true;
+                }
+              } else if (lowerKey.startsWith('surface')) {
+                const base = lowerKey.replace(/^surface\s*/, '').trim();
+                if (base) {
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^surface\s*/i, '').trim() };
+                  combinedData[base].S = val;
+                  isCombined = true;
+                }
+              }
+
+              if (!isCombined) {
+                extraData[key] = val;
+              }
+            });
+
+            // Process combined data
+            Object.keys(combinedData).forEach(base => {
+              const { N, S, originalKey } = combinedData[base];
+              const displayKey = originalKey || base;
+              
+              if (N !== undefined && S !== undefined) {
+                extraData[displayKey] = `N=${N}, S=${S}`;
+              } else if (N !== undefined) {
+                extraData[`Nombre ${displayKey}`] = N;
+              } else if (S !== undefined) {
+                extraData[`Surface ${displayKey}`] = S;
+              }
             });
 
             return {
-              id, name, name_ar, name_fr, name_en, latitude, longitude, address, commune, 
+              id,
+              name,
+              name_ar,
+              name_fr,
+              name_en,
+              latitude,
+              longitude,
+              address,
+              commune,
               type,
               services: parseArray(servicesRaw),
               items: parseArray(itemsRaw),
-              image, extraData
+              image,
+              extraData
             };
-          }).filter((m: any) => m.latitude !== 0 && m.longitude !== 0);
+          });
 
-          if (formattedMosques.length === 0) {
+          // Basic validation to ensure it looks like mosque data
+          const isValid = formattedMosques.every(item => 
+            item.name && !isNaN(item.latitude) && !isNaN(item.longitude)
+          );
+          
+          if (isValid && formattedMosques.length > 0) {
+            importMosques(formattedMosques);
+            setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques from Excel.', language)}` });
+            setIsTranslating(false); // Stop loading spinner immediately
+            
+            // Extract terms for translation in the background
+            const termCounts: Record<string, number> = {};
+            const addTerm = (term: any) => {
+              if (typeof term === 'string' && term.trim().length >= 2 && isNaN(Number(term))) {
+                termCounts[term] = (termCounts[term] || 0) + 1;
+              }
+            };
+
+            formattedMosques.forEach(m => {
+              addTerm(m.type);
+              if (Array.isArray(m.services)) m.services.forEach(addTerm);
+              if (Array.isArray(m.items)) m.items.forEach(addTerm);
+              if (m.extraData) {
+                Object.entries(m.extraData).forEach(([k, v]) => {
+                  addTerm(k);
+                  addTerm(v);
+                });
+              }
+            });
+
+            const existingDict = useAppStore.getState().dynamicTranslations || {};
+            
+            // Sort by frequency and take top 100 to avoid long API calls
+            const filteredTerms = Object.keys(termCounts)
+              .filter(term => !existingDict[term])
+              .sort((a, b) => termCounts[b] - termCounts[a])
+              .slice(0, 100);
+
+            if (filteredTerms.length > 0) {
+              // Run translation in background without awaiting
+              translateTerms(filteredTerms).then(newTranslations => {
+                if (Object.keys(newTranslations).length > 0) {
+                  addDynamicTranslations(newTranslations);
+                }
+              }).catch(console.error);
+            }
+          } else {
             throw new Error(t("Invalid format: Could not extract valid mosque data (name, latitude, longitude) from the Excel file.", language));
           }
-
-          setProgress(100);
-          importMosques(formattedMosques);
-          setStatus({ type: 'success', message: `${t('Successfully imported', language)} ${formattedMosques.length} ${t('mosques.', language)}` });
+        } else {
+          throw new Error(t("Invalid format: Expected rows of mosques in the Excel sheet.", language));
+        }
         } catch (error: any) {
           setStatus({ type: 'error', message: error.message || t("Failed to parse Excel file.", language) });
         } finally {
           setIsTranslating(false);
-          setTimeout(() => setProgress(0), 2000);
         }
         
         // Reset input so the same file can be uploaded again if needed
@@ -248,23 +310,8 @@ export default function SettingsScreen() {
             ) : (
               <FileSpreadsheet size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
             )}
-            {isTranslating ? t('Importing...', language) : t('Import Excel File', language)}
+            {isTranslating ? t('Translating...', language) : t('Import Excel File', language)}
           </button>
-
-          {progress > 0 && (
-            <div className="mt-4">
-              <div className="flex justify-between text-xs font-medium text-gray-500 mb-1.5">
-                <span>{t('Import Progress', language)}</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
 
           {status && (
             <div className={`mt-4 p-3 rounded-xl flex items-start text-sm ${

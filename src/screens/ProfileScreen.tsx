@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route, Eye } from 'lucide-react';
+import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
@@ -22,10 +22,6 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     setRoutingToMosque(mosque);
     setSelectedMosque(null);
     onClose();
-  };
-
-  const handleStreetView = () => {
-    window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mosque.latitude},${mosque.longitude}`, '_blank');
   };
 
   return (
@@ -80,13 +76,6 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             {t('Directions', language)}
           </button>
           <button 
-            onClick={handleStreetView}
-            className="flex-1 flex items-center justify-center py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors shadow-sm"
-          >
-            <Eye size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Street View', language)}
-          </button>
-          <button 
             onClick={() => toggleFavorite(mosque.id)}
             className={cn(
               "flex items-center justify-center px-4 rounded-xl font-medium transition-colors shadow-sm border",
@@ -131,7 +120,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
               {Object.entries(mosque.extraData).map(([key, value], index) => (
                 <div key={key} className={cn("p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1", index !== 0 && "border-t border-gray-50")}>
-                  <span className="text-sm font-medium text-gray-500 capitalize">{t(key, language)}</span>
+                  <span className="text-sm font-medium text-gray-500 capitalize">{t(key.replace(/_/g, ' '), language)}</span>
                   <span className="text-sm text-gray-900 font-medium sm:text-right">{t(String(value), language)}</span>
                 </div>
               ))}
