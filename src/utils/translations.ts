@@ -86,6 +86,8 @@ const dictionary: Record<string, Record<Language, string>> = {
   'View Full Details': { en: 'View Full Details', fr: 'Voir les détails complets', ar: 'عرض التفاصيل الكاملة' },
   'Nearby Mosques': { en: 'Nearby Mosques', fr: 'Mosquées à proximité', ar: 'مساجد قريبة' },
   'Commune': { en: 'Commune', fr: 'Commune', ar: 'الجماعة' },
+  'Location Details': { en: 'Location Details', fr: 'Détails de l\'emplacement', ar: 'تفاصيل الموقع' },
+  'Address': { en: 'Address', fr: 'Adresse', ar: 'العنوان' },
   'Map Settings': { en: 'Map Settings', fr: 'Paramètres de la carte', ar: 'إعدادات الخريطة' },
   'Filter by Commune': { en: 'Filter by Commune', fr: 'Filtrer par commune', ar: 'تصفية حسب الجماعة' },
   'Select Commune': { en: 'Select Commune', fr: 'Sélectionner une commune', ar: 'اختر الجماعة' },

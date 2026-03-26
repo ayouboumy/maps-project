@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route, Clipboard, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route, Clipboard, Check, Share2, Building2 } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
@@ -23,6 +23,20 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: mosque.name,
+          text: `${mosque.name} - ${mosque.address}`,
+          url: `https://www.google.com/maps/search/?api=1&query=${mosque.latitude},${mosque.longitude}`,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    }
+  };
+
   const handleOpenGoogleMapsRoute = () => {
     const travelMode = (routeProfile || 'foot') === 'foot' ? 'walking' : 'driving';
     if (userLocation) {
@@ -30,10 +44,6 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     } else {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${mosque.latitude},${mosque.longitude}&travelmode=${travelMode}`, '_blank');
     }
-  };
-
-  const handleStreetView = () => {
-    window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mosque.latitude},${mosque.longitude}`, '_blank');
   };
 
   return (
@@ -88,6 +98,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             {t(copied ? 'Copied' : 'Position', language)}
           </button>
           <button 
+            onClick={handleShare}
+            className="flex-1 flex items-center justify-center py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors shadow-sm"
+          >
+            <Share2 size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t('Share', language)}
+          </button>
+          <button 
             onClick={() => toggleFavorite(mosque.id)}
             className={cn(
               "flex items-center justify-center px-4 rounded-xl font-medium transition-colors shadow-sm border",
@@ -98,6 +115,32 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           >
             <Heart size={20} className={cn(isFavorite && "fill-current")} />
           </button>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">{t('Location Details', language)}</h3>
+          <div className="bg-gray-50 rounded-2xl p-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                <MapPin size={18} className="text-emerald-600" />
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 block mb-0.5">{t('Address', language)}</span>
+                <span className="text-sm text-gray-900 font-medium leading-relaxed">{mosque.address}</span>
+              </div>
+            </div>
+            {mosque.commune && (
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-white rounded-lg shadow-sm">
+                  <Building2 size={18} className="text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 block mb-0.5">{t('Commune', language)}</span>
+                  <span className="text-sm text-gray-900 font-medium">{mosque.commune}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mb-8">

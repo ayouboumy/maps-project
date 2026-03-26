@@ -114,15 +114,6 @@ export default function BottomSheet() {
     }
   };
 
-  const handleStreetView = () => {
-    window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
-  };
-
-  const handleDirections = () => {
-    setRoutingToMosque(selectedMosque);
-    setSelectedMosque(null);
-  };
-
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -222,10 +213,15 @@ export default function BottomSheet() {
                   alt={getLocalizedName(selectedMosque, language)} 
                   className="w-28 h-28 rounded-2xl object-cover shadow-sm shrink-0"
                 />
-                <div className="flex-1 flex flex-col justify-center gap-3">
+                <div className="flex-1 flex flex-col justify-center gap-2">
                   <div className="flex items-start gap-2 text-gray-600 text-sm">
                     <MapPin size={16} className="shrink-0 mt-0.5 text-gray-400" />
-                    <span className="line-clamp-2 leading-snug">{selectedMosque.address}</span>
+                    <div className="flex flex-col">
+                      <span className="line-clamp-2 leading-snug font-medium">{selectedMosque.address}</span>
+                      {selectedMosque.commune && (
+                        <span className="text-xs text-gray-400 mt-0.5">{selectedMosque.commune}</span>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Quick Services Preview */}
