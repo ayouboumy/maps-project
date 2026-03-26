@@ -174,7 +174,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
       >
         {!isMainRoute && (
           <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
-            {(routeDistance / 1000).toFixed(1)} km
+            {(routeDistance / 1000).toFixed(1)} km {t('Road', language)}
           </Tooltip>
         )}
       </Polyline>
@@ -196,21 +196,79 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return mosques.filter(m => m.commune === selectedCommune);
   }, [mosques, selectedCommune]);
 
+  const [roadDistances, setRoadDistances] = useState<Record<number, number>>({});
+
   const nearestMosques = useMemo(() => {
     if (!userLocation || filteredByCommune.length === 0) return [];
     
-    const withDistance = filteredByCommune.map(mosque => ({
+    // First, get top 15 by straight line to limit API calls
+    const withStraightDistance = filteredByCommune.map(mosque => ({
       ...mosque,
-      distance: getDistance(
+      straightDistance: getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
         { latitude: mosque.latitude, longitude: mosque.longitude }
       )
     }));
 
-    return withDistance
+    const topCandidates = withStraightDistance
+      .sort((a, b) => a.straightDistance - b.straightDistance)
+      .slice(0, 15);
+
+    // If we have road distances, use them for sorting
+    const withRoadDistance = topCandidates.map(m => ({
+      ...m,
+      distance: roadDistances[m.id] || m.straightDistance // Fallback to straight line if road dist not yet fetched
+    }));
+
+    return withRoadDistance
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 3);
-  }, [filteredByCommune, userLocation]);
+  }, [filteredByCommune, userLocation, roadDistances]);
+
+  // Fetch road distances for top candidates
+  useEffect(() => {
+    if (!userLocation || filteredByCommune.length === 0) return;
+
+    const fetchRoadDistances = async () => {
+      try {
+        // Get top 15 by straight line
+        const top15 = [...filteredByCommune]
+          .map(m => ({
+            id: m.id,
+            lat: m.latitude,
+            lng: m.longitude,
+            d: getDistance(
+              { latitude: userLocation.latitude, longitude: userLocation.longitude },
+              { latitude: m.latitude, longitude: m.longitude }
+            )
+          }))
+          .sort((a, b) => a.d - b.d)
+          .slice(0, 15);
+
+        const coords = [
+          `${userLocation.longitude},${userLocation.latitude}`,
+          ...top15.map(m => `${m.lng},${m.lat}`)
+        ].join(';');
+
+        const response = await fetch(`https://router.project-osrm.org/table/v1/${routeProfile}/${coords}?sources=0&annotations=distance`);
+        const data = await response.json();
+
+        if (data.distances && data.distances[0]) {
+          const distances: Record<number, number> = {};
+          data.distances[0].slice(1).forEach((dist: number, idx: number) => {
+            if (dist !== null) {
+              distances[top15[idx].id] = dist;
+            }
+          });
+          setRoadDistances(distances);
+        }
+      } catch (error) {
+        console.error("Error fetching road distances table:", error);
+      }
+    };
+
+    fetchRoadDistances();
+  }, [userLocation, filteredByCommune, routeProfile]);
 
   const displayedMosques = showNearest && userLocation ? nearestMosques : filteredByCommune;
 

@@ -8,8 +8,25 @@ import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
 
 export default function BottomSheet() {
-  const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation } = useAppStore();
+  const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation, routeInfo, routingToMosque } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
+
+  const isRoutingToThis = routingToMosque?.id === selectedMosque?.id;
+
+  const distance = useMemo(() => {
+    if (!userLocation || !selectedMosque) return null;
+    
+    // If we are currently routing to this mosque, use the road distance from routeInfo
+    if (isRoutingToThis && routeInfo) {
+      return (routeInfo.distance / 1000).toFixed(1);
+    }
+
+    // Otherwise use straight line (as a fallback/initial value)
+    return (getDistance(
+      { latitude: userLocation.latitude, longitude: userLocation.longitude },
+      { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude }
+    ) / 1000).toFixed(1);
+  }, [userLocation, selectedMosque, isRoutingToThis, routeInfo]);
 
   const nearbyMosques = useMemo(() => {
     if (!selectedMosque) return [];
@@ -58,11 +75,6 @@ export default function BottomSheet() {
     }
   };
 
-  const distance = userLocation ? (getDistance(
-    { latitude: userLocation.latitude, longitude: userLocation.longitude },
-    { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude }
-  ) / 1000).toFixed(1) : null;
-
   return (
     <>
       <AnimatePresence>
@@ -89,7 +101,9 @@ export default function BottomSheet() {
                     {distance && (
                       <>
                         <span className="text-gray-300">•</span>
-                        <span className="text-gray-600">{distance} km</span>
+                        <span className="text-gray-600">
+                          {distance} km {isRoutingToThis && routeInfo ? `(${t('Road', language)})` : ''}
+                        </span>
                       </>
                     )}
                   </div>

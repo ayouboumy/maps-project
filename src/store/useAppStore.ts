@@ -47,7 +47,7 @@ export const useAppStore = create<AppState>()(
       selectedMosque: null,
       routingToMosque: null,
       routeInfo: null,
-      routeProfile: 'foot',
+      routeProfile: 'driving',
       userLocation: null,
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
