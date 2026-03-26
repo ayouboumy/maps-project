@@ -2,16 +2,41 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Eye } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
 
 export default function BottomSheet() {
-  const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation, routeInfo, routingToMosque } = useAppStore();
+  const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
+  const [roadDistance, setRoadDistance] = useState<number | null>(null);
 
   const isRoutingToThis = routingToMosque?.id === selectedMosque?.id;
+
+  // Fetch road distance when a mosque is selected
+  useEffect(() => {
+    if (!selectedMosque || !userLocation) {
+      setRoadDistance(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchDistance = async () => {
+      try {
+        const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile || 'driving'}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false`);
+        const data = await response.json();
+        if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          setRoadDistance(data.routes[0].distance);
+        }
+      } catch (error) {
+        console.error("Error fetching road distance for bottom sheet:", error);
+      }
+    };
+
+    fetchDistance();
+    return () => { isMounted = false; };
+  }, [selectedMosque, userLocation, routeProfile]);
 
   const distance = useMemo(() => {
     if (!userLocation || !selectedMosque) return null;
@@ -19,6 +44,11 @@ export default function BottomSheet() {
     // If we are currently routing to this mosque, use the road distance from routeInfo
     if (isRoutingToThis && routeInfo) {
       return (routeInfo.distance / 1000).toFixed(1);
+    }
+
+    // If we have fetched the road distance, use it
+    if (roadDistance !== null) {
+      return (roadDistance / 1000).toFixed(1);
     }
 
     try {
@@ -30,7 +60,7 @@ export default function BottomSheet() {
     } catch (e) {
       return null;
     }
-  }, [userLocation, selectedMosque, isRoutingToThis, routeInfo]);
+  }, [userLocation, selectedMosque, isRoutingToThis, routeInfo, roadDistance]);
 
   const nearbyMosques = useMemo(() => {
     if (!selectedMosque) return [];
@@ -112,7 +142,7 @@ export default function BottomSheet() {
                       <>
                         <span className="text-gray-300">•</span>
                         <span className="text-gray-600">
-                          {distance} km {isRoutingToThis && routeInfo ? `(${t('Road', language)})` : ''}
+                          {distance} km {roadDistance !== null || (isRoutingToThis && routeInfo) ? `(${t('Road', language)})` : ''}
                         </span>
                       </>
                     )}

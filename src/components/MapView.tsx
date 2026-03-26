@@ -218,6 +218,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   }, [mosques, selectedCommune]);
 
   const [roadDistances, setRoadDistances] = useState<Record<number, number>>({});
+  const [roadDurations, setRoadDurations] = useState<Record<number, number>>({});
 
   const nearestMosques = useMemo(() => {
     if (!isUserLocationValid || filteredByCommune.length === 0) return [];
@@ -241,16 +242,24 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
       .sort((a, b) => a.straightDistance - b.straightDistance)
       .slice(0, 15);
 
-    // If we have road distances, use them for sorting
-    const withRoadDistance = topCandidates.map(m => ({
+    // If we have road distances, use them for sorting. Otherwise, if we have durations, use them.
+    const withRoadMetrics = topCandidates.map(m => ({
       ...m,
-      distance: roadDistances[m.id] || m.straightDistance // Fallback to straight line if road dist not yet fetched
+      distance: roadDistances[m.id] !== undefined ? roadDistances[m.id] : m.straightDistance,
+      duration: roadDurations[m.id] !== undefined ? roadDurations[m.id] : Infinity
     }));
 
-    return withRoadDistance
-      .sort((a, b) => a.distance - b.distance)
+    return withRoadMetrics
+      .sort((a, b) => {
+        // If we have durations for both, sort by duration (fastest route)
+        if (a.duration !== Infinity && b.duration !== Infinity) {
+          return a.duration - b.duration;
+        }
+        // Otherwise sort by distance (road distance if available, else straight line)
+        return a.distance - b.distance;
+      })
       .slice(0, 3);
-  }, [filteredByCommune, userLocation, roadDistances]);
+  }, [filteredByCommune, userLocation, roadDistances, roadDurations]);
 
   // Fetch road distances for top candidates
   useEffect(() => {
@@ -285,17 +294,44 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           ...top15.map(m => `${m.lng},${m.lat}`)
         ].join(';');
 
-        const response = await fetch(`https://router.project-osrm.org/table/v1/${routeProfile}/${coords}?sources=0&annotations=distance`);
-        const data = await response.json();
+        // Helper function to fetch table data
+        const fetchTable = async (profile: string) => {
+          const response = await fetch(`https://router.project-osrm.org/table/v1/${profile}/${coords}?sources=0&annotations=duration,distance`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return await response.json();
+        };
 
-        if (data.distances && data.distances[0]) {
+        let data;
+        try {
+          // Try with the selected route profile first
+          data = await fetchTable(routeProfile || 'driving');
+        } catch (e) {
+          // If it fails (e.g., 'foot' profile not supported for table on public server), fallback to 'driving'
+          if (routeProfile !== 'driving') {
+            console.log("Table API failed with profile", routeProfile, "falling back to driving");
+            data = await fetchTable('driving');
+          } else {
+            throw e;
+          }
+        }
+
+        if (data && data.code === 'Ok') {
           const distances: Record<number, number> = {};
-          data.distances[0].slice(1).forEach((dist: number, idx: number) => {
-            if (dist !== null) {
-              distances[top15[idx].id] = dist;
-            }
-          });
-          setRoadDistances(distances);
+          const durations: Record<number, number> = {};
+          
+          if (data.distances && data.distances[0]) {
+            data.distances[0].slice(1).forEach((dist: number, idx: number) => {
+              if (dist !== null) distances[top15[idx].id] = dist;
+            });
+            setRoadDistances(distances);
+          }
+          
+          if (data.durations && data.durations[0]) {
+            data.durations[0].slice(1).forEach((dur: number, idx: number) => {
+              if (dur !== null) durations[top15[idx].id] = dur;
+            });
+            setRoadDurations(durations);
+          }
         }
       } catch (error) {
         console.error("Error fetching road distances table:", error);
@@ -385,6 +421,11 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                     >
                       {getLocalizedName(mosque, language)}
                     </div>
+                    {showNearest && roadDistances[mosque.id] !== undefined && (
+                      <div className="text-[10px] font-semibold text-blue-600 mt-0.5 bg-blue-50 px-1.5 rounded">
+                        {(roadDistances[mosque.id] / 1000).toFixed(1)} km
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
               )}
