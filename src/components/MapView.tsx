@@ -98,6 +98,9 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
   const { setRouteInfo } = useAppStore();
 
   useEffect(() => {
+    if (isNaN(start[0]) || isNaN(start[1]) || isNaN(end[0]) || isNaN(end[1])) {
+      return;
+    }
     let isMounted = true;
     const fetchRoute = async () => {
       try {
@@ -203,13 +206,19 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     if (!userLocation || filteredByCommune.length === 0) return [];
     
     // First, get top 15 by straight line to limit API calls
-    const withStraightDistance = filteredByCommune.map(mosque => ({
-      ...mosque,
-      straightDistance: getDistance(
-        { latitude: userLocation.latitude, longitude: userLocation.longitude },
-        { latitude: mosque.latitude, longitude: mosque.longitude }
-      )
-    }));
+    const withStraightDistance = filteredByCommune.map(mosque => {
+      try {
+        return {
+          ...mosque,
+          straightDistance: getDistance(
+            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+            { latitude: mosque.latitude, longitude: mosque.longitude }
+          )
+        };
+      } catch (e) {
+        return { ...mosque, straightDistance: Infinity };
+      }
+    });
 
     const topCandidates = withStraightDistance
       .sort((a, b) => a.straightDistance - b.straightDistance)
