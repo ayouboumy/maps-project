@@ -24,9 +24,8 @@ export default function BottomSheet() {
     let isMounted = true;
     const fetchDistance = async () => {
       try {
-        const baseUrl = (routeProfile || 'driving') === 'foot' 
-          ? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving'
-          : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+        const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
+        const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
         const data = await response.json();
         if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {

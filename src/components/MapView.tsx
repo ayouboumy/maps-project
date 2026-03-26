@@ -117,9 +117,8 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     let isMounted = true;
     const fetchRoute = async () => {
       try {
-        const baseUrl = routeProfile === 'foot' 
-          ? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving'
-          : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+        const profile = routeProfile === 'foot' ? 'foot' : 'driving';
+        const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
         const data = await response.json();
         if (isMounted && data.routes && data.routes.length > 0) {
@@ -308,9 +307,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         // This is better than the table API because the public table API only supports driving
         const promises = top5.map(async (m) => {
           try {
-            const baseUrl = (routeProfile || 'foot') === 'foot' 
-              ? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving'
-              : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+            const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
+            const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
             const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
             if (!response.ok) return null;
             const data = await response.json();
