@@ -104,7 +104,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
-  const { setRouteInfo } = useAppStore();
+  const { setRouteInfo, language } = useAppStore();
 
   useEffect(() => {
     if (isNaN(start[0]) || isNaN(start[1]) || isNaN(end[0]) || isNaN(end[1])) {
