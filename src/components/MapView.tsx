@@ -117,18 +117,25 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     let isMounted = true;
     const fetchRoute = async () => {
       try {
-        const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
+        const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
         const data = await response.json();
-        if (isMounted && data.routes && data.routes[0] && data.routes[0].geometry) {
-          const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
-          setPositions(coords);
-          if (data.routes[0].distance) {
-            setRouteDistance(data.routes[0].distance);
-            if (isMainRoute) {
-              setRouteInfo({
-                distance: data.routes[0].distance,
-                duration: data.routes[0].duration
-              });
+        if (isMounted && data.routes && data.routes.length > 0) {
+          // Find the route with the shortest distance
+          const shortestRoute = data.routes.reduce((prev: any, current: any) => {
+            return (prev.distance < current.distance) ? prev : current;
+          });
+
+          if (shortestRoute.geometry) {
+            const coords = shortestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+            setPositions(coords);
+            if (shortestRoute.distance) {
+              setRouteDistance(shortestRoute.distance);
+              if (isMainRoute) {
+                setRouteInfo({
+                  distance: shortestRoute.distance,
+                  duration: shortestRoute.duration
+                });
+              }
             }
           }
         }
@@ -289,52 +296,44 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         if (top15.length === 0) return;
 
-        const coords = [
-          `${userLocation.longitude},${userLocation.latitude}`,
-          ...top15.map(m => `${m.lng},${m.lat}`)
-        ].join(';');
+        // We only need to check the top 5 to find the true top 3 nearest
+        const top5 = top15.slice(0, 5);
+        const distances: Record<number, number> = {};
+        const durations: Record<number, number> = {};
 
-        // Helper function to fetch table data
-        const fetchTable = async (profile: string) => {
-          const response = await fetch(`https://router.project-osrm.org/table/v1/${profile}/${coords}?sources=0&annotations=duration,distance`);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          return await response.json();
-        };
+        // Fetch individual routes for the top 5 candidates to get accurate distances for the selected profile
+        // This is better than the table API because the public table API only supports driving
+        const promises = top5.map(async (m) => {
+          try {
+            const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile || 'foot'}/${userLocation.longitude},${userLocation.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
+            if (!response.ok) return null;
+            const data = await response.json();
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+              // Find the shortest route among alternatives
+              const shortestRoute = data.routes.reduce((prev: any, current: any) => {
+                return (prev.distance < current.distance) ? prev : current;
+              });
+              return { id: m.id, distance: shortestRoute.distance, duration: shortestRoute.duration };
+            }
+          } catch (e) {
+            console.error(`Error fetching route for mosque ${m.id}:`, e);
+          }
+          return null;
+        });
 
-        let data;
-        try {
-          // Try with the selected route profile first
-          data = await fetchTable(routeProfile || 'driving');
-        } catch (e) {
-          // If it fails (e.g., 'foot' profile not supported for table on public server), fallback to 'driving'
-          if (routeProfile !== 'driving') {
-            console.log("Table API failed with profile", routeProfile, "falling back to driving");
-            data = await fetchTable('driving');
-          } else {
-            throw e;
+        const results = await Promise.all(promises);
+        
+        results.forEach(res => {
+          if (res) {
+            distances[res.id] = res.distance;
+            durations[res.id] = res.duration;
           }
-        }
+        });
 
-        if (data && data.code === 'Ok') {
-          const distances: Record<number, number> = {};
-          const durations: Record<number, number> = {};
-          
-          if (data.distances && data.distances[0]) {
-            data.distances[0].slice(1).forEach((dist: number, idx: number) => {
-              if (dist !== null) distances[top15[idx].id] = dist;
-            });
-            setRoadDistances(distances);
-          }
-          
-          if (data.durations && data.durations[0]) {
-            data.durations[0].slice(1).forEach((dur: number, idx: number) => {
-              if (dur !== null) durations[top15[idx].id] = dur;
-            });
-            setRoadDurations(durations);
-          }
-        }
+        setRoadDistances(distances);
+        setRoadDurations(durations);
       } catch (error) {
-        console.error("Error fetching road distances table:", error);
+        console.error("Error fetching road distances:", error);
       }
     };
 

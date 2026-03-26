@@ -24,10 +24,13 @@ export default function BottomSheet() {
     let isMounted = true;
     const fetchDistance = async () => {
       try {
-        const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile || 'driving'}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false`);
+        const response = await fetch(`https://router.project-osrm.org/route/v1/${routeProfile || 'driving'}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
         const data = await response.json();
         if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          setRoadDistance(data.routes[0].distance);
+          const shortestRoute = data.routes.reduce((prev: any, current: any) => {
+            return (prev.distance < current.distance) ? prev : current;
+          });
+          setRoadDistance(shortestRoute.distance);
         }
       } catch (error) {
         console.error("Error fetching road distance for bottom sheet:", error);
