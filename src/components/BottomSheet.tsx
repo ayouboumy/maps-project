@@ -30,10 +30,11 @@ export default function BottomSheet() {
         const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
         const data = await response.json();
         if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const shortestRoute = data.routes.reduce((prev: any, current: any) => {
-            return (prev.distance < current.distance) ? prev : current;
-          });
-          setRoadDistance(shortestRoute.distance);
+          // Find the route with the shortest distance among all alternatives
+          const bestRoute = data.routes.reduce((prev: any, current: any) => 
+            (prev.distance < current.distance) ? prev : current
+          );
+          setRoadDistance(bestRoute.distance);
         }
       } catch (error) {
         console.error("Error fetching road distance for bottom sheet:", error);

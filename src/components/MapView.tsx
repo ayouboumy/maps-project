@@ -105,7 +105,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string }) {
+function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', key }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, key?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
   const { setRouteInfo, language } = useAppStore();
@@ -123,20 +123,20 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
         const data = await response.json();
         if (isMounted && data.routes && data.routes.length > 0) {
-          // Find the route with the shortest distance
-          const shortestRoute = data.routes.reduce((prev: any, current: any) => {
-            return (prev.distance < current.distance) ? prev : current;
-          });
+          // Find the route with the shortest distance among all alternatives
+          const bestRoute = data.routes.reduce((prev: any, current: any) => 
+            (prev.distance < current.distance) ? prev : current
+          );
 
-          if (shortestRoute.geometry) {
-            const coords = shortestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+          if (bestRoute.geometry) {
+            const coords = bestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
             setPositions(coords);
-            if (shortestRoute.distance) {
-              setRouteDistance(shortestRoute.distance);
+            if (bestRoute.distance) {
+              setRouteDistance(bestRoute.distance);
               if (isMainRoute) {
                 setRouteInfo({
-                  distance: shortestRoute.distance,
-                  duration: shortestRoute.duration
+                  distance: bestRoute.distance,
+                  duration: bestRoute.duration
                 });
               }
             }
@@ -315,11 +315,11 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             if (!response.ok) return null;
             const data = await response.json();
             if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-              // Find the shortest route among alternatives
-              const shortestRoute = data.routes.reduce((prev: any, current: any) => {
-                return (prev.distance < current.distance) ? prev : current;
-              });
-              return { id: m.id, distance: shortestRoute.distance, duration: shortestRoute.duration };
+              // Find the route with the shortest distance among all alternatives
+              const bestRoute = data.routes.reduce((prev: any, current: any) => 
+                (prev.distance < current.distance) ? prev : current
+              );
+              return { id: m.id, distance: bestRoute.distance, duration: bestRoute.duration };
             }
           } catch (e) {
             console.error(`Error fetching route for mosque ${m.id}:`, e);
