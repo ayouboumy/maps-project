@@ -120,10 +120,14 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         const profile = routeProfile === 'foot' ? 'foot' : 'car';
         const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
         const baseUrl = `https://graphhopper.com/api/1/route`;
-        const response = await fetch(`${baseUrl}?point=${start[0]},${start[1]}&point=${end[0]},${end[1]}&profile=${profile}&points_encoded=false&key=${apiKey}`);
+        // Use ch.disable=true to allow alternative routes and different weightings
+        const response = await fetch(`${baseUrl}?point=${start[0]},${start[1]}&point=${end[0]},${end[1]}&profile=${profile}&points_encoded=false&key=${apiKey}&algorithm=alternative_route&ch.disable=true`);
         const data = await response.json();
         if (isMounted && data.paths && data.paths.length > 0) {
-          const bestRoute = data.paths[0];
+          // Find the path with the absolute shortest distance
+          const bestRoute = data.paths.reduce((prev: any, current: any) => 
+            (prev.distance < current.distance) ? prev : current
+          );
 
           if (bestRoute.points && bestRoute.points.coordinates) {
             const coords = bestRoute.points.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
@@ -308,11 +312,14 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'car';
             const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
             const baseUrl = `https://graphhopper.com/api/1/route`;
-            const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${m.lat},${m.lng}&profile=${profile}&points_encoded=false&key=${apiKey}`);
+            const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${m.lat},${m.lng}&profile=${profile}&points_encoded=false&key=${apiKey}&algorithm=alternative_route&ch.disable=true`);
             if (!response.ok) return null;
             const data = await response.json();
             if (data.paths && data.paths.length > 0) {
-              const bestRoute = data.paths[0];
+              // Find the shortest path
+              const bestRoute = data.paths.reduce((prev: any, current: any) => 
+                (prev.distance < current.distance) ? prev : current
+              );
               return { id: m.id, distance: bestRoute.distance, duration: bestRoute.time / 1000 };
             }
           } catch (e) {

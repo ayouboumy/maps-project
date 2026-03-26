@@ -27,10 +27,13 @@ export default function BottomSheet() {
         const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'car';
         const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
         const baseUrl = `https://graphhopper.com/api/1/route`;
-        const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${selectedMosque.latitude},${selectedMosque.longitude}&profile=${profile}&points_encoded=false&key=${apiKey}`);
+        const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${selectedMosque.latitude},${selectedMosque.longitude}&profile=${profile}&points_encoded=false&key=${apiKey}&algorithm=alternative_route&ch.disable=true`);
         const data = await response.json();
         if (isMounted && data.paths && data.paths.length > 0) {
-          const bestRoute = data.paths[0];
+          // Find the shortest path
+          const bestRoute = data.paths.reduce((prev: any, current: any) => 
+            (prev.distance < current.distance) ? prev : current
+          );
           setRoadDistance(bestRoute.distance);
         }
       } catch (error) {
