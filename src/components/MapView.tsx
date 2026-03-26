@@ -92,7 +92,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, key?: string, isMainRoute?: boolean, routeProfile?: string }) {
+function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot' }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
   const { setRouteInfo } = useAppStore();
