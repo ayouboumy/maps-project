@@ -117,25 +117,23 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     let isMounted = true;
     const fetchRoute = async () => {
       try {
-        const profile = routeProfile === 'foot' ? 'foot' : 'driving';
-        const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
-        const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
+        const profile = routeProfile === 'foot' ? 'foot' : 'car';
+        const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
+        const baseUrl = `https://graphhopper.com/api/1/route`;
+        const response = await fetch(`${baseUrl}?point=${start[0]},${start[1]}&point=${end[0]},${end[1]}&profile=${profile}&points_encoded=false&key=${apiKey}`);
         const data = await response.json();
-        if (isMounted && data.routes && data.routes.length > 0) {
-          // Find the route with the shortest distance among all alternatives
-          const bestRoute = data.routes.reduce((prev: any, current: any) => 
-            (prev.distance < current.distance) ? prev : current
-          );
+        if (isMounted && data.paths && data.paths.length > 0) {
+          const bestRoute = data.paths[0];
 
-          if (bestRoute.geometry) {
-            const coords = bestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+          if (bestRoute.points && bestRoute.points.coordinates) {
+            const coords = bestRoute.points.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
             setPositions(coords);
             if (bestRoute.distance) {
               setRouteDistance(bestRoute.distance);
               if (isMainRoute) {
                 setRouteInfo({
                   distance: bestRoute.distance,
-                  duration: bestRoute.duration
+                  duration: bestRoute.time / 1000
                 });
               }
             }
@@ -307,17 +305,15 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         // This is better than the table API because the public table API only supports driving
         const promises = top5.map(async (m) => {
           try {
-            const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
-            const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
-            const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
+            const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'car';
+            const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
+            const baseUrl = `https://graphhopper.com/api/1/route`;
+            const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${m.lat},${m.lng}&profile=${profile}&points_encoded=false&key=${apiKey}`);
             if (!response.ok) return null;
             const data = await response.json();
-            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-              // Find the route with the shortest distance among all alternatives
-              const bestRoute = data.routes.reduce((prev: any, current: any) => 
-                (prev.distance < current.distance) ? prev : current
-              );
-              return { id: m.id, distance: bestRoute.distance, duration: bestRoute.duration };
+            if (data.paths && data.paths.length > 0) {
+              const bestRoute = data.paths[0];
+              return { id: m.id, distance: bestRoute.distance, duration: bestRoute.time / 1000 };
             }
           } catch (e) {
             console.error(`Error fetching route for mosque ${m.id}:`, e);

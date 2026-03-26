@@ -24,15 +24,13 @@ export default function BottomSheet() {
     let isMounted = true;
     const fetchDistance = async () => {
       try {
-        const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
-        const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
-        const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
+        const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'car';
+        const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
+        const baseUrl = `https://graphhopper.com/api/1/route`;
+        const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${selectedMosque.latitude},${selectedMosque.longitude}&profile=${profile}&points_encoded=false&key=${apiKey}`);
         const data = await response.json();
-        if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          // Find the route with the shortest distance among all alternatives
-          const bestRoute = data.routes.reduce((prev: any, current: any) => 
-            (prev.distance < current.distance) ? prev : current
-          );
+        if (isMounted && data.paths && data.paths.length > 0) {
+          const bestRoute = data.paths[0];
           setRoadDistance(bestRoute.distance);
         }
       } catch (error) {
