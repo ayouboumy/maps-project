@@ -192,8 +192,9 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     : [33.5731, -7.5898] as [number, number];
 
   const filteredByCommune = useMemo(() => {
-    if (!selectedCommune) return mosques;
-    return mosques.filter(m => m.commune === selectedCommune);
+    const validMosques = mosques.filter(m => m.latitude !== 0 && m.longitude !== 0);
+    if (!selectedCommune) return validMosques;
+    return validMosques.filter(m => m.commune === selectedCommune);
   }, [mosques, selectedCommune]);
 
   const [roadDistances, setRoadDistances] = useState<Record<number, number>>({});
@@ -313,7 +314,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             key={`route-${mosque.id}-${routeProfile}`}
             start={[userLocation.latitude, userLocation.longitude]}
             end={[mosque.latitude, mosque.longitude]}
-            straightDistance={(mosque as any).distance}
+            straightDistance={(mosque as any).distance || 0}
             routeProfile={routeProfile}
           />
         ))}
