@@ -21,11 +21,15 @@ export default function BottomSheet() {
       return (routeInfo.distance / 1000).toFixed(1);
     }
 
-    // Otherwise use straight line (as a fallback/initial value)
-    return (getDistance(
-      { latitude: userLocation.latitude, longitude: userLocation.longitude },
-      { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude }
-    ) / 1000).toFixed(1);
+    try {
+      // Otherwise use straight line (as a fallback/initial value)
+      return (getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude }
+      ) / 1000).toFixed(1);
+    } catch (e) {
+      return null;
+    }
   }, [userLocation, selectedMosque, isRoutingToThis, routeInfo]);
 
   const nearbyMosques = useMemo(() => {
@@ -33,13 +37,19 @@ export default function BottomSheet() {
     
     return mosques
       .filter(m => m.id !== selectedMosque.id)
-      .map(m => ({
-        ...m,
-        distanceToSelected: getDistance(
-          { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude },
-          { latitude: m.latitude, longitude: m.longitude }
-        )
-      }))
+      .map(m => {
+        let distanceToSelected = Infinity;
+        try {
+          distanceToSelected = getDistance(
+            { latitude: selectedMosque.latitude, longitude: selectedMosque.longitude },
+            { latitude: m.latitude, longitude: m.longitude }
+          );
+        } catch (e) {}
+        return {
+          ...m,
+          distanceToSelected
+        };
+      })
       .sort((a, b) => a.distanceToSelected - b.distanceToSelected)
       .slice(0, 3);
   }, [mosques, selectedMosque]);

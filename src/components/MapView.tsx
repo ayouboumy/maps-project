@@ -45,6 +45,10 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
   const { userLocation } = useAppStore();
   const map = useMap();
 
+  const isUserLocationValid = userLocation && 
+    typeof userLocation.latitude === 'number' && !isNaN(userLocation.latitude) &&
+    typeof userLocation.longitude === 'number' && !isNaN(userLocation.longitude);
+
   // Invalidate size on mount and when location changes to ensure correct rendering on mobile
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -54,7 +58,7 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
   }, [map]);
 
   useEffect(() => {
-    if (routingToMosque && userLocation) {
+    if (routingToMosque && isUserLocationValid) {
       if (typeof routingToMosque.latitude === 'number' && typeof routingToMosque.longitude === 'number') {
         const bounds = L.latLngBounds([
           [userLocation.latitude, userLocation.longitude],
@@ -66,7 +70,7 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
       if (typeof selectedMosque.latitude === 'number' && typeof selectedMosque.longitude === 'number') {
         map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
       }
-    } else if (showNearest && userLocation && nearestMosques.length > 0) {
+    } else if (showNearest && isUserLocationValid && nearestMosques.length > 0) {
       const validNearest = nearestMosques.filter(m => 
         typeof m.latitude === 'number' && !isNaN(m.latitude) &&
         typeof m.longitude === 'number' && !isNaN(m.longitude)
@@ -78,10 +82,10 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
         ]);
         map.fitBounds(bounds, { padding: [50, 50] });
       }
-    } else if (!showNearest && userLocation && !routingToMosque) {
+    } else if (!showNearest && isUserLocationValid && !routingToMosque) {
       map.flyTo([userLocation.latitude, userLocation.longitude], 13);
     }
-  }, [userLocation, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
+  }, [userLocation, isUserLocationValid, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
 
   return null;
 }
@@ -162,11 +166,14 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 
   const dashArray = isDriving ? undefined : (isMainRoute ? "1, 14" : "5, 12");
 
+  const validPositions = positions.filter(p => p && typeof p[0] === 'number' && !isNaN(p[0]) && typeof p[1] === 'number' && !isNaN(p[1]));
+  if (validPositions.length < 2) return null;
+
   return (
     <>
       {/* Outer stroke (Casing/Halo) */}
       <Polyline 
-        positions={positions}
+        positions={validPositions}
         color={outerColor}
         weight={outerWeight}
         opacity={isMainRoute ? 1 : 0.8}
@@ -176,20 +183,14 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
       />
       {/* Inner colored stroke */}
       <Polyline 
-        positions={positions}
+        positions={validPositions}
         color={innerColor}
         weight={innerWeight}
         opacity={1}
         lineCap="round"
         lineJoin="round"
         dashArray={dashArray}
-      >
-        {!isMainRoute && (
-          <Tooltip permanent direction="center" className="bg-white/90 border-none shadow-sm rounded px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
-            {(routeDistance / 1000).toFixed(1)} km {t('Road', language)}
-          </Tooltip>
-        )}
-      </Polyline>
+      />
     </>
   );
 }
@@ -198,8 +199,12 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
+  const isUserLocationValid = userLocation && 
+    typeof userLocation.latitude === 'number' && !isNaN(userLocation.latitude) &&
+    typeof userLocation.longitude === 'number' && !isNaN(userLocation.longitude);
+
   // Default center (Casablanca)
-  const center = userLocation 
+  const center = isUserLocationValid 
     ? [userLocation.latitude, userLocation.longitude] as [number, number]
     : [33.5731, -7.5898] as [number, number];
 
@@ -215,7 +220,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   const [roadDistances, setRoadDistances] = useState<Record<number, number>>({});
 
   const nearestMosques = useMemo(() => {
-    if (!userLocation || filteredByCommune.length === 0) return [];
+    if (!isUserLocationValid || filteredByCommune.length === 0) return [];
     
     // First, get top 15 by straight line to limit API calls
     const withStraightDistance = filteredByCommune.map(mosque => {
@@ -249,21 +254,27 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
   // Fetch road distances for top candidates
   useEffect(() => {
-    if (!userLocation || filteredByCommune.length === 0) return;
+    if (!isUserLocationValid || filteredByCommune.length === 0) return;
 
     const fetchRoadDistances = async () => {
       try {
         // Get top 15 by straight line
         const top15 = [...filteredByCommune]
-          .map(m => ({
-            id: m.id,
-            lat: m.latitude,
-            lng: m.longitude,
-            d: getDistance(
-              { latitude: userLocation.latitude, longitude: userLocation.longitude },
-              { latitude: m.latitude, longitude: m.longitude }
-            )
-          }))
+          .map(m => {
+            let d = Infinity;
+            try {
+              d = getDistance(
+                { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                { latitude: m.latitude, longitude: m.longitude }
+              );
+            } catch (e) {}
+            return {
+              id: m.id,
+              lat: m.latitude,
+              lng: m.longitude,
+              d
+            };
+          })
           .sort((a, b) => a.d - b.d)
           .slice(0, 15);
 
@@ -294,7 +305,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     fetchRoadDistances();
   }, [userLocation, filteredByCommune, routeProfile]);
 
-  const displayedMosques = showNearest && userLocation ? nearestMosques : filteredByCommune;
+  const displayedMosques = showNearest && isUserLocationValid ? nearestMosques : filteredByCommune;
 
   return (
     <div className="w-full h-full">
@@ -311,14 +322,14 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {userLocation && (
+        {isUserLocationValid && (
           <Marker 
             position={[userLocation.latitude, userLocation.longitude]} 
             icon={userIcon}
           />
         )}
 
-        {routingToMosque && userLocation && (
+        {routingToMosque && isUserLocationValid && (
           <RouteLine 
             key={`route-single-${routingToMosque.id}-${routeProfile}`}
             start={[userLocation.latitude, userLocation.longitude]}
@@ -332,7 +343,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
 
-        {showNearest && userLocation && !routingToMosque && nearestMosques.map((mosque) => {
+        {showNearest && isUserLocationValid && !routingToMosque && nearestMosques.map((mosque) => {
           if (typeof mosque.latitude !== 'number' || typeof mosque.longitude !== 'number') return null;
           return (
             <RouteLine 

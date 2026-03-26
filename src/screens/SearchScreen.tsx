@@ -57,15 +57,19 @@ export default function SearchScreen() {
 
     if (sortBy === 'distance' && userLocation) {
       filtered.sort((a, b) => {
-        const distA = getDistance(
-          { latitude: userLocation.latitude, longitude: userLocation.longitude },
-          { latitude: a.latitude, longitude: a.longitude }
-        );
-        const distB = getDistance(
-          { latitude: userLocation.latitude, longitude: userLocation.longitude },
-          { latitude: b.latitude, longitude: b.longitude }
-        );
-        return distA - distB;
+        try {
+          const distA = getDistance(
+            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+            { latitude: a.latitude, longitude: a.longitude }
+          );
+          const distB = getDistance(
+            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+            { latitude: b.latitude, longitude: b.longitude }
+          );
+          return distA - distB;
+        } catch (e) {
+          return 0;
+        }
       });
     } else {
       filtered.sort((a, b) => {
@@ -228,10 +232,16 @@ export default function SearchScreen() {
                 </div>
                 {userLocation && (
                   <div className="text-xs text-emerald-600 mt-1 font-medium">
-                    {(getDistance(
-                      { latitude: userLocation.latitude, longitude: userLocation.longitude },
-                      { latitude: mosque.latitude, longitude: mosque.longitude }
-                    ) / 1000).toFixed(1)} km
+                    {(() => {
+                      try {
+                        return (getDistance(
+                          { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                          { latitude: mosque.latitude, longitude: mosque.longitude }
+                        ) / 1000).toFixed(1) + ' km';
+                      } catch (e) {
+                        return '';
+                      }
+                    })()}
                   </div>
                 )}
               </div>
