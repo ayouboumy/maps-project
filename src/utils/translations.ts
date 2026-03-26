@@ -72,6 +72,8 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Clear Route': { en: 'Clear Route', fr: 'Effacer l\'itinéraire', ar: 'مسح المسار' },
   'Calculating...': { en: 'Calculating...', fr: 'Calcul en cours...', ar: 'جاري الحساب...' },
   'Start': { en: 'Start', fr: 'Démarrer', ar: 'ابدأ' },
+  'Google Maps': { en: 'Google Maps', fr: 'Google Maps', ar: 'خرائط جوجل' },
+  'Location': { en: 'Location', fr: 'Position', ar: 'الموقع' },
   'Road': { en: 'Road', fr: 'Route', ar: 'طريق' },
   'Walking': { en: 'Walking', fr: 'À pied', ar: 'مشي' },
   'Driving': { en: 'Driving', fr: 'En voiture', ar: 'قيادة' },

@@ -24,14 +24,16 @@ export default function BottomSheet() {
     let isMounted = true;
     const fetchDistance = async () => {
       try {
-        const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'car';
-        const apiKey = '665f935b-43d4-48d9-8a03-41ab36bba9a1';
-        const baseUrl = `https://graphhopper.com/api/1/route`;
-        const response = await fetch(`${baseUrl}?point=${userLocation.latitude},${userLocation.longitude}&point=${selectedMosque.latitude},${selectedMosque.longitude}&profile=${profile}&points_encoded=false&key=${apiKey}&algorithm=alternative_route&ch.disable=true`);
+        const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
+        const baseUrl = profile === 'foot' 
+          ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
+          : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+        
+        const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
         const data = await response.json();
-        if (isMounted && data.paths && data.paths.length > 0) {
-          // Find the shortest path
-          const bestRoute = data.paths.reduce((prev: any, current: any) => 
+        if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          // Find the route with the shortest distance among all alternatives
+          const bestRoute = data.routes.reduce((prev: any, current: any) => 
             (prev.distance < current.distance) ? prev : current
           );
           setRoadDistance(bestRoute.distance);
@@ -97,6 +99,15 @@ export default function BottomSheet() {
 
   const handleOpenMaps = () => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
+  };
+
+  const handleOpenGoogleMapsRoute = () => {
+    const travelMode = (routeProfile || 'foot') === 'foot' ? 'walking' : 'driving';
+    if (userLocation) {
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${selectedMosque.latitude},${selectedMosque.longitude}&travelmode=${travelMode}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedMosque.latitude},${selectedMosque.longitude}&travelmode=${travelMode}`, '_blank');
+    }
   };
 
   const handleStreetView = () => {
@@ -173,11 +184,18 @@ export default function BottomSheet() {
                   {t('Directions', language)}
                 </button>
                 <button 
+                  onClick={handleOpenGoogleMapsRoute}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-full font-medium hover:bg-emerald-700 transition-colors shadow-sm shrink-0"
+                >
+                  <Navigation size={18} />
+                  {t('Google Maps', language)}
+                </button>
+                <button 
                   onClick={handleOpenMaps}
                   className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors shrink-0"
                 >
-                  <Navigation size={18} />
-                  {t('Start', language)}
+                  <MapPin size={18} />
+                  {t('Location', language)}
                 </button>
                 <button 
                   onClick={handleStreetView}
