@@ -70,14 +70,14 @@ export default function SettingsScreen() {
             const name = genericName || name_fr || name_ar || name_en || 'Unknown Mosque';
             const latitude = Number(getVal(['latitude', 'lat'])) || 0;
             const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
-            const address = getVal(['address', 'location', 'city']) || 'Unknown Address';
+            const address = getVal(['address', 'adresse', 'location', 'city', 'emplacement', 'lieu', 'العنوان', 'الموقع', 'المدينة']) || 'Unknown Address';
             // [END LOCKED IMPORT LOGIC]
-            const rawCommune = getVal(['commune', 'municipality', 'district', 'commune_ar', 'commune_fr']);
-            const commune = rawCommune ? String(rawCommune).trim() : (address.split(',')[0] || 'Unknown').trim();
-            const type = getVal(['type', 'category']) || 'Mosque';
-            const servicesRaw = getVal(['services', 'facilities']);
-            const itemsRaw = getVal(['items', 'amenities', 'features']);
-            const image = getVal(['image', 'photo', 'picture']) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
+            const rawCommune = getVal(['commune', 'municipality', 'district', 'commune_ar', 'commune_fr', 'ville', 'city', 'الجماعة', 'المقاطعة', 'العمالة']);
+            const commune = rawCommune ? String(rawCommune).trim() : (address !== 'Unknown Address' ? (address.split(',')[0] || 'Unknown').trim() : 'Unknown');
+            const type = getVal(['type', 'category', 'catégorie', 'genre', 'النوع', 'الصنف']) || 'Mosque';
+            const servicesRaw = getVal(['services', 'facilities', 'équipements', 'equipements', 'الخدمات', 'المرافق']);
+            const itemsRaw = getVal(['items', 'amenities', 'features', 'articles', 'composants', 'العناصر', 'المكونات']);
+            const image = getVal(['image', 'photo', 'picture', 'image_url', 'url_image', 'الصورة']) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
 
             // Handle comma-separated strings for arrays
             const parseArray = (val: any) => {
@@ -87,7 +87,7 @@ export default function SettingsScreen() {
             };
 
             // Collect all other columns into extraData
-            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'location', 'city', 'type', 'category', 'services', 'facilities', 'items', 'amenities', 'features', 'image', 'photo', 'picture', 'commune', 'municipality', 'district', 'commune_ar', 'commune_fr'];
+            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'adresse', 'location', 'city', 'emplacement', 'lieu', 'العنوان', 'الموقع', 'المدينة', 'type', 'category', 'catégorie', 'genre', 'النوع', 'الصنف', 'services', 'facilities', 'équipements', 'equipements', 'الخدمات', 'المرافق', 'items', 'amenities', 'features', 'articles', 'composants', 'العناصر', 'المكونات', 'image', 'photo', 'picture', 'image_url', 'url_image', 'الصورة', 'commune', 'municipality', 'district', 'commune_ar', 'commune_fr', 'ville', 'الجماعة', 'المقاطعة', 'العمالة'];
             const extraData: Record<string, any> = {};
             const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
             

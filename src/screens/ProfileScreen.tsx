@@ -76,7 +76,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           <h1 className="text-3xl font-bold mb-1">{mosque.name}</h1>
           <div className="flex items-center text-white/80 text-sm">
             <MapPin size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
-            {mosque.address}
+            {t(mosque.address, language)}
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
               </div>
               <div>
                 <span className="text-xs text-gray-500 block mb-0.5">{t('Address', language)}</span>
-                <span className="text-sm text-gray-900 font-medium leading-relaxed">{mosque.address}</span>
+                <span className="text-sm text-gray-900 font-medium leading-relaxed">{t(mosque.address, language)}</span>
               </div>
             </div>
             {mosque.commune && (
@@ -136,7 +136,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                 </div>
                 <div>
                   <span className="text-xs text-gray-500 block mb-0.5">{t('Commune', language)}</span>
-                  <span className="text-sm text-gray-900 font-medium">{mosque.commune}</span>
+                  <span className="text-sm text-gray-900 font-medium">{t(mosque.commune, language)}</span>
                 </div>
               </div>
             )}

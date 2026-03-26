@@ -217,7 +217,7 @@ export default function BottomSheet() {
                   <div className="flex items-start gap-2 text-gray-600 text-sm">
                     <MapPin size={16} className="shrink-0 mt-0.5 text-gray-400" />
                     <div className="flex flex-col">
-                      <span className="line-clamp-2 leading-snug font-medium">{selectedMosque.address}</span>
+                      <span className="line-clamp-2 leading-snug font-medium">{t(selectedMosque.address, language)}</span>
                       {selectedMosque.commune && (
                         <span className="text-xs text-gray-400 mt-0.5">{selectedMosque.commune}</span>
                       )}

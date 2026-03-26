@@ -228,7 +228,7 @@ export default function SearchScreen() {
                 </h3>
                 <div className="flex items-start text-gray-500 text-xs">
                   <MapPin size={12} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
-                  <span className="line-clamp-1">{mosque.address}</span>
+                  <span className="line-clamp-1">{t(mosque.address, language)}</span>
                 </div>
                 {userLocation && (
                   <div className="text-xs text-emerald-600 mt-1 font-medium">
