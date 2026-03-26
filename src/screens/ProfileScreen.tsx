@@ -11,17 +11,20 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
-  const { favorites, toggleFavorite, language, setRoutingToMosque, setSelectedMosque } = useAppStore();
+  const { favorites, toggleFavorite, language, setRoutingToMosque, setSelectedMosque, routeProfile, userLocation } = useAppStore();
   const isFavorite = favorites.includes(mosque.id);
 
   const handleOpenMaps = () => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${mosque.latitude},${mosque.longitude}`, '_blank');
   };
 
-  const handleDirections = () => {
-    setRoutingToMosque(mosque);
-    setSelectedMosque(null);
-    onClose();
+  const handleOpenGoogleMapsRoute = () => {
+    const travelMode = (routeProfile || 'foot') === 'foot' ? 'walking' : 'driving';
+    if (userLocation) {
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${mosque.latitude},${mosque.longitude}&travelmode=${travelMode}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${mosque.latitude},${mosque.longitude}&travelmode=${travelMode}`, '_blank');
+    }
   };
 
   const handleStreetView = () => {
@@ -66,18 +69,18 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       <div className="p-5 pb-24 max-w-md mx-auto">
         <div className="flex gap-3 mb-8">
           <button 
+            onClick={handleOpenGoogleMapsRoute}
+            className="flex-1 flex items-center justify-center py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            <Navigation size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t('Google Maps', language)}
+          </button>
+          <button 
             onClick={handleOpenMaps}
             className="flex-1 flex items-center justify-center py-3 bg-blue-50 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition-colors shadow-sm"
           >
-            <Map size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Map', language)}
-          </button>
-          <button 
-            onClick={handleDirections}
-            className="flex-1 flex items-center justify-center py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            <Route size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Directions', language)}
+            <MapPin size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t('Location', language)}
           </button>
           <button 
             onClick={handleStreetView}
