@@ -309,15 +309,17 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
 
-        {showNearest && userLocation && !routingToMosque && nearestMosques.map((mosque) => (
-          <RouteLine 
-            key={`route-${mosque.id}-${routeProfile}`}
-            start={[userLocation.latitude, userLocation.longitude]}
-            end={[mosque.latitude, mosque.longitude]}
-            straightDistance={(mosque as any).distance || 0}
-            routeProfile={routeProfile}
-          />
-        ))}
+        {showNearest && userLocation && !routingToMosque && nearestMosques.map((mosque) => {
+          if (typeof mosque.latitude !== 'number' || typeof mosque.longitude !== 'number') return null;
+          return (
+            <RouteLine 
+              start={[userLocation.latitude, userLocation.longitude]}
+              end={[mosque.latitude, mosque.longitude]}
+              straightDistance={(mosque as any).distance || 0}
+              routeProfile={routeProfile}
+            />
+          );
+        })}
 
         {displayedMosques.map((mosque) => {
           const isDestination = routingToMosque && routingToMosque.id === mosque.id;
