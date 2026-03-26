@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
-import { getLocalizedName } from '../utils/translations';
+import { getLocalizedName, t } from '../utils/translations';
 
 // Fix for default marker icons in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -208,7 +208,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune } = useAppStore();
+  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune, mapStyle, setMapStyle } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   const isUserLocationValid = userLocation && 
@@ -362,10 +362,17 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
       >
         <ZoomListener onZoomChange={setZoom} />
         
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        {mapStyle === 'street' ? (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        ) : (
+          <TileLayer
+            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          />
+        )}
         
         {isUserLocationValid && (
           <Marker 

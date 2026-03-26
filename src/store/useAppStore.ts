@@ -5,6 +5,7 @@ import mosquesData from '../data/mosques.json';
 
 export type Language = 'en' | 'ar' | 'fr';
 export type RouteProfile = 'foot' | 'driving';
+export type MapStyle = 'street' | 'satellite';
 
 export interface RouteInfo {
   distance: number;
@@ -23,6 +24,7 @@ interface AppState {
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
   selectedCommune: string | null;
+  mapStyle: MapStyle;
   
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
@@ -35,6 +37,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
   setSelectedCommune: (commune: string | null) => void;
+  setMapStyle: (style: MapStyle) => void;
   refreshLocation: () => Promise<void>;
 }
 
@@ -52,6 +55,7 @@ export const useAppStore = create<AppState>()(
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
       selectedCommune: null,
+      mapStyle: 'street',
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -71,6 +75,7 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: { ...state.dynamicTranslations, ...translations } 
       })),
       setSelectedCommune: (commune) => set({ selectedCommune: commune }),
+      setMapStyle: (style) => set({ mapStyle: style }),
       refreshLocation: () => new Promise((resolve) => {
         if ('geolocation' in navigator) {
           navigator.geolocation.getCurrentPosition(
@@ -101,7 +106,8 @@ export const useAppStore = create<AppState>()(
         mosques: state.mosques, 
         language: state.language,
         dynamicTranslations: state.dynamicTranslations,
-        selectedCommune: state.selectedCommune
+        selectedCommune: state.selectedCommune,
+        mapStyle: state.mapStyle
       }),
     }
   )

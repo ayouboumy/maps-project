@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Eye } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Clipboard, Check } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState, useMemo, useEffect } from 'react';
@@ -11,6 +11,7 @@ export default function BottomSheet() {
   const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile } = useAppStore();
   const [showProfile, setShowProfile] = useState(false);
   const [roadDistance, setRoadDistance] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const isRoutingToThis = routingToMosque?.id === selectedMosque?.id;
 
@@ -97,8 +98,11 @@ export default function BottomSheet() {
 
   const isFavorite = favorites.includes(selectedMosque.id);
 
-  const handleOpenMaps = () => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${selectedMosque.latitude},${selectedMosque.longitude}`, '_blank');
+  const handleCopyPosition = () => {
+    const coords = `${selectedMosque.latitude}, ${selectedMosque.longitude}`;
+    navigator.clipboard.writeText(coords);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleOpenGoogleMapsRoute = () => {
@@ -184,18 +188,11 @@ export default function BottomSheet() {
                   {t('Google Maps', language)}
                 </button>
                 <button 
-                  onClick={handleOpenMaps}
+                  onClick={handleCopyPosition}
                   className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors shrink-0"
                 >
-                  <MapPin size={18} />
-                  {t('Location', language)}
-                </button>
-                <button 
-                  onClick={handleStreetView}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors shrink-0"
-                >
-                  <Eye size={18} />
-                  {t('Street View', language)}
+                  {copied ? <Check size={18} className="text-emerald-600" /> : <Clipboard size={18} />}
+                  {t(copied ? 'Copied' : 'Position', language)}
                 </button>
                 <button 
                   onClick={() => toggleFavorite(selectedMosque.id)}

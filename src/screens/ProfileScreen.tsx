@@ -1,9 +1,10 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route, Eye } from 'lucide-react';
+import { ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, Map, Route, Clipboard, Check } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { t, getLocalizedName } from '../utils/translations';
+import { useState } from 'react';
 
 interface ProfileScreenProps {
   mosque: Mosque;
@@ -12,10 +13,14 @@ interface ProfileScreenProps {
 
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const { favorites, toggleFavorite, language, setRoutingToMosque, setSelectedMosque, routeProfile, userLocation } = useAppStore();
+  const [copied, setCopied] = useState(false);
   const isFavorite = favorites.includes(mosque.id);
 
-  const handleOpenMaps = () => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${mosque.latitude},${mosque.longitude}`, '_blank');
+  const handleCopyPosition = () => {
+    const coords = `${mosque.latitude}, ${mosque.longitude}`;
+    navigator.clipboard.writeText(coords);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleOpenGoogleMapsRoute = () => {
@@ -76,18 +81,11 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             {t('Google Maps', language)}
           </button>
           <button 
-            onClick={handleOpenMaps}
+            onClick={handleCopyPosition}
             className="flex-1 flex items-center justify-center py-3 bg-blue-50 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition-colors shadow-sm"
           >
-            <MapPin size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Location', language)}
-          </button>
-          <button 
-            onClick={handleStreetView}
-            className="flex-1 flex items-center justify-center py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors shadow-sm"
-          >
-            <Eye size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t('Street View', language)}
+            {copied ? <Check size={20} className={cn("text-emerald-600", language === 'ar' ? 'ml-2' : 'mr-2')} /> : <Clipboard size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />}
+            {t(copied ? 'Copied' : 'Position', language)}
           </button>
           <button 
             onClick={() => toggleFavorite(mosque.id)}
