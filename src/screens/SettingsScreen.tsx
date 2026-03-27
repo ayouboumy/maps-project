@@ -63,10 +63,10 @@ export default function SettingsScreen() {
             };
 
             const id = getVal(['id']) || index + 1;
-            const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar']);
+            const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar', 'اسم المسجد']);
             const name_fr = getVal(['dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'name_fr', 'name fr']);
             const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
-            const genericName = getVal(['nom', 'dénomination', 'denomination', 'name', 'mosque name', 'mosque']);
+            const genericName = getVal(['nom', 'dénomination', 'denomination', 'name', 'mosque name', 'mosque', 'اسم المسجد']);
             const name = genericName || name_fr || name_ar || name_en || 'Unknown Mosque';
             const latitude = Number(getVal(['latitude', 'lat'])) || 0;
             const longitude = Number(getVal(['longitude', 'lng', 'long'])) || 0;
@@ -89,7 +89,7 @@ export default function SettingsScreen() {
             // Collect all other columns into extraData
             const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'adresse', 'location', 'city', 'emplacement', 'lieu', 'العنوان', 'الموقع', 'المدينة', 'type', 'category', 'catégorie', 'genre', 'النوع', 'الصنف', 'services', 'facilities', 'équipements', 'equipements', 'الخدمات', 'المرافق', 'items', 'amenities', 'features', 'articles', 'composants', 'العناصر', 'المكونات', 'image', 'photo', 'picture', 'image_url', 'url_image', 'الصورة', 'commune', 'municipality', 'district', 'commune_ar', 'commune_fr', 'ville', 'الجماعة', 'المقاطعة', 'العمالة'];
             const extraData: Record<string, any> = {};
-            const combinedData: Record<string, { N?: any, S?: any, originalKey?: string }> = {};
+            const combinedData: Record<string, { N?: any, S?: any, H?: any, originalKey?: string }> = {};
             
             Object.keys(item).forEach(key => {
               const lowerKey = key.toLowerCase().trim();
@@ -97,24 +97,32 @@ export default function SettingsScreen() {
 
               const val = item[key];
               
-              // Ignore missing values and "N"
+              // Ignore missing values, "N", and "لا"
               if (val === null || val === undefined || val === '') return;
-              if (String(val).trim().toUpperCase() === 'N') return;
+              const valStr = String(val).trim().toUpperCase();
+              if (valStr === 'N' || valStr === 'لا') return;
 
               let isCombined = false;
               
-              if (lowerKey.startsWith('nombre')) {
-                const base = lowerKey.replace(/^nombre\s*/, '').trim();
+              if (lowerKey.startsWith('nombre') || lowerKey.startsWith('عدد')) {
+                const base = lowerKey.replace(/^nombre\s*/, '').replace(/^عدد\s*/, '').trim();
                 if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^nombre\s*/i, '').trim() };
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^nombre\s*/i, '').replace(/^عدد\s*/i, '').trim() };
                   combinedData[base].N = val;
                   isCombined = true;
                 }
-              } else if (lowerKey.startsWith('surface')) {
-                const base = lowerKey.replace(/^surface\s*/, '').trim();
+              } else if (lowerKey.startsWith('surface') || lowerKey.startsWith('مساحة')) {
+                const base = lowerKey.replace(/^surface\s*/, '').replace(/^مساحة\s*/, '').trim();
                 if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^surface\s*/i, '').trim() };
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^surface\s*/i, '').replace(/^مساحة\s*/i, '').trim() };
                   combinedData[base].S = val;
+                  isCombined = true;
+                }
+              } else if (lowerKey.startsWith('hauteur') || lowerKey.startsWith('ارتفاع')) {
+                const base = lowerKey.replace(/^hauteur\s*/, '').replace(/^ارتفاع\s*/, '').trim();
+                if (base) {
+                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^hauteur\s*/i, '').replace(/^ارتفاع\s*/i, '').trim() };
+                  combinedData[base].H = val;
                   isCombined = true;
                 }
               }
@@ -126,15 +134,22 @@ export default function SettingsScreen() {
 
             // Process combined data
             Object.keys(combinedData).forEach(base => {
-              const { N, S, originalKey } = combinedData[base];
+              const { N, S, H, originalKey } = combinedData[base];
               const displayKey = originalKey || base;
               
-              if (N !== undefined && S !== undefined) {
-                extraData[displayKey] = `N=${N}, S=${S}`;
+              const parts = [];
+              if (N !== undefined) parts.push(`${t('Count', language)}: ${N}`);
+              if (S !== undefined) parts.push(`${t('Area', language)}: ${S}`);
+              if (H !== undefined) parts.push(`${t('Height', language)}: ${H}`);
+              
+              if (parts.length > 1) {
+                extraData[displayKey] = parts.join(', ');
               } else if (N !== undefined) {
-                extraData[`Nombre ${displayKey}`] = N;
+                extraData[`${t('Count', language)} ${displayKey}`] = N;
               } else if (S !== undefined) {
-                extraData[`Surface ${displayKey}`] = S;
+                extraData[`${t('Area', language)} ${displayKey}`] = S;
+              } else if (H !== undefined) {
+                extraData[`${t('Height', language)} ${displayKey}`] = H;
               }
             });
 

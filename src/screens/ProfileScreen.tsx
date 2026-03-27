@@ -57,6 +57,15 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
     const categories = [
       {
+        id: 'components',
+        title: t('Mosque Components', language),
+        icon: Building2,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        keys: [], // Special handling for combined data
+        items: [] as { key: string; value: any }[]
+      },
+      {
         id: 'capacity',
         title: t('Capacity & Space', language),
         icon: Maximize,
@@ -98,7 +107,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         icon: Activity,
         color: 'text-purple-600',
         bgColor: 'bg-purple-50',
-        keys: ['état', 'construction', 'date', 'terrain', 'titre', 'foncier', 'clôture', 'urbain', 'rural', 'ouvert', 'fermé'],
+        keys: ['état', 'construction', 'date', 'terrain', 'titre', 'foncier', 'clôture', 'urbain', 'rural', 'ouvert', 'fermé', 'صومعة'],
         items: [] as { key: string; value: any }[]
       },
       {
@@ -114,30 +123,36 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
     const categorizedKeys = new Set<string>();
 
-    // Deep Analysis for Highlights
+    // Deep Analysis for Highlights and Categorization
     Object.entries(mosque.extraData).forEach(([key, value]) => {
       const lowerKey = key.toLowerCase();
-      const valStr = String(value).toLowerCase();
+      const valStr = String(value);
 
-      // Extract capacity highlight
+      // Extract highlights...
       if ((lowerKey.includes('capacité') || lowerKey.includes('nombre de fidèles')) && !highlightsList.find(h => h.label === 'Capacity')) {
-        highlightsList.push({ label: 'Capacity', value: String(value), icon: Users, color: 'emerald' });
+        highlightsList.push({ label: 'Capacity', value: valStr, icon: Users, color: 'emerald' });
       }
-      // Extract surface highlight
       if ((lowerKey.includes('surface') || lowerKey.includes('superficie')) && !highlightsList.find(h => h.label === 'Surface')) {
-        highlightsList.push({ label: 'Surface', value: String(value), icon: Maximize, color: 'blue' });
+        highlightsList.push({ label: 'Surface', value: valStr, icon: Maximize, color: 'blue' });
       }
-      // Extract status highlight
       if (lowerKey.includes('état') && !highlightsList.find(h => h.label === 'Condition')) {
-        highlightsList.push({ label: 'Condition', value: String(value), icon: Activity, color: 'amber' });
+        highlightsList.push({ label: 'Condition', value: valStr, icon: Activity, color: 'amber' });
       }
-      // Extract construction date highlight
       if (lowerKey.includes('construction') && !highlightsList.find(h => h.label === 'Built')) {
-        highlightsList.push({ label: 'Built', value: String(value), icon: Clock, color: 'purple' });
+        highlightsList.push({ label: 'Built', value: valStr, icon: Clock, color: 'purple' });
+      }
+
+      // Special handling for combined data (Count, Area, Height)
+      const isCombined = valStr.includes(t('Count', language)) || valStr.includes(t('Area', language)) || valStr.includes(t('Height', language));
+      
+      if (isCombined) {
+        categories.find(c => c.id === 'components')?.items.push({ key, value });
+        return;
       }
 
       let found = false;
       for (const cat of categories) {
+        if (cat.id === 'components') continue; // Skip components as it's handled above
         if (cat.keys.some(k => lowerKey.includes(k))) {
           cat.items.push({ key, value });
           categorizedKeys.add(key);
@@ -165,75 +180,103 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       className="fixed inset-0 z-[2000] bg-white overflow-y-auto"
     >
       {/* Hero Section */}
-      <div className="relative h-[40vh] min-h-[300px]">
+      <div className="relative h-[45vh] min-h-[350px]">
         <img 
           src={mosque.image} 
           alt={getLocalizedName(mosque, language)} 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         
         <button 
           onClick={onClose}
-          className={`absolute top-safe-4 ${language === 'ar' ? 'right-4' : 'left-4'} p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all border border-white/20`}
+          className={`absolute top-safe-4 ${language === 'ar' ? 'right-4' : 'left-4'} p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all border border-white/20 z-10`}
         >
           <ArrowLeft size={24} className={language === 'ar' ? 'rotate-180' : ''} />
         </button>
 
-        <div className="absolute bottom-6 left-6 right-6 text-white">
+        <div className="absolute bottom-8 left-6 right-6 text-white z-10">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center px-4 py-1.5 bg-emerald-500 rounded-full text-[11px] uppercase tracking-widest font-black mb-4 shadow-lg shadow-emerald-900/20"
+          >
+            <ShieldCheck size={14} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+            {t(mosque.type, language)}
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl sm:text-5xl font-black mb-4 leading-[1.1] tracking-tight drop-shadow-2xl"
+          >
+            {getLocalizedName(mosque, language)}
+          </motion.h1>
+
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center px-3 py-1 bg-emerald-500/90 backdrop-blur-sm rounded-full text-[10px] uppercase tracking-wider font-bold mb-3"
+            transition={{ delay: 0.1 }}
+            className="flex flex-col gap-3"
           >
-            <ShieldCheck size={12} className={language === 'ar' ? 'ml-1.5' : 'mr-1.5'} />
-            {t(mosque.type, language)}
+            <div className="flex items-start text-white/90 text-base font-bold bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+              <MapPin size={20} className={cn("shrink-0 mt-0.5", language === 'ar' ? 'ml-3' : 'mr-3')} />
+              <span>{t(mosque.address, language)}</span>
+            </div>
+            
+            {mosque.commune && (
+              <div className="flex items-center text-white/80 text-sm font-bold px-3">
+                <Building2 size={18} className={cn("shrink-0", language === 'ar' ? 'ml-3' : 'mr-3')} />
+                <span>{t(mosque.commune, language)}</span>
+              </div>
+            )}
           </motion.div>
-          <h1 className="text-4xl font-black mb-2 leading-tight tracking-tight">
-            {getLocalizedName(mosque, language)}
-          </h1>
-          <div className="flex items-center text-white/70 text-sm font-medium">
-            <MapPin size={16} className={language === 'ar' ? 'ml-1.5' : 'mr-1.5'} />
-            {t(mosque.address, language)}
-          </div>
         </div>
       </div>
 
-      <div className="p-6 pb-24 max-w-2xl mx-auto">
+      <div className="p-6 pb-24 max-w-2xl mx-auto -mt-6 relative z-20 bg-white rounded-t-[32px] shadow-2xl shadow-black/5">
         {/* Quick Actions */}
         <div className="flex gap-3 mb-10">
-          <button 
+          <motion.button 
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleOpenGoogleMapsRoute}
-            className="flex-1 flex flex-col items-center justify-center py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center py-4 bg-emerald-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-200"
           >
             <Navigation size={24} className="mb-1" />
             <span className="text-[10px] uppercase tracking-widest">{t('Google Maps', language)}</span>
-          </button>
-          <button 
+          </motion.button>
+          <motion.button 
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleCopyPosition}
-            className="flex-1 flex flex-col items-center justify-center py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold hover:bg-blue-100 transition-all active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold transition-all"
           >
             {copied ? <Check size={24} className="mb-1 text-emerald-600" /> : <Clipboard size={24} className="mb-1" />}
             <span className="text-[10px] uppercase tracking-widest">{t(copied ? 'Copied' : 'Position', language)}</span>
-          </button>
-          <button 
+          </motion.button>
+          <motion.button 
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleShare}
-            className="flex-1 flex flex-col items-center justify-center py-4 bg-gray-50 text-gray-700 rounded-2xl font-bold hover:bg-gray-100 transition-all active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center py-4 bg-gray-50 text-gray-700 rounded-2xl font-bold transition-all"
           >
             <Share2 size={24} className="mb-1" />
             <span className="text-[10px] uppercase tracking-widest">{t('Share', language)}</span>
-          </button>
-          <button 
+          </motion.button>
+          <motion.button 
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => toggleFavorite(mosque.id)}
             className={cn(
-              "w-16 flex items-center justify-center rounded-2xl transition-all active:scale-95 border",
+              "w-16 flex items-center justify-center rounded-2xl transition-all border",
               isFavorite 
                 ? "bg-red-50 text-red-500 border-red-100" 
                 : "bg-white text-gray-400 border-gray-100"
             )}
           >
             <Heart size={24} className={cn(isFavorite && "fill-current")} />
-          </button>
+          </motion.button>
         </div>
 
         {/* Key Highlights */}
@@ -257,36 +300,9 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           </section>
         )}
 
-        {/* Location Section */}
-        <section className="mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs uppercase tracking-[0.2em] font-black text-gray-400">{t('Location Details', language)}</h3>
-            <div className="h-px flex-1 bg-gray-100 mx-4" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 flex items-start gap-4">
-              <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
-                <MapPin size={20} className="text-emerald-600" />
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold block mb-1">{t('Address', language)}</span>
-                <span className="text-sm text-gray-900 font-bold leading-relaxed">{t(mosque.address, language)}</span>
-              </div>
-            </div>
-            {mosque.commune && (
-              <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 flex items-start gap-4">
-                <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
-                  <Building2 size={20} className="text-emerald-600" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold block mb-1">{t('Commune', language)}</span>
-                  <span className="text-sm text-gray-900 font-bold">{t(mosque.commune, language)}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
+        {/* Location Section - Removed as it's now in the Hero */}
+        
+        {/* Key Highlights */}
         {/* Intelligent Data Sections */}
         {organizedData.map((cat) => (
           <section key={cat.id} className="mb-10">
