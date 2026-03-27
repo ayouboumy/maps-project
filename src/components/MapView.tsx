@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
@@ -408,46 +411,86 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           );
         })}
 
-        {displayedMosques.map((mosque) => {
-          const isDestination = routingToMosque && routingToMosque.id === mosque.id;
-          return (
-            <Marker
-              key={mosque.id}
-              position={[mosque.latitude, mosque.longitude]}
-              icon={isDestination ? destinationIcon : mosqueIcon}
-              eventHandlers={{
-                click: () => {
-                  setSelectedMosque(mosque);
-                  setRoutingToMosque(null); // Clear routing when selecting a new mosque
-                },
-              }}
-            >
-              {(zoom >= 14 || showNearest || isDestination) && (
-                <Tooltip 
-                  direction="top" 
-                  offset={[0, -10]} 
-                  opacity={0.9} 
-                  permanent 
-                  className={`bg-white/90 border-none shadow-md rounded px-2 py-1 ${isDestination ? 'ring-2 ring-red-500' : ''}`}
-                >
-                  <div className="flex flex-col items-center">
-                    <div 
-                      className={`max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center ${isDestination ? 'text-red-600' : 'text-gray-800'}`}
-                      title={getLocalizedName(mosque, language)}
-                    >
-                      {getLocalizedName(mosque, language)}
-                    </div>
-                    {showNearest && roadDistances[mosque.id] !== undefined && (
-                      <div className="text-[10px] font-semibold text-blue-600 mt-0.5 bg-blue-50 px-1.5 rounded">
-                        {(roadDistances[mosque.id] / 1000).toFixed(1)} km
+        <MarkerClusterGroup
+          chunkedLoading
+          maxClusterRadius={50}
+          spiderfyOnMaxZoom={true}
+          showCoverageOnHover={false}
+        >
+          {displayedMosques
+            .filter(m => !routingToMosque || m.id !== routingToMosque.id)
+            .map((mosque) => (
+              <Marker
+                key={mosque.id}
+                position={[mosque.latitude, mosque.longitude]}
+                icon={mosqueIcon}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedMosque(mosque);
+                    setRoutingToMosque(null);
+                  },
+                }}
+              >
+                {(zoom >= 14 || showNearest) && (
+                  <Tooltip 
+                    direction="top" 
+                    offset={[0, -10]} 
+                    opacity={0.9} 
+                    permanent 
+                    className="bg-white/90 border-none shadow-md rounded px-2 py-1"
+                  >
+                    <div className="flex flex-col items-center">
+                      <div 
+                        className="max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center text-gray-800"
+                        title={getLocalizedName(mosque, language)}
+                      >
+                        {getLocalizedName(mosque, language)}
                       </div>
-                    )}
+                      {showNearest && roadDistances[mosque.id] !== undefined && (
+                        <div className="text-[10px] font-semibold text-blue-600 mt-0.5 bg-blue-50 px-1.5 rounded">
+                          {(roadDistances[mosque.id] / 1000).toFixed(1)} km
+                        </div>
+                      )}
+                    </div>
+                  </Tooltip>
+                )}
+              </Marker>
+            ))}
+        </MarkerClusterGroup>
+
+        {routingToMosque && (
+          <Marker
+            position={[routingToMosque.latitude, routingToMosque.longitude]}
+            icon={destinationIcon}
+            eventHandlers={{
+              click: () => {
+                setSelectedMosque(routingToMosque);
+              },
+            }}
+          >
+            <Tooltip 
+              direction="top" 
+              offset={[0, -10]} 
+              opacity={0.9} 
+              permanent 
+              className="bg-white/90 border-none shadow-md rounded px-2 py-1 ring-2 ring-red-500"
+            >
+              <div className="flex flex-col items-center">
+                <div 
+                  className="max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center text-red-600"
+                  title={getLocalizedName(routingToMosque, language)}
+                >
+                  {getLocalizedName(routingToMosque, language)}
+                </div>
+                {roadDistances[routingToMosque.id] !== undefined && (
+                  <div className="text-[10px] font-semibold text-red-600 mt-0.5 bg-red-50 px-1.5 rounded">
+                    {(roadDistances[routingToMosque.id] / 1000).toFixed(1)} km
                   </div>
-                </Tooltip>
-              )}
-            </Marker>
-          );
-        })}
+                )}
+              </div>
+            </Tooltip>
+          </Marker>
+        )}
         
         <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} selectedMosque={selectedMosque} />
       </MapContainer>
