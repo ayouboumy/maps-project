@@ -51,11 +51,30 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   };
 
   // Intelligent Data Organization
-  const { organizedData, highlights } = useMemo(() => {
+  const { organizedData, highlights, openingStatus } = useMemo(() => {
     const highlightsList: { label: string; value: string; icon: any; color: string }[] = [];
-    if (!mosque.extraData) return { organizedData: [], highlights: [] };
+    let opening: string | null = null;
+    if (!mosque.extraData) return { organizedData: [], highlights: [], openingStatus: null };
 
     const categories = [
+      {
+        id: 'general',
+        title: t('General Information', language),
+        icon: Info,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        keys: ['type de commune', 'milieu', 'code', 'nature', 'entité de financement', 'financement', 'ministère', 'habous', 'région', 'province', 'caïdat', 'nidhara', 'awqaf', 'état', 'condition'],
+        items: [] as { key: string; value: any }[]
+      },
+      {
+        id: 'situation',
+        title: t('Situation Information', language),
+        icon: MapPin,
+        color: 'text-indigo-600',
+        bgColor: 'bg-indigo-50',
+        keys: ['x', 'y', 'coordonnées', 'topographie', 'pentes', 'ravin', 'autre terrain', 'zone thermique'],
+        items: [] as { key: string; value: any }[]
+      },
       {
         id: 'components',
         title: t('Mosque Components', language),
@@ -80,7 +99,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         icon: Users,
         color: 'text-emerald-600',
         bgColor: 'bg-emerald-50',
-        keys: ['femme', 'homme', 'salle', 'prière', 'étage', 'mezzanine', 'capacité'],
+        keys: ['femme', 'homme', 'salle', 'prière', 'étage', 'mezzanine'],
         items: [] as { key: string; value: any }[]
       },
       {
@@ -98,7 +117,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         icon: Home,
         color: 'text-amber-600',
         bgColor: 'bg-amber-50',
-        keys: ['logement', 'imam', 'mouadhine', 'mouadine', 'gardien', 'habous', 'fquih'],
+        keys: ['logement', 'imam', 'mouadhine', 'mouadine', 'gardien', 'fquih'],
         items: [] as { key: string; value: any }[]
       },
       {
@@ -107,7 +126,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         icon: Activity,
         color: 'text-purple-600',
         bgColor: 'bg-purple-50',
-        keys: ['état', 'construction', 'date', 'terrain', 'titre', 'foncier', 'clôture', 'urbain', 'rural', 'ouvert', 'fermé', 'صومعة'],
+        keys: ['construction', 'date', 'terrain', 'titre', 'foncier', 'clôture', 'urbain', 'rural', 'صومعة'],
         items: [] as { key: string; value: any }[]
       },
       {
@@ -127,6 +146,12 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     Object.entries(mosque.extraData).forEach(([key, value]) => {
       const lowerKey = key.toLowerCase();
       const valStr = String(value);
+
+      // Extract Opening Status
+      if (lowerKey.includes('ouvert') || lowerKey.includes('fermé') || lowerKey.includes('statut d\'ouverture')) {
+        opening = valStr;
+        return;
+      }
 
       // Extract highlights...
       if ((lowerKey.includes('capacité') || lowerKey.includes('nombre de fidèles')) && !highlightsList.find(h => h.label === 'Capacity')) {
@@ -167,7 +192,8 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
     return { 
       organizedData: categories.filter(cat => cat.items.length > 0),
-      highlights: highlightsList 
+      highlights: highlightsList,
+      openingStatus: opening
     };
   }, [mosque.extraData, language]);
 
@@ -196,19 +222,38 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         </button>
 
         <div className="absolute bottom-8 left-6 right-6 text-white z-10">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center px-4 py-1.5 bg-emerald-500 rounded-full text-[11px] uppercase tracking-widest font-black mb-4 shadow-lg shadow-emerald-900/20"
-          >
-            <ShieldCheck size={14} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-            {t(mosque.type, language)}
-          </motion.div>
+          <div className="flex items-center gap-2 mb-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center px-4 py-1.5 bg-emerald-500 rounded-full text-[11px] uppercase tracking-widest font-black shadow-lg shadow-emerald-900/20"
+            >
+              <ShieldCheck size={14} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+              {t(mosque.type, language)}
+            </motion.div>
+
+            {openingStatus && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className={cn(
+                  "inline-flex items-center px-4 py-1.5 rounded-full text-[11px] uppercase tracking-widest font-black shadow-lg",
+                  openingStatus.toLowerCase().includes('ouvert') 
+                    ? "bg-blue-500 shadow-blue-900/20" 
+                    : "bg-red-500 shadow-red-900/20"
+                )}
+              >
+                <Clock size={14} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+                {openingStatus}
+              </motion.div>
+            )}
+          </div>
           
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl sm:text-5xl font-black mb-4 leading-[1.1] tracking-tight drop-shadow-2xl"
+            className="text-4xl sm:text-6xl font-serif font-black mb-4 leading-[1.1] tracking-tight drop-shadow-2xl"
           >
             {getLocalizedName(mosque, language)}
           </motion.h1>
@@ -217,15 +262,15 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-4"
           >
-            <div className="flex items-start text-white/90 text-base font-bold bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
-              <MapPin size={20} className={cn("shrink-0 mt-0.5", language === 'ar' ? 'ml-3' : 'mr-3')} />
-              <span>{t(mosque.address, language)}</span>
+            <div className="flex items-start text-white/95 text-lg font-medium bg-black/20 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl">
+              <MapPin size={22} className={cn("shrink-0 mt-1", language === 'ar' ? 'ml-4' : 'mr-4')} />
+              <span className="leading-relaxed">{t(mosque.address, language)}</span>
             </div>
             
             {mosque.commune && (
-              <div className="flex items-center text-white/80 text-sm font-bold px-3">
+              <div className="flex items-center text-white/90 text-sm font-bold px-4 py-2 bg-white/5 backdrop-blur-md rounded-xl w-fit border border-white/5">
                 <Building2 size={18} className={cn("shrink-0", language === 'ar' ? 'ml-3' : 'mr-3')} />
                 <span>{t(mosque.commune, language)}</span>
               </div>
@@ -281,76 +326,130 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
         {/* Key Highlights */}
         {highlights.length > 0 && (
-          <section className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs uppercase tracking-[0.2em] font-black text-gray-400">{t('Key Highlights', language)}</h3>
-              <div className="h-px flex-1 bg-gray-100 mx-4" />
+          <section className="mb-16">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-[10px] uppercase tracking-[0.4em] font-black text-gray-300">{t('Key Highlights', language)}</h3>
+              <div className="h-px flex-1 bg-gray-100 mx-6" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-6">
               {highlights.map((h, idx) => (
-                <div key={idx} className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center text-center">
-                  <div className={cn("p-2 rounded-xl mb-2", `bg-${h.color}-50 text-${h.color}-600`)}>
-                    <h.icon size={18} />
+                <motion.div 
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="relative group overflow-hidden"
+                >
+                  <div className="flex items-start gap-4 p-2">
+                    <div className={cn("p-3 rounded-2xl shadow-sm transition-transform group-hover:scale-110", `bg-${h.color}-50 text-${h.color}-600`)}>
+                      <h.icon size={24} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black block mb-1">{t(h.label, language)}</span>
+                      <span className="text-2xl text-gray-900 font-serif font-black leading-none">{h.value}</span>
+                    </div>
                   </div>
-                  <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold mb-1">{t(h.label, language)}</span>
-                  <span className="text-sm text-gray-900 font-black truncate w-full">{h.value}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </section>
         )}
 
-        {/* Location Section - Removed as it's now in the Hero */}
-        
-        {/* Key Highlights */}
         {/* Intelligent Data Sections */}
-        {organizedData.map((cat) => (
-          <section key={cat.id} className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className={cn("p-1.5 rounded-lg", cat.bgColor, cat.color)}>
-                  <cat.icon size={16} />
+        <div className="space-y-12">
+          {organizedData.map((cat, catIdx) => (
+            <motion.section 
+              key={cat.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + catIdx * 0.1 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-xl shadow-sm", cat.bgColor, cat.color)}>
+                    <cat.icon size={18} />
+                  </div>
+                  <h3 className="text-sm font-serif font-black uppercase tracking-widest text-gray-900">{cat.title}</h3>
                 </div>
-                <h3 className="text-xs uppercase tracking-[0.2em] font-black text-gray-400">{cat.title}</h3>
+                <div className="h-px flex-1 bg-gray-100 mx-6" />
               </div>
-              <div className="h-px flex-1 bg-gray-100 mx-4" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {cat.items.map((item, idx) => (
-                <div key={idx} className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col justify-between hover:border-emerald-100 transition-colors group">
-                  <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-2 group-hover:text-emerald-600 transition-colors">{t(item.key, language)}</span>
-                  <span className="text-sm text-gray-900 font-black">{t(String(item.value), language)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
+              
+              <div className={cn(
+                "grid gap-3",
+                cat.id === 'components' ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"
+              )}>
+                {cat.items.map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "bg-white border border-gray-100 rounded-xl p-3 flex flex-col justify-between hover:border-emerald-200 hover:shadow-md transition-all group cursor-default",
+                      cat.id === 'components' && "flex-row items-center gap-6 bg-emerald-50/10 border-emerald-100/50 p-5"
+                    )}
+                  >
+                    <div className={cn(cat.id === 'components' ? "flex-1" : "")}>
+                      <span className="text-[9px] uppercase tracking-[0.15em] text-gray-400 font-black mb-1.5 block group-hover:text-emerald-600 transition-colors">
+                        {t(item.key, language)}
+                      </span>
+                      {cat.id === 'components' && String(item.value).includes(':') ? (
+                        <div className="grid grid-cols-1 gap-2">
+                          {String(item.value).split(', ').map((part, pIdx) => {
+                            const [label, val] = part.split(': ');
+                            return (
+                              <div key={pIdx} className="flex items-center justify-between bg-white/80 backdrop-blur-sm p-2 rounded-lg border border-emerald-100/30 shadow-sm">
+                                <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">{label}</span>
+                                <span className="text-base font-serif font-black text-gray-900">{val}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className={cn(
+                          "text-gray-900 font-serif font-bold leading-tight",
+                          cat.id === 'components' ? "text-lg" : "text-sm"
+                        )}>
+                          {t(String(item.value), language)}
+                        </span>
+                      )}
+                    </div>
+                    {cat.id === 'components' && (
+                      <div className="h-12 w-1 bg-emerald-200 rounded-full group-hover:bg-emerald-400 transition-colors" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.section>
+          ))}
+        </div>
 
         {/* Services & Facilities */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12 pt-12 border-t border-gray-100">
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs uppercase tracking-[0.2em] font-black text-gray-400">{t('Services', language)}</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400">{t('Services', language)}</h3>
               <div className="h-px flex-1 bg-gray-100 mx-4" />
             </div>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-3">
               {mosque.services.map(service => (
-                <div key={service} className="flex items-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/50">
-                  <CheckCircle2 size={16} className={`text-emerald-500 shrink-0 ${language === 'ar' ? 'ml-2.5' : 'mr-2.5'}`} />
+                <motion.div 
+                  key={service} 
+                  whileHover={{ x: 4 }}
+                  className="flex items-center p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 hover:bg-emerald-50 transition-colors"
+                >
+                  <CheckCircle2 size={18} className={`text-emerald-600 shrink-0 ${language === 'ar' ? 'ml-3' : 'mr-3'}`} />
                   <span className="text-sm text-emerald-900 font-bold">{t(service, language)}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </section>
 
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs uppercase tracking-[0.2em] font-black text-gray-400">{t('Facilities', language)}</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400">{t('Facilities', language)}</h3>
               <div className="h-px flex-1 bg-gray-100 mx-4" />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {mosque.items.map(item => (
-                <span key={item} className="px-4 py-2 bg-gray-50 text-gray-700 text-[11px] font-bold uppercase tracking-wider rounded-full border border-gray-100">
+                <span key={item} className="px-5 py-2.5 bg-gray-50 text-gray-700 text-[11px] font-bold uppercase tracking-widest rounded-full border border-gray-100 hover:bg-white hover:border-emerald-200 transition-all cursor-default">
                   {t(item, language)}
                 </span>
               ))}
