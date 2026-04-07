@@ -5,17 +5,20 @@ import BottomSheet from './components/BottomSheet';
 import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { LocateFixed, MapPin, Layers } from 'lucide-react';
+import { LocateFixed, MapPin, Layers, HelpCircle, X } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
 import PullToRefresh from './components/PullToRefresh';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from './lib/utils';
 
 export default function App() {
   const { activeTab, setUserLocation, language, routingToMosque, refreshLocation, mosques, mapStyle, setMapStyle } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
+  const [showLegend, setShowLegend] = useState(false);
 
   const requestLocation = () => {
     setIsLocating(true);
@@ -84,8 +87,62 @@ export default function App() {
                   >
                     <Layers size={24} />
                   </button>
+                  <button 
+                    onClick={() => setShowLegend(!showLegend)}
+                    className={`p-3 rounded-full shadow-md transition-colors ${showLegend ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:text-blue-600'}`}
+                    title={t("Map Legend", language)}
+                  >
+                    <HelpCircle size={24} />
+                  </button>
                 </div>
               )}
+
+              {/* Map Legend Overlay */}
+              <AnimatePresence>
+                {showLegend && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className={cn(
+                      "absolute bottom-24 z-[1000] bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-gray-100 w-64",
+                      language === 'ar' ? "left-4" : "right-4"
+                    )}
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">{t("Map Legend", language)}</h4>
+                      <button onClick={() => setShowLegend(false)} className="text-gray-400 hover:text-gray-600">
+                        <X size={16} />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-sm" />
+                        <span className="text-xs font-bold text-gray-700">{t("User Location", language)}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" className="w-4 h-6 object-contain" alt="" />
+                        <span className="text-xs font-bold text-gray-700">{t("Mosque", language)}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" className="w-4 h-6 object-contain" alt="" />
+                        <span className="text-xs font-bold text-gray-700">{t("Destination", language)}</span>
+                      </div>
+                      <div className="pt-2 border-t border-gray-100 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-1 bg-blue-600 rounded-full" style={{ borderBottom: '2px dotted white' }} />
+                          <span className="text-[10px] font-bold text-gray-500">{t("Walking Route", language)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-1 bg-blue-600 rounded-full" />
+                          <span className="text-[10px] font-bold text-gray-500">{t("Driving Route", language)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {locationError && (
                 <div className="absolute top-safe-20 left-4 right-4 z-[1000] p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl shadow-sm">

@@ -1,15 +1,17 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, Trash2, X } from 'lucide-react';
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
 import { t } from '../utils/translations';
 import { translateTerms } from '../utils/gemini';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune } = useAppStore();
+  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune, resetApp } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const communes = useMemo(() => {
     const allCommunes = mosques.map(m => m.commune);
@@ -238,8 +240,14 @@ export default function SettingsScreen() {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleReset = () => {
+    resetApp();
+    setShowResetConfirm(false);
+    setStatus({ type: 'success', message: t('Reset Successful', language) });
+  };
+
   return (
-    <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto">
+    <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto relative">
       <div className="bg-white px-4 pt-safe-4 pb-4 shadow-sm z-10">
         <h1 className="text-2xl font-bold text-gray-900">{t('Settings', language)}</h1>
       </div>
@@ -364,9 +372,67 @@ export default function SettingsScreen() {
               {status.message}
             </div>
           )}
+
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <button 
+              onClick={() => setShowResetConfirm(true)}
+              className="w-full flex items-center justify-center py-3 rounded-xl font-medium transition-colors bg-red-50 text-red-600 hover:bg-red-100"
+            >
+              <Trash2 size={20} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
+              {t('Reset App', language)}
+            </button>
+          </div>
         </div>
 
       </div>
+
+      {/* Reset Confirmation Modal */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center">
+                  <AlertCircle size={24} className="text-red-600" />
+                </div>
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-gray-400" />
+                </button>
+              </div>
+
+              <h3 className="text-xl font-black text-gray-900 mb-2 leading-tight">
+                {t('Delete all data and reset the application?', language)}
+              </h3>
+              <p className="text-gray-500 text-sm mb-8">
+                {t('This action cannot be undone.', language)}
+              </p>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-2xl font-bold text-sm hover:bg-gray-200 transition-colors"
+                >
+                  {t('Cancel', language)}
+                </button>
+                <button 
+                  onClick={handleReset}
+                  className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold text-sm hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                >
+                  {t('Reset', language)}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

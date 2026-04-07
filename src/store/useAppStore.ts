@@ -39,12 +39,13 @@ interface AppState {
   setSelectedCommune: (commune: string | null) => void;
   setMapStyle: (style: MapStyle) => void;
   refreshLocation: () => Promise<void>;
+  resetApp: () => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      mosques: mosquesData as Mosque[],
+      mosques: [],
       favorites: [],
       activeTab: 'map',
       selectedMosque: null,
@@ -98,6 +99,17 @@ export const useAppStore = create<AppState>()(
           resolve();
         }
       }),
+      resetApp: () => {
+        set({
+          mosques: [],
+          favorites: [],
+          dynamicTranslations: {},
+          selectedCommune: null,
+          selectedMosque: null,
+          routingToMosque: null,
+          routeInfo: null,
+        });
+      },
     }),
     {
       name: 'mosque-finder-storage',
