@@ -1,4 +1,4 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, Trash2, X } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, Trash2, X, Download, CloudOff, HardDrive, RefreshCw } from 'lucide-react';
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
@@ -7,11 +7,13 @@ import { translateTerms } from '../utils/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune, resetApp } = useAppStore();
+  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune, resetApp, downloadedCommunes, downloadCommune, removeDownloadedCommune } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [downloadingCommune, setDownloadingCommune] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const communes = useMemo(() => {
     const allCommunes = mosques.map(m => m.commune);
@@ -246,6 +248,31 @@ export default function SettingsScreen() {
     setStatus({ type: 'success', message: t('Reset Successful', language) });
   };
 
+  const handleDownload = (commune: string) => {
+    setDownloadingCommune(commune);
+    setDownloadProgress(0);
+    
+    const interval = setInterval(() => {
+      setDownloadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          downloadCommune(commune);
+          setDownloadingCommune(null);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 200);
+  };
+
+  const communeStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    mosques.forEach(m => {
+      stats[m.commune] = (stats[m.commune] || 0) + 1;
+    });
+    return stats;
+  }, [mosques]);
+
   return (
     <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto relative">
       <div className="bg-white px-4 pt-safe-4 pb-4 shadow-sm z-10">
@@ -312,6 +339,82 @@ export default function SettingsScreen() {
               <p className="text-xs text-indigo-600 font-medium">
                 {t('Only mosques in', language)} "{selectedCommune}" {t('will be shown on the map.', language)}
               </p>
+            )}
+          </div>
+        </div>
+
+        {/* Offline Data Manager */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center mx-3">
+              <CloudOff size={20} className="text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{t('Offline Data', language)}</h2>
+              <p className="text-sm text-gray-500">{t('Manage your offline data by region or commune.', language)}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mt-4">
+            {communes.length > 0 ? (
+              communes.map(commune => {
+                const isDownloaded = downloadedCommunes.includes(commune);
+                const isDownloading = downloadingCommune === commune;
+                
+                return (
+                  <div key={commune} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-900">{commune}</span>
+                        {isDownloaded && (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase rounded-full">
+                            {t('Offline', language)}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">
+                        {communeStats[commune] || 0} {t('mosques', language)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isDownloading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${downloadProgress}%` }}
+                              className="h-full bg-amber-500"
+                            />
+                          </div>
+                          <span className="text-[10px] font-black text-amber-600">{downloadProgress}%</span>
+                        </div>
+                      ) : isDownloaded ? (
+                        <button 
+                          onClick={() => removeDownloadedCommune(commune)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title={t('Delete Item', language)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleDownload(commune)}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-amber-600 transition-all shadow-sm"
+                        >
+                          <Download size={14} />
+                          {t('Download', language)}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <HardDrive size={32} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-xs text-gray-400 font-medium">{t('No data available for download', language)}</p>
+              </div>
             )}
           </div>
         </div>

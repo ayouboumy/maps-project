@@ -5,7 +5,7 @@ import mosquesData from '../data/mosques.json';
 
 export type Language = 'en' | 'ar' | 'fr';
 export type RouteProfile = 'foot' | 'driving';
-export type MapStyle = 'street' | 'satellite';
+export type MapStyle = 'street' | 'satellite' | 'terrain';
 
 export interface RouteInfo {
   distance: number;
@@ -25,6 +25,8 @@ interface AppState {
   dynamicTranslations: Record<string, Record<Language, string>>;
   selectedCommune: string | null;
   mapStyle: MapStyle;
+  isEquipmentOpen: boolean;
+  downloadedCommunes: string[];
   
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
@@ -40,6 +42,10 @@ interface AppState {
   setMapStyle: (style: MapStyle) => void;
   refreshLocation: () => Promise<void>;
   resetApp: () => void;
+  updateMosqueItems: (id: number, items: string[]) => void;
+  setIsEquipmentOpen: (isOpen: boolean) => void;
+  downloadCommune: (commune: string) => void;
+  removeDownloadedCommune: (commune: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -57,6 +63,8 @@ export const useAppStore = create<AppState>()(
       dynamicTranslations: {},
       selectedCommune: null,
       mapStyle: 'street',
+      isEquipmentOpen: false,
+      downloadedCommunes: [],
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -110,6 +118,30 @@ export const useAppStore = create<AppState>()(
           routeInfo: null,
         });
       },
+      updateMosqueItems: (id, items) => {
+        set((state) => {
+          const newMosques = state.mosques.map((m) =>
+            m.id === id ? { ...m, items } : m
+          );
+          const newSelectedMosque = state.selectedMosque?.id === id 
+            ? { ...state.selectedMosque, items } 
+            : state.selectedMosque;
+          
+          return {
+            mosques: newMosques,
+            selectedMosque: newSelectedMosque
+          };
+        });
+      },
+      setIsEquipmentOpen: (isOpen) => set({ isEquipmentOpen: isOpen }),
+      downloadCommune: (commune) => set((state) => ({
+        downloadedCommunes: state.downloadedCommunes.includes(commune) 
+          ? state.downloadedCommunes 
+          : [...state.downloadedCommunes, commune]
+      })),
+      removeDownloadedCommune: (commune) => set((state) => ({
+        downloadedCommunes: state.downloadedCommunes.filter(c => c !== commune)
+      })),
     }),
     {
       name: 'mosque-finder-storage',
@@ -119,7 +151,8 @@ export const useAppStore = create<AppState>()(
         language: state.language,
         dynamicTranslations: state.dynamicTranslations,
         selectedCommune: state.selectedCommune,
-        mapStyle: state.mapStyle
+        mapStyle: state.mapStyle,
+        downloadedCommunes: state.downloadedCommunes
       }),
     }
   )

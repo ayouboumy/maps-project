@@ -2,7 +2,8 @@ import { motion } from 'motion/react';
 import { 
   ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, 
   Clipboard, Check, Share2, Building2, Users, Maximize, 
-  Home, Droplets, Info, Activity, Clock, ShieldCheck
+  Home, Droplets, Info, Activity, Clock, ShieldCheck,
+  Package
 } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -16,7 +17,7 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
-  const { favorites, toggleFavorite, language, routeProfile, userLocation } = useAppStore();
+  const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen } = useAppStore();
   const [copied, setCopied] = useState(false);
   const isFavorite = favorites.includes(mosque.id);
 
@@ -219,6 +220,14 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           className={`absolute top-safe-4 ${language === 'ar' ? 'right-4' : 'left-4'} p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all border border-white/20 z-10`}
         >
           <ArrowLeft size={24} className={language === 'ar' ? 'rotate-180' : ''} />
+        </button>
+
+        <button 
+          onClick={() => setIsEquipmentOpen(true)}
+          className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} flex items-center gap-2 px-4 py-3 bg-emerald-500/90 backdrop-blur-md rounded-2xl text-white font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all border border-emerald-400/30 z-10 shadow-xl shadow-emerald-900/20`}
+        >
+          <Package size={18} />
+          <span>{t('Manage Equipment', language)}</span>
         </button>
 
         <div className="absolute bottom-8 left-6 right-6 text-white z-10">

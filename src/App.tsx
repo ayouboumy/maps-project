@@ -5,6 +5,7 @@ import BottomSheet from './components/BottomSheet';
 import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import EquipmentScreen from './screens/EquipmentScreen';
 import { LocateFixed, MapPin, Layers, HelpCircle, X } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
@@ -14,7 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
 export default function App() {
-  const { activeTab, setUserLocation, language, routingToMosque, refreshLocation, mosques, mapStyle, setMapStyle } = useAppStore();
+  const { activeTab, setUserLocation, language, routingToMosque, refreshLocation, mosques, mapStyle, setMapStyle, isEquipmentOpen } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
@@ -81,9 +82,26 @@ export default function App() {
                     <MapPin size={24} />
                   </button>
                   <button 
-                    onClick={() => setMapStyle(mapStyle === 'street' ? 'satellite' : 'street')}
-                    className={`p-3 rounded-full shadow-md transition-colors ${mapStyle === 'satellite' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:text-blue-600'}`}
-                    title={t(mapStyle === 'street' ? 'Satellite Mode' : 'Street Mode', language)}
+                    onClick={() => {
+                      const nextStyle: Record<string, 'street' | 'satellite' | 'terrain'> = {
+                        'street': 'satellite',
+                        'satellite': 'terrain',
+                        'terrain': 'street'
+                      };
+                      setMapStyle(nextStyle[mapStyle]);
+                    }}
+                    className={cn(
+                      "p-3 rounded-full shadow-md transition-all duration-300",
+                      mapStyle === 'street' ? "bg-white text-gray-700 hover:text-blue-600" :
+                      mapStyle === 'satellite' ? "bg-blue-600 text-white" :
+                      "bg-emerald-600 text-white"
+                    )}
+                    title={t(
+                      mapStyle === 'street' ? 'Street Mode' : 
+                      mapStyle === 'satellite' ? 'Satellite Mode' : 
+                      'Terrain Mode', 
+                      language
+                    )}
                   >
                     <Layers size={24} />
                   </button>
@@ -160,6 +178,10 @@ export default function App() {
           {activeTab === 'favorites' && <FavoritesScreen />}
 
           {activeTab === 'settings' && <SettingsScreen />}
+
+          <AnimatePresence>
+            {isEquipmentOpen && <EquipmentScreen />}
+          </AnimatePresence>
         </div>
 
         {!routingToMosque && <BottomNav />}
