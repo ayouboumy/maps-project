@@ -110,6 +110,8 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Leaflet (Classic)': { en: 'Leaflet (Classic)', fr: 'Leaflet (Classique)', ar: 'ليفليت (كلاسيكي)' },
   'Mapbox (Advanced)': { en: 'Mapbox (Advanced)', fr: 'Mapbox (Avancé)', ar: 'ماب بوكس (متقدم)' },
   'Map Settings': { en: 'Map Settings', fr: 'Paramètres de la carte', ar: 'إعدادات الخريطة' },
+  'mapbox_token_error': { en: 'Mapbox Access Error', fr: 'Erreur d\'accès Mapbox', ar: 'خطأ في الوصول إلى Mapbox' },
+  'switch_to_leaflet': { en: 'Switch to Leaflet (Classic)', fr: 'Passer à Leaflet (Classique)', ar: 'التبديل إلى ليفليت (كلاسيكي)' },
   'Filter by Commune': { en: 'Filter by Commune', fr: 'Filtrer par commune', ar: 'تصفية حسب الجماعة' },
   'Select Commune': { en: 'Select Commune', fr: 'Sélectionner une commune', ar: 'اختر الجماعة' },
   'None': { en: 'None', fr: 'Aucun', ar: 'لا شيء' },

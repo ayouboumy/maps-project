@@ -7,7 +7,10 @@ import { getLocalizedName, t } from '../utils/translations';
 import { Mosque } from '../types';
 
 // Mapbox Token
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+const rawToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+// Mapbox GL JS usually expects a Public Token (pk). 
+// Secret tokens (sk) are intended for server-side use and may fail in the browser.
+mapboxgl.accessToken = rawToken;
 
 interface MapboxMapViewProps {
   showNearest?: boolean;
@@ -24,6 +27,9 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [pulseRadius, setPulseRadius] = useState(1);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+
+  const { setMapProvider } = useAppStore();
 
   const isUserLocationValid = userLocation && 
     typeof userLocation.latitude === 'number' && !isNaN(userLocation.latitude) &&
@@ -95,34 +101,97 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const initialCenter: [number, number] = isUserLocationValid 
-      ? [userLocation.longitude, userLocation.latitude]
-      : [-7.5898, 33.5731]; // Casablanca
+    // Check for secret token which Mapbox GL JS rejects
+    if (rawToken.startsWith('sk.')) {
+      setTokenError('Use a public access token (pk.*) with Mapbox GL, not a secret access token (sk.*).');
+      return;
+    }
 
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12' :
-             mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12' :
-             'mapbox://styles/mapbox/streets-v12',
-      center: initialCenter,
-      zoom: 12,
-      antialias: true
-    });
+    if (!rawToken) {
+      setTokenError('Mapbox Access Token is missing.');
+      return;
+    }
 
-    map.on('load', () => setIsMapLoaded(true));
-    mapRef.current = map;
+    let map: mapboxgl.Map | null = null;
+
+    try {
+      const initialCenter: [number, number] = isUserLocationValid 
+        ? [userLocation.longitude, userLocation.latitude]
+        : [-7.5898, 33.5731]; // Casablanca
+
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v11' :
+               mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v11' :
+               'mapbox://styles/mapbox/streets-v11',
+        center: initialCenter,
+        zoom: 12,
+        antialias: false,
+        pitch: 45,
+        bearing: 0,
+        trackResize: true,
+        fadeDuration: 200,
+        collectResourceTiming: false,
+        localIdeographFontFamily: "'Arial', 'Inter', sans-serif",
+        preserveDrawingBuffer: false,
+      });
+
+      map.on('load', () => {
+        setIsMapLoaded(true);
+        
+        if (!map) return;
+
+        // Add 3D Terrain source
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize: 512,
+            maxzoom: 14
+          });
+        }
+        
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+
+        // Add Sky layer
+        if (!map.getLayer('sky')) {
+          map.addLayer({
+            id: 'sky',
+            type: 'sky',
+            paint: {
+              'sky-type': 'atmosphere',
+              'sky-atmosphere-sun': [0.0, 90.0],
+              'sky-atmosphere-sun-intensity': 15
+            }
+          });
+        }
+      });
+
+      map.on('error', (e) => {
+        const msg = e.error?.message || e.error || String(e);
+        console.error('Mapbox Error:', msg);
+        if (msg.toLowerCase().includes('token') || msg.toLowerCase().includes('unauthorized')) {
+          setTokenError(msg);
+        }
+      });
+
+      mapRef.current = map;
+    } catch (err) {
+      console.error('Mapbox Init Error:', err);
+      setTokenError(err instanceof Error ? err.message : String(err));
+    }
 
     return () => {
-      map.remove();
+      if (map) map.remove();
     };
   }, []);
 
   // Sync Map Style
   useEffect(() => {
     if (!mapRef.current || !isMapLoaded) return;
-    const style = mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12' :
-                  mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12' :
-                  'mapbox://styles/mapbox/streets-v12';
+    const style = mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v11' :
+                  mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v11' :
+                  'mapbox://styles/mapbox/streets-v11';
     mapRef.current.setStyle(style);
   }, [mapStyle, isMapLoaded]);
 
@@ -466,6 +535,35 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
   return (
     <div className="w-full h-full relative">
       <div ref={mapContainerRef} className="absolute inset-0" />
+      
+      {tokenError && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-sm text-center">
+          <div className="max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-red-100 animate-in fade-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">{t(language, 'mapbox_token_error')}</h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              {tokenError.includes('sk.') 
+                ? "You are using a Secret Token (sk.*). Mapbox GL JS requires a Public Token (pk.*) to render maps in the browser."
+                : tokenError}
+            </p>
+            <div className="space-y-3">
+              <button 
+                onClick={() => setMapProvider('leaflet')}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-emerald-200"
+              >
+                {t(language, 'switch_to_leaflet')}
+              </button>
+              <p className="text-[10px] text-slate-400">
+                You can change your token in the app settings or .env file.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Visual Indicator for Selected Mosque in Mapbox */}
       {selectedMosque && (
