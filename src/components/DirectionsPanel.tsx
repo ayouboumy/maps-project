@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Footprints, MapPin, Car, ArrowLeft } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { t } from '../utils/translations';

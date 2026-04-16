@@ -1,6 +1,6 @@
 import { Heart, MapPin } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { t, getLocalizedName } from '../utils/translations';
 import PullToRefresh from '../components/PullToRefresh';
 

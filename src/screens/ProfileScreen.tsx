@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { 
   ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, 
   Clipboard, Check, Share2, Building2, Users, Maximize, 
