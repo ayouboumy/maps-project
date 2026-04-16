@@ -152,6 +152,15 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Size': { en: 'Size', fr: 'Taille', ar: 'الحجم' },
   'KB': { en: 'KB', fr: 'Ko', ar: 'ك.ب' },
   'MB': { en: 'MB', fr: 'Mo', ar: 'م.ب' },
+  'AI Intelligence & Memory': { en: 'AI Intelligence & Memory', fr: 'Intelligence AI & Mémoire', ar: 'ذكاء اصطناعي وذاكرة' },
+  'Self-learning system active': { en: 'Self-learning system active', fr: 'Système d\'auto-apprentissage actif', ar: 'نظام التعلم الذاتي نشط' },
+  'Intelligence Level': { en: 'Intelligence Level', fr: 'Niveau d\'intelligence', ar: 'مستوى الذكاء' },
+  'Learned Insights': { en: 'Learned Insights', fr: 'Aperçus appris', ar: 'رؤى مستفادة' },
+  'Analyzing Data Patterns...': { en: 'Analyzing Data Patterns...', fr: 'Analyse des modèles de données...', ar: 'جاري تحليل أنماط البيانات...' },
+  'Train System on Current Data': { en: 'Train System on Current Data', fr: 'Entraîner le système sur les données actuelles', ar: 'تدريب النظام على البيانات الحالية' },
+  'Last memory update': { en: 'Last memory update', fr: 'Dernière mise à jour de la mémoire', ar: 'آخر تحديث للذاكرة' },
+  'Smart Suggestion': { en: 'Smart Suggestion', fr: 'Suggestion intelligente', ar: 'اقتراح ذكي' },
+  'Based on learned patterns': { en: 'Based on learned patterns', fr: 'Basé sur les modèles appris', ar: 'بناءً على الأنماط المتعلمة' },
 
   // Common Data Keys & Values (from Excel)
   'salle de prière hommes': { en: 'Men\'s prayer room', fr: 'Salle de prière hommes', ar: 'قاعة صلاة الرجال' },

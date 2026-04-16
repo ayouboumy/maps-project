@@ -1,13 +1,19 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, Trash2, X, Download, CloudOff, HardDrive, RefreshCw } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, Trash2, X, Download, CloudOff, HardDrive, RefreshCw, Brain, Sparkles, History } from 'lucide-react';
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
 import { t } from '../utils/translations';
 import { translateTerms } from '../utils/gemini';
 import { motion, AnimatePresence } from 'motion/react';
+import { trainSystemOnData } from '../services/aiService';
 
 export default function SettingsScreen() {
-  const { mosques, importMosques, language, setLanguage, addDynamicTranslations, selectedCommune, setSelectedCommune, resetApp, downloadedCommunes, downloadCommune, removeDownloadedCommune } = useAppStore();
+  const { 
+    mosques, importMosques, language, setLanguage, addDynamicTranslations, 
+    selectedCommune, setSelectedCommune, resetApp, downloadedCommunes, 
+    downloadCommune, removeDownloadedCommune,
+    knowledgeBase, aiInsights, isTraining, lastTrainingDate
+  } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -306,6 +312,85 @@ export default function SettingsScreen() {
                 {lang === 'en' ? 'English' : lang === 'fr' ? 'Français' : 'العربية'}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* AI Intelligence & Memory */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Brain size={80} className="text-purple-600" />
+          </div>
+          
+          <div className="flex items-center mb-4 relative z-10">
+            <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center mx-3">
+              <Sparkles size={20} className="text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{t('AI Intelligence & Memory', language)}</h2>
+              <p className="text-sm text-gray-500">{t('Self-learning system active', language)}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold text-purple-700 uppercase tracking-widest">{t('Intelligence Level', language)}</span>
+                <span className="text-xs font-black text-purple-900">
+                  {knowledgeBase.lastAnalysisCount > 0 ? 'LEVEL 2: PATTERN RECOGNITION' : 'LEVEL 1: INITIALIZING'}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: knowledgeBase.lastAnalysisCount > 0 ? '65%' : '15%' }}
+                  className="h-full bg-purple-500"
+                />
+              </div>
+            </div>
+
+            {aiInsights.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                  <History size={12} />
+                  {t('Learned Insights', language)}
+                </h3>
+                <div className="space-y-2">
+                  {aiInsights.map((insight, idx) => (
+                    <div key={idx} className="text-sm text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100 leading-relaxed">
+                      {insight}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={() => trainSystemOnData()}
+              disabled={isTraining || mosques.length === 0}
+              className={`w-full flex items-center justify-center py-4 rounded-2xl font-bold text-sm transition-all ${
+                isTraining 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 active:scale-[0.98]'
+              }`}
+            >
+              {isTraining ? (
+                <>
+                  <RefreshCw size={18} className="animate-spin mr-2" />
+                  {t('Analyzing Data Patterns...', language)}
+                </>
+              ) : (
+                <>
+                  <Brain size={18} className="mr-2" />
+                  {t('Train System on Current Data', language)}
+                </>
+              )}
+            </button>
+            
+            {lastTrainingDate && (
+              <p className="text-[10px] text-center text-gray-400 font-medium italic">
+                {t('Last memory update', language)}: {new Date(lastTrainingDate).toLocaleString()}
+              </p>
+            )}
           </div>
         </div>
 

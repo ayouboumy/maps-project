@@ -27,6 +27,15 @@ interface AppState {
   mapStyle: MapStyle;
   isEquipmentOpen: boolean;
   downloadedCommunes: string[];
+  knowledgeBase: {
+    commonTypes: string[];
+    commonServices: string[];
+    regionalPatterns: Record<string, string>;
+    lastAnalysisCount: number;
+  };
+  aiInsights: string[];
+  isTraining: boolean;
+  lastTrainingDate: string | null;
   
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
@@ -46,6 +55,10 @@ interface AppState {
   setIsEquipmentOpen: (isOpen: boolean) => void;
   downloadCommune: (commune: string) => void;
   removeDownloadedCommune: (commune: string) => void;
+  setKnowledgeBase: (kb: AppState['knowledgeBase']) => void;
+  setAiInsights: (insights: string[]) => void;
+  setIsTraining: (isTraining: boolean) => void;
+  setLastTrainingDate: (date: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -65,6 +78,15 @@ export const useAppStore = create<AppState>()(
       mapStyle: 'street',
       isEquipmentOpen: false,
       downloadedCommunes: [],
+      knowledgeBase: {
+        commonTypes: [],
+        commonServices: [],
+        regionalPatterns: {},
+        lastAnalysisCount: 0
+      },
+      aiInsights: [],
+      isTraining: false,
+      lastTrainingDate: null,
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -142,6 +164,10 @@ export const useAppStore = create<AppState>()(
       removeDownloadedCommune: (commune) => set((state) => ({
         downloadedCommunes: state.downloadedCommunes.filter(c => c !== commune)
       })),
+      setKnowledgeBase: (kb) => set({ knowledgeBase: kb }),
+      setAiInsights: (insights) => set({ aiInsights: insights }),
+      setIsTraining: (isTraining) => set({ isTraining }),
+      setLastTrainingDate: (date) => set({ lastTrainingDate: date }),
     }),
     {
       name: 'mosque-finder-storage',
@@ -152,7 +178,10 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: state.dynamicTranslations,
         selectedCommune: state.selectedCommune,
         mapStyle: state.mapStyle,
-        downloadedCommunes: state.downloadedCommunes
+        downloadedCommunes: state.downloadedCommunes,
+        knowledgeBase: state.knowledgeBase,
+        aiInsights: state.aiInsights,
+        lastTrainingDate: state.lastTrainingDate
       }),
     }
   )

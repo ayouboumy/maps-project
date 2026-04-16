@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, MapPin, Heart, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, MapPin, Heart, ArrowUpDown, Sparkles, Brain } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Mosque } from '../types';
 import { motion } from 'motion/react';
@@ -8,7 +8,7 @@ import { getDistance } from 'geolib';
 import PullToRefresh from '../components/PullToRefresh';
 
 export default function SearchScreen() {
-  const { mosques, favorites, setSelectedMosque, setActiveTab, language, userLocation, refreshLocation } = useAppStore();
+  const { mosques, favorites, setSelectedMosque, setActiveTab, language, userLocation, refreshLocation, knowledgeBase } = useAppStore();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -88,6 +88,27 @@ export default function SearchScreen() {
     setActiveTab('map');
   };
 
+  const smartSuggestions = useMemo(() => {
+    if (!knowledgeBase.commonTypes.length && !knowledgeBase.commonServices.length) return [];
+    
+    const suggestions = [];
+    if (knowledgeBase.commonTypes.length > 0) {
+      suggestions.push({
+        type: 'type',
+        value: knowledgeBase.commonTypes[0],
+        label: `${t('Most common type', language)}: ${knowledgeBase.commonTypes[0]}`
+      });
+    }
+    if (knowledgeBase.commonServices.length > 0) {
+      suggestions.push({
+        type: 'service',
+        value: knowledgeBase.commonServices[0],
+        label: `${t('Popular service', language)}: ${knowledgeBase.commonServices[0]}`
+      });
+    }
+    return suggestions;
+  }, [knowledgeBase, language]);
+
   return (
     <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto">
       <div className="bg-white px-4 pt-safe-4 pb-4 shadow-sm z-10">
@@ -119,6 +140,31 @@ export default function SearchScreen() {
             </button>
           )}
         </div>
+
+        {/* Smart Suggestions */}
+        {smartSuggestions.length > 0 && query === '' && !selectedType && !selectedCommune && (
+          <div className="mb-4">
+            <div className={`flex items-center gap-2 mb-2 px-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <Sparkles size={14} className="text-purple-500" />
+              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">{t('Smart Suggestion', language)}</span>
+            </div>
+            <div className={`flex gap-2 overflow-x-auto pb-2 no-scrollbar ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              {smartSuggestions.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    if (suggestion.type === 'type') setSelectedType(suggestion.value);
+                    else setQuery(suggestion.value);
+                  }}
+                  className="whitespace-nowrap px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold border border-purple-100 flex items-center gap-2 shadow-sm active:scale-95 transition-transform"
+                >
+                  <Brain size={12} />
+                  {suggestion.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 mb-2">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
