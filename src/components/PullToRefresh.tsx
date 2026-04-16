@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
-import { motion, useAnimation } from 'motion/react';
+import { motion, useAnimation } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 
 interface PullToRefreshProps {

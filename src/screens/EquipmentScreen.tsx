@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Plus, Trash2, X, Package, 
   Search, Filter, LayoutGrid, List as ListIcon

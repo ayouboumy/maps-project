@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Clipboard, Check } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';

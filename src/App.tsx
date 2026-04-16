@@ -11,7 +11,7 @@ import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
 import PullToRefresh from './components/PullToRefresh';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 
 export default function App() {
@@ -52,7 +52,7 @@ export default function App() {
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-100 overflow-hidden font-sans text-gray-900 flex justify-center"
+      className="fixed inset-0 bg-gray-100 font-sans text-gray-900 flex justify-center overflow-hidden h-[100dvh]"
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {/* Mobile container constraint for desktop viewing */}

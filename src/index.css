@@ -8,15 +8,19 @@
 
 @layer utilities {
   .pb-safe {
+    padding-bottom: 0px;
     padding-bottom: env(safe-area-inset-bottom);
   }
   .pt-safe-4 {
+    padding-top: 1rem;
     padding-top: calc(env(safe-area-inset-top) + 1rem);
   }
   .top-safe-4 {
+    top: 1rem;
     top: calc(env(safe-area-inset-top) + 1rem);
   }
   .top-safe-20 {
+    top: 5rem;
     top: calc(env(safe-area-inset-top) + 5rem);
   }
   .scrollbar-hide::-webkit-scrollbar {

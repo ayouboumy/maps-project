@@ -4,7 +4,7 @@ import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
 import { t } from '../utils/translations';
 import { translateTerms } from '../utils/gemini';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { trainSystemOnData } from '../services/aiService';
 
 export default function SettingsScreen() {

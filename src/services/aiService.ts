@@ -1,7 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from "../store/useAppStore";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: any = null;
+
+function getAI() {
+  if (!aiInstance) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not defined. Please configure it in Settings.");
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+}
 
 export async function trainSystemOnData() {
   const { mosques, setKnowledgeBase, setAiInsights, setIsTraining, setLastTrainingDate } = useAppStore.getState();
@@ -11,6 +22,7 @@ export async function trainSystemOnData() {
   setIsTraining(true);
 
   try {
+    const ai = getAI();
     // Prepare a summary of the data for analysis
     const dataSummary = mosques.map(m => ({
       type: m.type,

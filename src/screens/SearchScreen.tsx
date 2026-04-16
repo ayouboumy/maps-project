@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, MapPin, Heart, ArrowUpDown, Sparkles, Brain } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Mosque } from '../types';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
 import PullToRefresh from '../components/PullToRefresh';
