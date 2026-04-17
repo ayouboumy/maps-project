@@ -128,30 +128,40 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
       return;
     }
 
+    if (!mapboxgl.supported()) {
+      setTokenError('Your browser or device does not support WebGL, which is required for Mapbox GL JS.');
+      return;
+    }
+
     let map: mapboxgl.Map | null = null;
     mapboxgl.accessToken = rawToken;
 
+    // Loading timeout
+    const loadTimeout = setTimeout(() => {
+      if (!isMapLoaded && !tokenError && mapContainerRef.current) {
+        console.warn('Mapbox load timeout triggered');
+        // We don't necessarily want to set an error yet as it might just be slow, 
+        // but it's good for logging.
+      }
+    }, 10000);
+
+    const initialCenter: [number, number] = isUserLocationValid 
+      ? [userLocation.longitude, userLocation.latitude]
+      : [-7.5898, 33.5731]; // Casablanca
+
     try {
-      const initialCenter: [number, number] = isUserLocationValid 
-        ? [userLocation.longitude, userLocation.latitude]
-        : [-7.5898, 33.5731]; // Casablanca
+      console.log('Initializing Mapbox with center:', initialCenter, 'and focus token:', rawToken.substring(0, 8));
 
       // Create map
+      console.log('Attempting to create Mapbox map instance...');
       map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v11' :
-               mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v11' :
-               'mapbox://styles/mapbox/streets-v11',
+        style: mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12' :
+               mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12' :
+               'mapbox://styles/mapbox/streets-v12',
         center: initialCenter,
         zoom: 12,
-        antialias: false,
         pitch: 45,
-        bearing: 0,
-        trackResize: true,
-        fadeDuration: 200,
-        collectResourceTiming: false,
-        localIdeographFontFamily: "'Arial', 'Inter', sans-serif",
-        preserveDrawingBuffer: false,
       });
 
       // Handle initialization errors that don't throw immediately
@@ -172,7 +182,9 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
       });
 
       map.on('load', () => {
+        console.log('Mapbox load event SUCCESS');
         setIsMapLoaded(true);
+        map?.resize();
         
         if (!map) return;
 
@@ -222,9 +234,9 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     if (!mapRef.current) return;
     const map = mapRef.current;
     
-    const style = mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v11' :
-                  mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v11' :
-                  'mapbox://styles/mapbox/streets-v11';
+    const style = mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12' :
+                  mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12' :
+                  'mapbox://styles/mapbox/streets-v12';
     
     // If map is already loaded, we update style and wait for it to finish loading
     if (isMapLoaded) {
@@ -575,8 +587,25 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
   }, [selectedMosque, showNearest, isUserLocationValid, isMapLoaded]);
 
   return (
-    <div className="w-full h-full relative">
-      <div ref={mapContainerRef} className="absolute inset-0" />
+    <div className="w-full h-full relative bg-slate-100 min-h-[400px]">
+      <div 
+        ref={mapContainerRef} 
+        className="absolute inset-0 h-full w-full z-0 border-4 border-dashed border-red-500/20 bg-slate-200 min-h-[400px]" 
+      />
+      
+      {!isMapLoaded && !tokenError && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-white px-6 text-center">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">Loading Mapbox</h2>
+          <p className="text-[10px] text-slate-400 mt-1 mb-4">Downloading maps and assets...</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-[10px] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg font-bold text-slate-600 transition-colors"
+          >
+            Reload Page
+          </button>
+        </div>
+      )}
       
       {tokenError && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-sm text-center">
