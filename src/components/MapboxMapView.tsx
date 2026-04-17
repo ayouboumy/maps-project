@@ -7,18 +7,15 @@ import { getLocalizedName, t } from '../utils/translations';
 import { Mosque } from '../types';
 
 // Mapbox Token
-// Use a robust way to get the token from multiple possible locations
 const getMapboxToken = () => {
   const token = (
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 
     (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') ||
     ''
   ).trim();
+  console.log('Mapbox token detection:', token ? 'Success (starts with ' + token.substring(0, 3) + ')' : 'Failed (None found)');
   return token;
 };
-
-const rawToken = getMapboxToken();
-mapboxgl.accessToken = rawToken;
 
 interface MapboxMapViewProps {
   showNearest?: boolean;
@@ -27,6 +24,9 @@ interface MapboxMapViewProps {
 export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  
+  const rawToken = useMemo(() => getMapboxToken(), []);
+  mapboxgl.accessToken = rawToken;
   const { 
     mosques, userLocation, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, 
@@ -201,18 +201,46 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     }
 
     return () => {
-      if (map) map.remove();
+      try {
+        if (map) map.remove();
+      } catch (e) {
+        console.warn('Mapbox removal cleanup error:', e);
+      }
     };
   }, []);
 
   // Sync Map Style
   useEffect(() => {
-    if (!mapRef.current || !isMapLoaded) return;
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    
     const style = mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v11' :
                   mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v11' :
                   'mapbox://styles/mapbox/streets-v11';
-    mapRef.current.setStyle(style);
-  }, [mapStyle, isMapLoaded]);
+    
+    // If map is already loaded, we update style and wait for it to finish loading
+    if (isMapLoaded) {
+      setIsMapLoaded(false);
+      map.setStyle(style);
+      
+      const onStyleLoad = () => {
+        setIsMapLoaded(true);
+        // Re-add 3D terrain on style change
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize: 512,
+            maxzoom: 14
+          });
+        }
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+        map.off('style.load', onStyleLoad);
+      };
+      
+      map.on('style.load', onStyleLoad);
+    }
+  }, [mapStyle]);
 
   // Update Data Source for Markers & Clustering
   useEffect(() => {
@@ -237,135 +265,117 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
       }))
     };
 
-    if (map.getSource('mosques')) {
-      (map.getSource('mosques') as mapboxgl.GeoJSONSource).setData(geojson);
-    } else {
-      map.addSource('mosques', {
-        type: 'geojson',
-        data: geojson,
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50
-      });
+    const setupLayers = () => {
+      if (!map.getSource('mosques')) {
+        map.addSource('mosques', {
+          type: 'geojson',
+          data: geojson,
+          cluster: true,
+          clusterMaxZoom: 14,
+          clusterRadius: 50
+        });
 
-      // Cluster Layer
-      map.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'mosques',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': [
-            'step',
-            ['get', 'point_count'],
-            '#51bbd6',
-            100,
-            '#f1f075',
-            750,
-            '#f28cb1'
-          ],
-          'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-            20,
-            100,
-            30,
-            750,
-            40
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff'
-        }
-      });
-
-      // Cluster Count Text
-      map.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: 'mosques',
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': '{point_count_abbreviated}',
-          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-          'text-size': 14
-        }
-      });
-
-      // Unclustered Point Layer (Mosques)
-      map.addLayer({
-        id: 'unclustered-point',
-        type: 'circle',
-        source: 'mosques',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': '#10b981', // emerald-500
-          'circle-radius': 8,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff'
-        }
-      });
-
-      // Mosque Labels (visible when zoomed in)
-      map.addLayer({
-        id: 'mosque-labels',
-        type: 'symbol',
-        source: 'mosques',
-        filter: ['!', ['has', 'point_count']],
-        minzoom: 14,
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-          'text-size': 12,
-          'text-offset': [0, 1.5],
-          'text-anchor': 'top'
-        },
-        paint: {
-          'text-color': '#374151',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1
-        }
-      });
-
-      // Click Events
-      map.on('click', 'clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-        const clusterId = features[0].properties?.cluster_id;
-        (map.getSource('mosques') as mapboxgl.GeoJSONSource).getClusterExpansionZoom(
-          clusterId,
-          (err, zoom) => {
-            if (err) return;
-            map.easeTo({
-              center: (features[0].geometry as any).coordinates,
-              zoom: zoom
-            });
+        // Cluster Layer
+        map.addLayer({
+          id: 'clusters',
+          type: 'circle',
+          source: 'mosques',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 100, '#f1f075', 750, '#f28cb1'],
+            'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff'
           }
-        );
-      });
+        });
 
-      map.on('click', 'unclustered-point', (e) => {
-        const feature = e.features?.[0];
-        if (!feature) return;
-        const id = feature.properties?.id;
-        const mosque = mosques.find(m => m.id === id);
-        if (mosque) {
-          setSelectedMosque(mosque);
-          setRoutingToMosque(null);
-          
-          map.flyTo({
-            center: [mosque.longitude, mosque.latitude],
-            zoom: 15,
-            duration: 1500,
-            essential: true
-          });
-        }
-      });
+        // Cluster Count Text
+        map.addLayer({
+          id: 'cluster-count',
+          type: 'symbol',
+          source: 'mosques',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+            'text-size': 14
+          }
+        });
 
-      // Hover Effects
-      map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
-      map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
-      map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
-      map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
-    }
+        // Unclustered Point Layer (Mosques)
+        map.addLayer({
+          id: 'unclustered-point',
+          type: 'circle',
+          source: 'mosques',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': '#10b981',
+            'circle-radius': 8,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff'
+          }
+        });
+
+        // Click Events
+        map.on('click', 'clusters', handleClusterClick);
+        map.on('click', 'unclustered-point', handlePointClick);
+        map.on('mouseenter', 'clusters', handleEnter);
+        map.on('mouseleave', 'clusters', handleLeave);
+        map.on('mouseenter', 'unclustered-point', handleEnter);
+        map.on('mouseleave', 'unclustered-point', handleLeave);
+      } else {
+        (map.getSource('mosques') as mapboxgl.GeoJSONSource).setData(geojson);
+      }
+    };
+
+    const handleClusterClick = (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+      const clusterId = features[0].properties?.cluster_id;
+      const source = map.getSource('mosques') as mapboxgl.GeoJSONSource;
+      if (!source || clusterId === undefined) return;
+      
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+        map.easeTo({
+          center: (features[0].geometry as any).coordinates,
+          zoom: zoom
+        });
+      });
+    };
+
+    const handlePointClick = (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const id = feature.properties?.id;
+      const mosque = mosques.find(m => m.id === id);
+      if (mosque) {
+        setSelectedMosque(mosque);
+        setRoutingToMosque(null);
+        map.flyTo({
+          center: [mosque.longitude, mosque.latitude],
+          zoom: 15,
+          duration: 1500,
+          essential: true
+        });
+      }
+    };
+
+    const handleEnter = () => map.getCanvas().style.cursor = 'pointer';
+    const handleLeave = () => map.getCanvas().style.cursor = '';
+
+    setupLayers();
+
+    return () => {
+      if (mapRef.current) {
+        const m = mapRef.current;
+        m.off('click', 'clusters', handleClusterClick);
+        m.off('click', 'unclustered-point', handlePointClick);
+        m.off('mouseenter', 'clusters', handleEnter);
+        m.off('mouseleave', 'clusters', handleLeave);
+        m.off('mouseenter', 'unclustered-point', handleEnter);
+        m.off('mouseleave', 'unclustered-point', handleLeave);
+      }
+    };
   }, [filteredByCommune, isMapLoaded, language]);
 
   // Selected Mosque & User Location Highlights
@@ -531,6 +541,11 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     };
 
     fetchRoute();
+
+    return () => {
+      // No explicit cleanup needed for setData since we handle empty state at the start
+      // but we ensure we don't hold references
+    };
   }, [routingToMosque, userLocation, isUserLocationValid, isMapLoaded, routeProfile]);
 
   // Controller Logic (Nearest & Selected)
