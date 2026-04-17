@@ -7,7 +7,9 @@ import { getLocalizedName, t } from '../utils/translations';
 import { Mosque } from '../types';
 
 // Mapbox Token
-const rawToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+// Use a robust way to get the token from either import.meta.env or process.env
+const rawToken = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') || '').trim();
+
 // Mapbox GL JS usually expects a Public Token (pk). 
 // Secret tokens (sk) are intended for server-side use and may fail in the browser.
 mapboxgl.accessToken = rawToken;
@@ -561,6 +563,9 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
                 ? "You are using a Secret Token (sk.*). Mapbox GL JS requires a Public Token (pk.*) to render maps in the browser."
                 : tokenError}
               <br /><br />
+              <div className="bg-gray-50 p-2 rounded-lg font-mono text-[10px] text-gray-400 border border-gray-100 mb-2">
+                Detected: {rawToken ? `${rawToken.substring(0, 4)}...${rawToken.substring(rawToken.length - 4)}` : 'None'}
+              </div>
               <span className="text-[11px] block mt-2 opacity-80">
                 Tip: Check if your token has **URL restrictions** in the Mapbox dashboard that might be blocking this preview URL.
               </span>

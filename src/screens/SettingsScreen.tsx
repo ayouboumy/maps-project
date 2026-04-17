@@ -466,11 +466,11 @@ export default function SettingsScreen() {
             </button>
           </div>
           
-          {mapProvider === 'mapbox' && !import.meta.env.VITE_MAPBOX_ACCESS_TOKEN && (
+          {mapProvider === 'mapbox' && !(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '')) && (
             <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-2">
               <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
               <p className="text-[10px] font-bold text-amber-900">
-                Mapbox access token is missing. Please configure VITE_MAPBOX_ACCESS_TOKEN in your environment.
+                Mapbox access token is missing. Please configure VITE_MAPBOX_ACCESS_TOKEN in your secrets.
               </p>
             </div>
           )}
