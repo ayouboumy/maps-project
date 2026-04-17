@@ -7,13 +7,17 @@ import { getLocalizedName, t } from '../utils/translations';
 import { Mosque } from '../types';
 
 // Mapbox Token
-const getMapboxToken = () => {
+const getMapboxToken = (manualToken: string | null) => {
+  if (manualToken) {
+    console.log('Mapbox token detection: Using Manual Fallback');
+    return manualToken;
+  }
   const token = (
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 
     (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') ||
     ''
   ).trim();
-  console.log('Mapbox token detection:', token ? 'Success (starts with ' + token.substring(0, 3) + ')' : 'Failed (None found)');
+  console.log('Mapbox token detection:', token ? 'Success (Env Var starts with ' + token.substring(0, 3) + ')' : 'Failed (None found)');
   return token;
 };
 
@@ -25,19 +29,23 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   
-  const rawToken = useMemo(() => getMapboxToken(), []);
-  mapboxgl.accessToken = rawToken;
   const { 
     mosques, userLocation, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, 
-    routeProfile, selectedCommune, mapStyle 
+    routeProfile, selectedCommune, mapStyle,
+    manualMapboxToken, setManualMapboxToken, setMapProvider
   } = useAppStore();
+
+  const rawToken = useMemo(() => {
+    return getMapboxToken(manualMapboxToken).trim();
+  }, [manualMapboxToken]);
+
+  mapboxgl.accessToken = rawToken;
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [pulseRadius, setPulseRadius] = useState(1);
   const [tokenError, setTokenError] = useState<string | null>(null);
-
-  const { setMapProvider } = useAppStore();
+  const [inputToken, setInputToken] = useState('');
 
   const isUserLocationValid = userLocation && 
     typeof userLocation.latitude === 'number' && !isNaN(userLocation.latitude) &&
@@ -591,6 +599,38 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
                 Tip: Check if your token has **URL restrictions** in the Mapbox dashboard that might be blocking this preview URL.
               </span>
             </p>
+
+            <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+              <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 text-left">
+                Manual Token Fallback
+              </label>
+              <div className="flex gap-2">
+                <input 
+                  type="password"
+                  value={inputToken}
+                  onChange={(e) => setInputToken(e.target.value)}
+                  placeholder="Paste pk. token here..."
+                  className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button 
+                  onClick={() => {
+                    if (inputToken.startsWith('pk.')) {
+                      setManualMapboxToken(inputToken);
+                      setTokenError(null);
+                    } else {
+                      alert('Please enter a valid public token starting with pk.');
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+              <p className="text-[9px] text-blue-400 mt-2 text-left italic">
+                This token will be saved locally in your browser.
+              </p>
+            </div>
+
             <div className="space-y-3">
               <button 
                 onClick={() => setMapProvider('leaflet')}

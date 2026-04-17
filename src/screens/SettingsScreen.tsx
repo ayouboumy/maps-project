@@ -13,7 +13,7 @@ export default function SettingsScreen() {
     selectedCommune, setSelectedCommune, resetApp, downloadedCommunes, 
     downloadCommune, removeDownloadedCommune,
     knowledgeBase, aiInsights, isTraining, lastTrainingDate,
-    mapProvider, setMapProvider
+    mapProvider, setMapProvider, manualMapboxToken, setManualMapboxToken
   } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
@@ -466,7 +466,22 @@ export default function SettingsScreen() {
             </button>
           </div>
           
-          {mapProvider === 'mapbox' && !(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '')) && (
+          {manualMapboxToken && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-blue-600" />
+                <span className="text-xs font-bold text-blue-900">Manual token active</span>
+              </div>
+              <button 
+                onClick={() => setManualMapboxToken(null)}
+                className="text-[10px] font-black text-red-600 uppercase tracking-widest hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+          
+          {mapProvider === 'mapbox' && !manualMapboxToken && !(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '')) && (
             <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100 flex flex-col gap-2">
               <div className="flex items-start gap-2">
                 <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />

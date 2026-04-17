@@ -5,12 +5,12 @@ import {defineConfig, loadEnv} from 'vite';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
+  
   return {
     plugins: [react(), tailwindcss()],
+    envPrefix: ['VITE_', 'MAPBOX_'],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
-      'process.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN || env.MAPBOX_ACCESS_TOKEN || env.MAPBOX_GL_ACCESS_TOKEN || env.MAPBOX_TOKEN || process.env.VITE_MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_GL_ACCESS_TOKEN || process.env.MAPBOX_TOKEN || ''),
-      'import.meta.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN || env.MAPBOX_ACCESS_TOKEN || env.MAPBOX_GL_ACCESS_TOKEN || env.MAPBOX_TOKEN || process.env.VITE_MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_GL_ACCESS_TOKEN || process.env.MAPBOX_TOKEN || ''),
     },
     resolve: {
       alias: {

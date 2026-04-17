@@ -7,10 +7,11 @@ interface MapViewProps {
 }
 
 export default function MapView({ showNearest }: MapViewProps) {
-  const { mapProvider } = useAppStore();
+  const { mapProvider, manualMapboxToken } = useAppStore();
+  const envToken = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') || '').trim();
+  const activeToken = manualMapboxToken || envToken;
 
   if (mapProvider === 'mapbox') {
-    const activeToken = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') || '').trim();
     return <MapboxMapView key={activeToken || 'default'} showNearest={showNearest} />;
   }
 
