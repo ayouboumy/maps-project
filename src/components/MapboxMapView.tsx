@@ -7,11 +7,17 @@ import { getLocalizedName, t } from '../utils/translations';
 import { Mosque } from '../types';
 
 // Mapbox Token
-// Use a robust way to get the token from either import.meta.env or process.env
-const rawToken = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') || '').trim();
+// Use a robust way to get the token from multiple possible locations
+const getMapboxToken = () => {
+  const token = (
+    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 
+    (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '') ||
+    ''
+  ).trim();
+  return token;
+};
 
-// Mapbox GL JS usually expects a Public Token (pk). 
-// Secret tokens (sk) are intended for server-side use and may fail in the browser.
+const rawToken = getMapboxToken();
 mapboxgl.accessToken = rawToken;
 
 interface MapboxMapViewProps {

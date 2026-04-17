@@ -467,11 +467,21 @@ export default function SettingsScreen() {
           </div>
           
           {mapProvider === 'mapbox' && !(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '')) && (
-            <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-2">
-              <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-[10px] font-bold text-amber-900">
-                Mapbox access token is missing. Please configure VITE_MAPBOX_ACCESS_TOKEN in your secrets.
-              </p>
+            <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100 flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-[10px] font-bold text-amber-900 leading-relaxed">
+                  Mapbox access token is missing. 
+                </p>
+              </div>
+              <div className="bg-white/50 p-2 rounded-lg border border-amber-200">
+                <p className="text-[9px] text-amber-800 font-medium">To fix this:</p>
+                <ol className="text-[9px] text-amber-700 list-decimal list-inside mt-1 space-y-1">
+                  <li>Open the <span className="font-bold">Settings / Secrets</span> menu in the sidebar.</li>
+                  <li>Add a variable named <code className="bg-amber-100 px-1 rounded text-amber-900 font-mono">VITE_MAPBOX_ACCESS_TOKEN</code>.</li>
+                  <li>Paste your public token (starting with <code className="bg-amber-100 px-1 rounded text-amber-900 font-mono">pk.</code>).</li>
+                </ol>
+              </div>
             </div>
           )}
         </div>
