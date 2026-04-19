@@ -136,6 +136,17 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     let map: mapboxgl.Map | null = null;
     mapboxgl.accessToken = rawToken;
 
+    // Fix Arabic text rendering
+    if (mapboxgl.getRTLTextPluginStatus() === 'unavailable') {
+      mapboxgl.setRTLTextPlugin(
+        'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.3.0/mapbox-gl-rtl-text.js',
+        (error) => {
+          if (error) console.warn('Error loading Mapbox RTL Text Plugin:', error);
+        },
+        true // Lazy load the plugin
+      );
+    }
+
     // Loading timeout
     const loadTimeout = setTimeout(() => {
       if (!isMapLoaded && !tokenError && mapContainerRef.current) {
@@ -494,17 +505,24 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
 
   // Routing Implementation
   useEffect(() => {
-    if (!mapRef.current || !isMapLoaded || !routingToMosque || !isUserLocationValid) {
-      if (mapRef.current?.getSource('route')) {
-         (mapRef.current.getSource('route') as mapboxgl.GeoJSONSource).setData({
+    if (!mapRef.current || !isMapLoaded || !isUserLocationValid) return;
+
+    const map = mapRef.current;
+    
+    // Determine target mosques to route to
+    const targetMosques = routingToMosque 
+      ? [routingToMosque] 
+      : (showNearest && !selectedMosque ? nearestMosques : []);
+
+    if (targetMosques.length === 0) {
+      if (map.getSource('route')) {
+         (map.getSource('route') as mapboxgl.GeoJSONSource).setData({
            type: 'FeatureCollection',
            features: []
          });
       }
       return;
     }
-
-    const map = mapRef.current;
 
     const fetchRoute = async () => {
       try {
@@ -513,23 +531,45 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
           ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
           : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
         
-        const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${routingToMosque.longitude},${routingToMosque.latitude}?overview=full&geometries=geojson`);
-        const data = await response.json();
-        
-        if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0].geometry;
+        const routeFeatures: GeoJSON.Feature[] = [];
+        let allCoordinates: [number, number][] = [];
+
+        // Fetch routes for all target mosques
+        for (let i = 0; i < targetMosques.length; i++) {
+          const target = targetMosques[i];
+          const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${target.longitude},${target.latitude}?overview=full&geometries=geojson`);
+          const data = await response.json();
           
+          if (data.routes && data.routes.length > 0) {
+            const routeGeom = data.routes[0].geometry;
+            routeFeatures.push({
+              type: 'Feature',
+              geometry: routeGeom,
+              properties: {
+                isMain: i === 0 // Make the first route visually primary if there are multiple
+              }
+            });
+            allCoordinates = [...allCoordinates, ...routeGeom.coordinates];
+          }
+        }
+        
+        if (routeFeatures.length > 0) {
+          const featureCollection: GeoJSON.FeatureCollection = {
+            type: 'FeatureCollection',
+            features: routeFeatures
+          };
+
           if (!map.getSource('route')) {
-            map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route, properties: {} } });
+            map.addSource('route', { type: 'geojson', data: featureCollection });
             map.addLayer({
               id: 'route-line-casing',
               type: 'line',
               source: 'route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#FFFFFF',
-                'line-width': 10,
-                'line-opacity': 0.8
+                'line-color': ['case', ['boolean', ['get', 'isMain'], true], '#FFFFFF', '#5F6368'],
+                'line-width': ['case', ['boolean', ['get', 'isMain'], true], 10, 8],
+                'line-opacity': ['case', ['boolean', ['get', 'isMain'], true], 0.8, 0.4]
               }
             });
             map.addLayer({
@@ -538,22 +578,23 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
               source: 'route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#4285F4',
-                'line-width': 6,
+                'line-color': ['case', ['boolean', ['get', 'isMain'], true], '#4285F4', '#80868B'],
+                'line-width': ['case', ['boolean', ['get', 'isMain'], true], 6, 4],
                 'line-dasharray': profile === 'foot' ? [0.5, 2] : []
               }
             });
           } else {
-            (map.getSource('route') as mapboxgl.GeoJSONSource).setData({ type: 'Feature', geometry: route, properties: {} });
+            (map.getSource('route') as mapboxgl.GeoJSONSource).setData(featureCollection);
           }
 
           // Fit Bounds
-          const coordinates = route.coordinates;
-          const bounds = coordinates.reduce((acc: mapboxgl.LngLatBounds, coord: [number, number]) => {
-            return acc.extend(coord);
-          }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+          if (allCoordinates.length > 0) {
+            const bounds = allCoordinates.reduce((acc: mapboxgl.LngLatBounds, coord: [number, number]) => {
+              return acc.extend(coord);
+            }, new mapboxgl.LngLatBounds(allCoordinates[0], allCoordinates[0]));
 
-          map.fitBounds(bounds, { padding: 50 });
+            map.fitBounds(bounds, { padding: 50 });
+          }
         }
       } catch (error) {
         console.error('Error fetching Mapbox route:', error);
@@ -563,10 +604,8 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     fetchRoute();
 
     return () => {
-      // No explicit cleanup needed for setData since we handle empty state at the start
-      // but we ensure we don't hold references
     };
-  }, [routingToMosque, userLocation, isUserLocationValid, isMapLoaded, routeProfile]);
+  }, [routingToMosque, nearestMosques, showNearest, selectedMosque, userLocation, isUserLocationValid, isMapLoaded, routeProfile]);
 
   // Controller Logic (Nearest & Selected)
   useEffect(() => {
@@ -579,12 +618,8 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
          zoom: 15,
          duration: 1500
        });
-    } else if (showNearest && isUserLocationValid) {
-       // Logic to find nearest mosques and fit bounds
-       // (Simplified for now to just fly to user if no specific nearest logic is passed down)
-       map.flyTo({ center: [userLocation.longitude, userLocation.latitude], zoom: 14 });
     }
-  }, [selectedMosque, showNearest, isUserLocationValid, isMapLoaded]);
+  }, [selectedMosque, routingToMosque, isMapLoaded]);
 
   return (
     <div className="w-full h-full relative bg-slate-100 min-h-[400px]">
