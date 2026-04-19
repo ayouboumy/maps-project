@@ -8,8 +8,14 @@ async function startServer() {
   const PORT = process.env.PORT || 3000;
 
   app.get('/api/config', (req, res) => {
+    // We use the provided key as a fallback if the environment secret is not set or is the placeholder
+    const envKey = process.env.GEMINI_API_KEY;
+    const key = (envKey && envKey !== "MY_GEMINI_API_KEY" && envKey !== "undefined") 
+      ? envKey 
+      : "AIzaSyCtP0jFOgBbDgOf-trcadiAB1NjSK_UXqw";
+    
     res.json({
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY
+      GEMINI_API_KEY: key
     });
   });
 
