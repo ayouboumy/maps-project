@@ -17,9 +17,18 @@ function cleanJsonResponse(text: string): string {
 
 let aiInstance: any = null;
 
-function getAI() {
+async function getAI() {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    let apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "undefined") {
+      try {
+        const res = await fetch("/api/config");
+        const data = await res.json();
+        if (data.apiKey) apiKey = data.apiKey;
+      } catch (e) {
+        console.warn("Could not fetch API key dynamically", e);
+      }
+    }
     aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
@@ -33,7 +42,7 @@ export async function trainSystemOnData(): Promise<{success: boolean, error?: st
   setIsTraining(true);
 
   try {
-    const ai = getAI();
+    const ai = await getAI();
     // Prepare a summary of the data for analysis
     const dataSummary = mosques.map(m => ({
       type: m.type,

@@ -15,12 +15,30 @@ function cleanJsonResponse(text: string): string {
   return cleaned.trim();
 }
 
+let aiInstance: any = null;
+
+async function getAI() {
+  if (!aiInstance) {
+    let apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "undefined") {
+      try {
+        const res = await fetch("/api/config");
+        const data = await res.json();
+        if (data.apiKey) apiKey = data.apiKey;
+      } catch (e) {
+        console.warn("Could not fetch API key dynamically", e);
+      }
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+}
+
 export async function translateTerms(terms: string[]): Promise<Record<string, Record<Language, string>>> {
   if (terms.length === 0) return {};
   
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = await getAI();
     
     // Chunk terms if there are too many to avoid hitting token limits
     const chunkSize = 50;
@@ -132,8 +150,7 @@ export async function mapExcelColumns(headers: string[]): Promise<ColumnMapping>
   fallbackMapping.image = findHeader(['image', 'photo', 'url', 'lien']);
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = await getAI();
     
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
