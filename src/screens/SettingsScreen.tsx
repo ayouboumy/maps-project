@@ -365,7 +365,12 @@ export default function SettingsScreen() {
             )}
 
             <button 
-              onClick={() => trainSystemOnData()}
+              onClick={async () => {
+                setStatus({ type: 'info', message: t('Training AI system...', language) });
+                const success = await trainSystemOnData();
+                if (success) setStatus({ type: 'success', message: t('Knowledge base updated successfully.', language) });
+                else setStatus({ type: 'error', message: t('Failed to analyze data.', language) });
+              }}
               disabled={isTraining || mosques.length === 0}
               className={`w-full flex items-center justify-center py-4 rounded-2xl font-bold text-sm transition-all ${
                 isTraining 

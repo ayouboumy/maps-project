@@ -1,6 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from "../store/useAppStore";
 
+function cleanJsonResponse(text: string): string {
+  if (!text) return "";
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.substring(7);
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.substring(3);
+  }
+  if (cleaned.endsWith("```")) {
+    cleaned = cleaned.substring(0, cleaned.length - 3);
+  }
+  return cleaned.trim();
+}
+
 let aiInstance: any = null;
 
 function getAI() {
@@ -14,10 +28,10 @@ function getAI() {
   return aiInstance;
 }
 
-export async function trainSystemOnData() {
+export async function trainSystemOnData(): Promise<boolean> {
   const { mosques, setKnowledgeBase, setAiInsights, setIsTraining, setLastTrainingDate } = useAppStore.getState();
   
-  if (mosques.length === 0) return;
+  if (mosques.length === 0) return false;
 
   setIsTraining(true);
 
@@ -48,7 +62,7 @@ export async function trainSystemOnData() {
     }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-pro-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -65,7 +79,8 @@ export async function trainSystemOnData() {
       }
     });
 
-    const result = JSON.parse(response.text || "{}");
+    const jsonStr = response.text || "{}";
+    const result = JSON.parse(cleanJsonResponse(jsonStr));
 
     setKnowledgeBase({
       commonTypes: result.commonTypes || [],
@@ -76,9 +91,11 @@ export async function trainSystemOnData() {
 
     setAiInsights(result.aiInsights || []);
     setLastTrainingDate(new Date().toISOString());
+    return true;
 
   } catch (error) {
     console.error("AI Training Error:", error);
+    return false;
   } finally {
     setIsTraining(false);
   }

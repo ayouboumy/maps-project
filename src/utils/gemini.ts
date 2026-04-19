@@ -1,6 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Language } from "../store/useAppStore";
 
+function cleanJsonResponse(text: string): string {
+  if (!text) return "";
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.substring(7);
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.substring(3);
+  }
+  if (cleaned.endsWith("```")) {
+    cleaned = cleaned.substring(0, cleaned.length - 3);
+  }
+  return cleaned.trim();
+}
+
 export async function translateTerms(terms: string[]): Promise<Record<string, Record<Language, string>>> {
   if (terms.length === 0) return {};
   
@@ -22,7 +36,7 @@ export async function translateTerms(terms: string[]): Promise<Record<string, Re
       const chunk = terms.slice(i, i + chunkSize);
       
       const promise = ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-pro-preview",
         contents: `You are an expert translator specializing in Islamic terminology and architecture. 
 The following JSON array contains terms extracted from a French dataset about mosques in Morocco.
 
@@ -51,9 +65,9 @@ ${JSON.stringify(chunk)}`,
           }
         }
       }).then(response => {
-        const jsonStr = response.text?.trim() || "[]";
+        const jsonStr = response.text || "[]";
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed = JSON.parse(cleanJsonResponse(jsonStr));
           for (const item of parsed) {
             if (item.originalTerm && item.en && item.fr && item.ar) {
               results[item.originalTerm] = {
@@ -129,7 +143,7 @@ export async function mapExcelColumns(headers: string[]): Promise<ColumnMapping>
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-pro-preview",
       contents: `You are an expert data analyst. I have an Excel file with the following column headers:
 ${JSON.stringify(headers)}
 
@@ -179,9 +193,9 @@ Instructions:
       }
     });
 
-    const jsonStr = response.text?.trim() || "{}";
+    const jsonStr = response.text || "{}";
     try {
-      const aiMapping = JSON.parse(jsonStr);
+      const aiMapping = JSON.parse(cleanJsonResponse(jsonStr));
       // Merge AI mapping with fallback mapping (AI takes precedence if it found a value)
       return { ...fallbackMapping, ...Object.fromEntries(Object.entries(aiMapping).filter(([_, v]) => v != null)) };
     } catch (e) {
