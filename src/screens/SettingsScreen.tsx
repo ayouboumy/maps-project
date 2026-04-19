@@ -1,11 +1,16 @@
-import { Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, Loader2, MapPin, Trash2, X, Download, CloudOff, HardDrive, RefreshCw, Brain, Sparkles, History } from 'lucide-react';
-import { useRef, useState, ChangeEvent, useMemo } from 'react';
+import { 
+  Upload, CheckCircle2, AlertCircle, Database, FileSpreadsheet, Globe, 
+  Loader2, MapPin, Trash2, X, Download, CloudOff, HardDrive, 
+  RefreshCw, Brain, Sparkles, History, Key, Eye, EyeOff 
+} from 'lucide-react';
+import { useRef, useState, ChangeEvent, useMemo, useEffect } from 'react';
 import { useAppStore, Language } from '../store/useAppStore';
 import * as XLSX from 'xlsx';
 import { t } from '../utils/translations';
 import { translateTerms } from '../utils/gemini';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trainSystemOnData } from '../services/aiService';
+import { getUserSavedKey, saveUserApiKey } from '../utils/config';
 
 export default function SettingsScreen() {
   const { 
@@ -25,6 +30,27 @@ export default function SettingsScreen() {
     const allCommunes = mosques.map(m => m.commune);
     return Array.from(new Set(allCommunes)).sort();
   }, [mosques]);
+
+  const [customKey, setCustomKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [isKeySaved, setIsKeySaved] = useState(false);
+
+  useEffect(() => {
+    const saved = getUserSavedKey();
+    if (saved) {
+      setCustomKey(saved);
+      setIsKeySaved(true);
+    }
+  }, []);
+
+  const handleSaveKey = () => {
+    saveUserApiKey(customKey);
+    setIsKeySaved(!!customKey.trim());
+    setStatus({ 
+      type: 'success', 
+      message: customKey.trim() ? t('API Key saved to local storage.', language) : t('API Key removed.', language) 
+    });
+  };
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -312,6 +338,62 @@ export default function SettingsScreen() {
                 {lang === 'en' ? 'English' : lang === 'fr' ? 'Français' : 'العربية'}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* AI Key Configuration */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center mx-3">
+              <Key size={20} className="text-cyan-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{t('AI Configuration', language)}</h2>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">{t('Personal API Key', language)}</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500 leading-relaxed">
+              {t('If the AI features fail on your phone, paste your Gemini API Key here. It will be saved locally in this browser.', language)}
+            </p>
+            
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                value={customKey}
+                onChange={(e) => {
+                  setCustomKey(e.target.value);
+                  setIsKeySaved(false);
+                }}
+                placeholder="AIzaSy..."
+                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all text-sm font-mono"
+              />
+              <button 
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+              >
+                {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <button
+              onClick={handleSaveKey}
+              className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                isKeySaved 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                  : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-md shadow-cyan-100'
+              }`}
+            >
+              {isKeySaved ? <CheckCircle2 size={18} /> : <Key size={18} />}
+              {isKeySaved ? t('Saved', language) : t('Save API Key', language)}
+            </button>
+
+            {!isKeySaved && customKey && (
+              <p className="text-[10px] text-amber-600 font-medium italic text-center">
+                {t('Click Save to apply changes', language)}
+              </p>
+            )}
           </div>
         </div>
 

@@ -116,6 +116,18 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Delete all data and reset the application?': { en: 'Delete all data and reset the application?', fr: 'Supprimer toutes les données et réinitialiser l\'application ?', ar: 'حذف جميع البيانات وإعادة ضبط التطبيق؟' },
   'This action cannot be undone.': { en: 'This action cannot be undone.', fr: 'Cette action est irréversible.', ar: 'هذا الإجراء لا يمكن التراجع عنه.' },
   'Reset Successful': { en: 'Reset Successful', fr: 'Réinitialisation réussie', ar: 'تمت إعادة الضبط بنجاح' },
+  'AI Configuration': { en: 'AI Configuration', fr: 'Configuration AI', ar: 'إعداد الذكاء الاصطناعي' },
+  'Personal API Key': { en: 'Personal API Key', fr: 'Clé API personnelle', ar: 'مفتاح API الخاص' },
+  'If the AI features fail on your phone, paste your Gemini API Key here. It will be saved locally in this browser.': { 
+    en: 'If the AI features fail on your phone, paste your Gemini API Key here. It will be saved locally in this browser.', 
+    fr: 'Si les fonctionnalités AI échouent sur votre téléphone, collez votre clé API Gemini ici. Elle sera enregistrée localement dans ce navigateur.', 
+    ar: 'إذا فشلت ميزات الذكاء الاصطناعي على هاتفك، فقم بلصق مفتاح Gemini API هنا. وسيتم حفظه محليًا في هذا المتصفح.' 
+  },
+  'Save API Key': { en: 'Save API Key', fr: 'Enregistrer la clé API', ar: 'حفظ مفتاح API' },
+  'API Key saved to local storage.': { en: 'API Key saved to local storage.', fr: 'Clé API enregistrée localement.', ar: 'تم حفظ مفتاح API في التخزين المحلي.' },
+  'API Key removed.': { en: 'API Key removed.', fr: 'Clé API supprimée.', ar: 'تمت إزالة مفتاح API.' },
+  'Saved': { en: 'Saved', fr: 'Enregistré', ar: 'تم الحفظ' },
+  'Click Save to apply changes': { en: 'Click Save to apply changes', fr: 'Cliquez sur Enregistrer pour appliquer les modifications', ar: 'انقر فوق حفظ لتطبيق التغييرات' },
   'Cancel': { en: 'Cancel', fr: 'Annuler', ar: 'إلغاء' },
   'Map Legend': { en: 'Map Legend', fr: 'Légende de la carte', ar: 'مفتاح الخريطة' },
   'User Location': { en: 'User Location', fr: 'Votre position', ar: 'موقعك' },
