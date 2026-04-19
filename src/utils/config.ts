@@ -1,11 +1,17 @@
 export async function getDynamicApiKey(): Promise<string | undefined> {
-  // 1. Check for build-time defined environment variable
-  const buildTimeKey = process.env.GEMINI_API_KEY;
-  if (buildTimeKey && buildTimeKey !== "MY_GEMINI_API_KEY" && buildTimeKey !== "undefined" && buildTimeKey.trim() !== "") {
-    return buildTimeKey;
+  // 1. Check for USER_GEMINI_KEY first (manual override used when GEMINI_API_KEY is locked)
+  const userKey = process.env.USER_GEMINI_KEY;
+  if (userKey && userKey.trim() !== "" && userKey !== "undefined") {
+    return userKey;
   }
 
-  // 2. Try to fetch from backend (works for Cloud Run / server-side apps)
+  // 2. Check for system-provided GEMINI_API_KEY
+  const systemKey = process.env.GEMINI_API_KEY;
+  if (systemKey && systemKey !== "MY_GEMINI_API_KEY" && systemKey !== "undefined" && systemKey.trim() !== "") {
+    return systemKey;
+  }
+
+  // 3. Try to fetch from backend (handles overrides on phone/stand-alone)
   try {
     const response = await fetch('/api/config');
     if (response.ok) {
@@ -15,10 +21,8 @@ export async function getDynamicApiKey(): Promise<string | undefined> {
       }
     }
   } catch (error) {
-    // Ignore error, might be a static host like Vercel
+    // Static host or network error
   }
 
-  // 3. Ultimate fallback: The key you provided directly
-  // This ensures it works on your phone/Vercel even if env vars are missing
-  return "AIzaSyCtP0jFOgBbDgOf-trcadiAB1NjSK_UXqw";
+  return undefined;
 }
