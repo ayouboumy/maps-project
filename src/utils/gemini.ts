@@ -20,11 +20,6 @@ export async function translateTerms(terms: string[]): Promise<Record<string, Re
   
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("No Gemini API key found. Skipping intelligent translation.");
-      return {};
-    }
-
     const ai = new GoogleGenAI({ apiKey });
     
     // Chunk terms if there are too many to avoid hitting token limits
@@ -36,7 +31,7 @@ export async function translateTerms(terms: string[]): Promise<Record<string, Re
       const chunk = terms.slice(i, i + chunkSize);
       
       const promise = ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: `You are an expert translator specializing in Islamic terminology and architecture. 
 The following JSON array contains terms extracted from a French dataset about mosques in Morocco.
 
@@ -138,12 +133,10 @@ export async function mapExcelColumns(headers: string[]): Promise<ColumnMapping>
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return fallbackMapping;
-
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: `You are an expert data analyst. I have an Excel file with the following column headers:
 ${JSON.stringify(headers)}
 
