@@ -6,6 +6,17 @@ import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
 import { Mosque } from '../types';
 
+// Fix Arabic text rendering BEFORE map initializes
+if (mapboxgl.getRTLTextPluginStatus() === 'unavailable') {
+  mapboxgl.setRTLTextPlugin(
+    'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.3.0/mapbox-gl-rtl-text.js',
+    (error) => {
+      if (error) console.warn('Error loading Mapbox RTL Text Plugin:', error);
+    },
+    true // Lazy load the plugin
+  );
+}
+
 // Mapbox Token
 const getMapboxToken = (manualToken: string | null) => {
   if (manualToken) {
@@ -136,17 +147,6 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     let map: mapboxgl.Map | null = null;
     mapboxgl.accessToken = rawToken;
 
-    // Fix Arabic text rendering
-    if (mapboxgl.getRTLTextPluginStatus() === 'unavailable') {
-      mapboxgl.setRTLTextPlugin(
-        'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.3.0/mapbox-gl-rtl-text.js',
-        (error) => {
-          if (error) console.warn('Error loading Mapbox RTL Text Plugin:', error);
-        },
-        true // Lazy load the plugin
-      );
-    }
-
     // Loading timeout
     const loadTimeout = setTimeout(() => {
       if (!isMapLoaded && !tokenError && mapContainerRef.current) {
@@ -169,7 +169,7 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
         container: mapContainerRef.current,
         style: mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12' :
                mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12' :
-               'mapbox://styles/mapbox/streets-v12',
+               'mapbox://styles/mapbox/light-v11', // Cleaner style by default
         center: initialCenter,
         zoom: 12,
         pitch: 45,
@@ -247,7 +247,7 @@ export default function MapboxMapView({ showNearest }: MapboxMapViewProps) {
     
     const style = mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12' :
                   mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12' :
-                  'mapbox://styles/mapbox/streets-v12';
+                  'mapbox://styles/mapbox/light-v11';
     
     // If map is already loaded, we update style and wait for it to finish loading
     if (isMapLoaded) {
