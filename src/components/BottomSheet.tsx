@@ -1,19 +1,49 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Clipboard, Check } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Clipboard, Check, Sparkles, Brain, Loader2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState, useMemo, useEffect } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
+import { getRecommendSimilar } from '../services/aiService';
 
 export default function BottomSheet() {
-  const { mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile } = useAppStore();
+  const { 
+    mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, 
+    language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile 
+  } = useAppStore();
+  
   const [showProfile, setShowProfile] = useState(false);
   const [roadDistance, setRoadDistance] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [smartRecommendations, setSmartRecommendations] = useState<any[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isRoutingToThis = routingToMosque?.id === selectedMosque?.id;
+
+  // Fetch AI recommended similar mosques
+  useEffect(() => {
+    if (!selectedMosque) {
+      setSmartRecommendations([]);
+      return;
+    }
+
+    const fetchSmart = async () => {
+      setIsAiLoading(true);
+      try {
+        const ids = await getRecommendSimilar(selectedMosque, mosques);
+        const matches = mosques.filter(m => ids.includes(String(m.id)));
+        setSmartRecommendations(matches);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsAiLoading(false);
+      }
+    };
+
+    fetchSmart();
+  }, [selectedMosque, mosques]);
 
   // Fetch road distance when a mosque is selected
   useEffect(() => {
@@ -249,32 +279,55 @@ export default function BottomSheet() {
                 {t('View Full Details', language)}
               </button>
 
-              {/* Nearby Mosques */}
-              {nearbyMosques.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-gray-100">
-                  <h4 className="text-sm font-bold text-gray-900 mb-3 px-1">{t('Nearby Mosques', language)}</h4>
-                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5">
-                    {nearbyMosques.map(mosque => (
-                      <button
-                        key={mosque.id}
-                        onClick={() => setSelectedMosque(mosque)}
-                        className="flex flex-col gap-2 p-2.5 bg-gray-50 rounded-2xl min-w-[140px] max-w-[140px] text-left hover:bg-gray-100 transition-colors border border-gray-200/50 shrink-0"
-                      >
-                        <img 
-                          src={mosque.image} 
-                          alt={getLocalizedName(mosque, language)} 
-                          className="w-full h-20 rounded-xl object-cover"
-                        />
-                        <div>
-                          <h5 className="font-semibold text-gray-900 text-sm line-clamp-1">{mosque.name}</h5>
-                          <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500">
-                            <MapPin size={10} className="shrink-0" />
-                            <span>{(mosque.distanceToSelected / 1000).toFixed(1)} km</span>
-                          </div>
+              {/* Smart Recommendations Label */}
+              <div className="mt-6 flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={14} className="text-purple-600" />
+                  <h4 className="text-sm font-bold text-gray-900">{t('Smart AI Matches', language)}</h4>
+                </div>
+                {isAiLoading && <Loader2 size={14} className="animate-spin text-purple-600" />}
+              </div>
+
+              {/* Recommended Mosques */}
+              <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5">
+                {(smartRecommendations.length > 0 ? smartRecommendations : nearbyMosques).map(mosque => (
+                  <button
+                    key={mosque.id}
+                    onClick={() => setSelectedMosque(mosque)}
+                    className={cn(
+                      "flex flex-col gap-2 p-2.5 rounded-2xl min-w-[140px] max-w-[140px] text-left transition-all border shrink-0 group active:scale-95",
+                      smartRecommendations.length > 0 && smartRecommendations.find(m => m.id === mosque.id)
+                        ? "bg-purple-50/50 border-purple-100 hover:bg-purple-50"
+                        : "bg-gray-50 border-gray-200/50 hover:bg-gray-100"
+                    )}
+                  >
+                    <div className="relative">
+                      <img 
+                        src={mosque.image} 
+                        alt={getLocalizedName(mosque, language)} 
+                        className="w-full h-20 rounded-xl object-cover"
+                      />
+                      {smartRecommendations.length > 0 && smartRecommendations.find(m => m.id === mosque.id) && (
+                        <div className="absolute top-1 right-1 bg-white/90 p-1 rounded-lg border border-purple-100">
+                          <Brain size={10} className="text-purple-600" />
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="font-semibold text-gray-900 text-xs line-clamp-1 group-hover:text-emerald-700 transition-colors">{mosque.name}</h5>
+                      <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500 font-medium">
+                        <MapPin size={10} className="shrink-0" />
+                        <span>{mosque.commune}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Nearby Mosques Fallback (only if AI failed and didn't find matches) */}
+              {smartRecommendations.length === 0 && !isAiLoading && (
+                <div className="mt-1 px-1">
+                   <p className="text-[10px] text-gray-400 italic">{t('Showing nearby results (AI processing offline)', language)}</p>
                 </div>
               )}
             </div>

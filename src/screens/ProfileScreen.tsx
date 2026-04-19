@@ -1,9 +1,11 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, MapPin, Navigation, Heart, CheckCircle2, 
   Clipboard, Check, Share2, Building2, Users, Maximize, 
   Home, Droplets, Info, Activity, Clock, ShieldCheck,
-  Package
+  Package, Map, Zap, Layout, DollarSign, Waves, Globe, 
+  Thermometer, Ruler, Layers, ShoppingBag, School, BookOpen,
+  Dna, Sparkles
 } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -19,6 +21,7 @@ interface ProfileScreenProps {
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen } = useAppStore();
   const [copied, setCopied] = useState(false);
+  const [activeView, setActiveView] = useState<'overview' | 'details'>('overview');
   const isFavorite = favorites.includes(mosque.id);
 
   const handleCopyPosition = () => {
@@ -51,422 +54,357 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     }
   };
 
-  // Intelligent Data Organization
-  const { organizedData, highlights, openingStatus } = useMemo(() => {
-    const highlightsList: { label: string; value: string; icon: any; color: string }[] = [];
+  // Intelligent & Organized Data Categorization
+  const { organizedSections, highlights, openingStatus } = useMemo(() => {
+    const h: { label: string; value: string; icon: any; color: string }[] = [];
     let opening: string | null = null;
-    if (!mosque.extraData) return { organizedData: [], highlights: [], openingStatus: null };
+    
+    if (!mosque.extraData) return { organizedSections: [], highlights: [], openingStatus: null };
 
-    const categories = [
+    const sections = [
       {
         id: 'general',
         title: t('General Information', language),
         icon: Info,
         color: 'text-blue-600',
         bgColor: 'bg-blue-50',
-        keys: ['type de commune', 'milieu', 'code', 'nature', 'entité de financement', 'financement', 'ministère', 'habous', 'région', 'province', 'caïdat', 'nidhara', 'awqaf', 'état', 'condition'],
-        items: [] as { key: string; value: any }[]
+        borderColor: 'border-blue-100',
+        keywords: ['nom', 'code', 'adresse', 'commune', 'financement', 'type', 'nature', 'construction', 'état', 'mhai', 'association', 'bienfaiteurs', 'ouverture', 'nidhara', 'awqaf'],
+        items: [] as { key: string; value: any; icon?: any }[]
       },
       {
-        id: 'situation',
-        title: t('Situation Information', language),
-        icon: MapPin,
-        color: 'text-indigo-600',
-        bgColor: 'bg-indigo-50',
-        keys: ['x', 'y', 'coordonnées', 'topographie', 'pentes', 'ravin', 'autre terrain', 'zone thermique'],
-        items: [] as { key: string; value: any }[]
+        id: 'land',
+        title: t('Land Information', language),
+        icon: Map,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        borderColor: 'border-emerald-100',
+        keywords: ['terrain', 'bâtie', 'aménagée', 'x', 'y', 'longitude', 'latitude', 'topographie', 'talus', 'rigoles', 'ravin', 'zone thermique'],
+        items: [] as { key: string; value: any; icon?: any }[]
+      },
+      {
+        id: 'construction',
+        title: t('Construction Information', language),
+        icon: Layers,
+        color: 'text-amber-600',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-100',
+        keywords: ['béton', 'terre', 'adobe', 'pisé', 'pierre', 'brique', 'tôle', 'bois', 'métallique', 'matériaux'],
+        items: [] as { key: string; value: any; icon?: any }[]
+      },
+      {
+        id: 'services',
+        title: t('Services Information', language),
+        icon: Zap,
+        color: 'text-cyan-600',
+        bgColor: 'bg-cyan-50',
+        borderColor: 'border-cyan-100',
+        keywords: ['accès', 'routier', 'piste', 'handicapé', 'eau', 'puits', 'sources', 'électricité', 'photovoltaïque', 'assainissement', 'fosse', 'septique'],
+        items: [] as { key: string; value: any; icon?: any }[]
       },
       {
         id: 'components',
         title: t('Mosque Components', language),
-        icon: Building2,
-        color: 'text-emerald-600',
-        bgColor: 'bg-emerald-50',
-        keys: [], // Special handling for combined data
-        items: [] as { key: string; value: any }[]
+        icon: Layout,
+        color: 'text-indigo-600',
+        bgColor: 'bg-indigo-50',
+        borderColor: 'border-indigo-100',
+        keywords: ['maqasoura', 'salle', 'prière', 'hommes', 'femmes', 'toilette', 'minaret', 'صومعة', 'طبقات', 'logement', 'imam', 'muezzin', 'mouadhine', 'magasin', 'msid', 'médersa', 'réunion', 'صحن', 'أروقة', 'mortuaire'],
+        items: [] as { key: string; value: any; icon?: any }[]
       },
       {
-        id: 'capacity',
-        title: t('Capacity & Space', language),
-        icon: Maximize,
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        keys: ['capacité', 'surface', 'aire', 'm2', 'place', 'nombre de fidèles', 'superficie'],
-        items: [] as { key: string; value: any }[]
-      },
-      {
-        id: 'prayer',
-        title: t('Prayer Areas', language),
-        icon: Users,
-        color: 'text-emerald-600',
-        bgColor: 'bg-emerald-50',
-        keys: ['femme', 'homme', 'salle', 'prière', 'étage', 'mezzanine'],
-        items: [] as { key: string; value: any }[]
-      },
-      {
-        id: 'sanitary',
-        title: t('Sanitary Facilities', language),
-        icon: Droplets,
-        color: 'text-cyan-600',
-        bgColor: 'bg-cyan-50',
-        keys: ['eau', 'électricité', 'sanitaire', 'latrine', 'toilette', 'abdest', 'puits', 'compteur', 'robinet'],
-        items: [] as { key: string; value: any }[]
-      },
-      {
-        id: 'staff',
-        title: t('Staff & Housing', language),
-        icon: Home,
-        color: 'text-amber-600',
-        bgColor: 'bg-amber-50',
-        keys: ['logement', 'imam', 'mouadhine', 'mouadine', 'gardien', 'fquih'],
-        items: [] as { key: string; value: any }[]
-      },
-      {
-        id: 'status',
-        title: t('Status & Environment', language),
-        icon: Activity,
+        id: 'assets',
+        title: t('Revenue-Generating Assets', language),
+        icon: DollarSign,
         color: 'text-purple-600',
         bgColor: 'bg-purple-50',
-        keys: ['construction', 'date', 'terrain', 'titre', 'foncier', 'clôture', 'urbain', 'rural', 'صومعة'],
-        items: [] as { key: string; value: any }[]
+        borderColor: 'border-purple-100',
+        keywords: ['boutique', 'commerce', 'locaux', 'سكن', 'عائد', 'loyer'],
+        items: [] as { key: string; value: any; icon?: any }[]
       },
       {
-        id: 'other',
-        title: t('Other Details', language),
-        icon: Info,
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-50',
-        keys: [],
-        items: [] as { key: string; value: any }[]
+        id: 'intelligence',
+        title: t('Learned Insights', language),
+        icon: Sparkles,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        borderColor: 'border-emerald-100',
+        keywords: [],
+        items: [] as { key: string; value: any; icon?: any }[]
       }
     ];
 
-    const categorizedKeys = new Set<string>();
-
-    // Deep Analysis for Highlights and Categorization
     Object.entries(mosque.extraData).forEach(([key, value]) => {
       const lowerKey = key.toLowerCase();
       const valStr = String(value);
 
-      // Extract Opening Status
-      if (lowerKey.includes('ouvert') || lowerKey.includes('fermé') || lowerKey.includes('statut d\'ouverture')) {
+      // Extract opening status for the header
+      if (lowerKey.includes('ouverture') || lowerKey.includes('ouvert')) {
         opening = valStr;
-        return;
       }
 
-      // Extract highlights...
-      if ((lowerKey.includes('capacité') || lowerKey.includes('nombre de fidèles')) && !highlightsList.find(h => h.label === 'Capacity')) {
-        highlightsList.push({ label: 'Capacity', value: valStr, icon: Users, color: 'emerald' });
+      // Populate highlights
+      if (lowerKey.includes('capacité') && !h.find(item => item.label === 'Capacity')) {
+        h.push({ label: 'Capacity', value: valStr, icon: Users, color: 'emerald' });
       }
-      if ((lowerKey.includes('surface') || lowerKey.includes('superficie')) && !highlightsList.find(h => h.label === 'Surface')) {
-        highlightsList.push({ label: 'Surface', value: valStr, icon: Maximize, color: 'blue' });
+      if ((lowerKey.includes('surface') || lowerKey.includes('superficie')) && (lowerKey.includes('terrain') || lowerKey.includes('totale')) && !h.find(item => item.label === 'Surface')) {
+        h.push({ label: 'Surface', value: valStr, icon: Maximize, color: 'blue' });
       }
-      if (lowerKey.includes('état') && !highlightsList.find(h => h.label === 'Condition')) {
-        highlightsList.push({ label: 'Condition', value: valStr, icon: Activity, color: 'amber' });
-      }
-      if (lowerKey.includes('construction') && !highlightsList.find(h => h.label === 'Built')) {
-        highlightsList.push({ label: 'Built', value: valStr, icon: Clock, color: 'purple' });
+      if (lowerKey.includes('état') && !h.find(item => item.label === 'Condition')) {
+        h.push({ label: 'Condition', value: valStr, icon: Activity, color: 'amber' });
       }
 
-      // Special handling for combined data (Count, Area, Height)
-      const isCombined = valStr.includes(t('Count', language)) || valStr.includes(t('Area', language)) || valStr.includes(t('Height', language));
-      
-      if (isCombined) {
-        categories.find(c => c.id === 'components')?.items.push({ key, value });
-        return;
-      }
-
-      let found = false;
-      for (const cat of categories) {
-        if (cat.id === 'components') continue; // Skip components as it's handled above
-        if (cat.keys.some(k => lowerKey.includes(k))) {
-          cat.items.push({ key, value });
-          categorizedKeys.add(key);
-          found = true;
+      // Smart Categorization
+      let matched = false;
+      for (const section of sections) {
+        if (section.id === 'intelligence') continue;
+        if (section.keywords.some(kw => lowerKey.includes(kw))) {
+          section.items.push({ key, value });
+          matched = true;
           break;
         }
       }
-      if (!found) {
-        categories.find(c => c.id === 'other')?.items.push({ key, value });
+
+      if (!matched) {
+        sections.find(s => s.id === 'intelligence')?.items.push({ key, value });
       }
     });
 
     return { 
-      organizedData: categories.filter(cat => cat.items.length > 0),
-      highlights: highlightsList,
+      organizedSections: sections.filter(s => s.items.length > 0),
+      highlights: h,
       openingStatus: opening
     };
   }, [mosque.extraData, language]);
 
+  const totalArea = parseFloat(String(mosque.extraData?.['Surface du terrain'] || mosque.extraData?.['مساحة القطعة الأرضية'] || 0));
+  const builtArea = parseFloat(String(mosque.extraData?.['Surface bâtie'] || mosque.extraData?.['المساحة المبنية'] || 0));
+  const builtPercentage = totalArea > 0 ? (builtArea / totalArea) * 100 : 0;
+
   return (
     <motion.div
-      initial={{ x: language === 'ar' ? '-100%' : '100%' }}
-      animate={{ x: 0 }}
-      exit={{ x: language === 'ar' ? '-100%' : '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-0 z-[2000] bg-white overflow-y-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[2000] bg-white overflow-hidden flex flex-col"
     >
-      {/* Hero Section */}
-      <div className="relative h-[45vh] min-h-[350px]">
-        <img 
-          src={mosque.image} 
-          alt={getLocalizedName(mosque, language)} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-        
+      {/* Top Header Navigation */}
+      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 px-6 pt-safe-4">
         <button 
           onClick={onClose}
-          className={`absolute top-safe-4 ${language === 'ar' ? 'right-4' : 'left-4'} p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all border border-white/20 z-10`}
+          className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-gray-900 border border-black/5 shadow-xl active:scale-95 transition-all"
         >
-          <ArrowLeft size={24} className={language === 'ar' ? 'rotate-180' : ''} />
+          <ArrowLeft size={22} className={language === 'ar' ? 'rotate-180' : ''} />
         </button>
 
-        <button 
-          onClick={() => setIsEquipmentOpen(true)}
-          className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} flex items-center gap-2 px-4 py-3 bg-emerald-500/90 backdrop-blur-md rounded-2xl text-white font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all border border-emerald-400/30 z-10 shadow-xl shadow-emerald-900/20`}
-        >
-          <Package size={18} />
-          <span>{t('Manage Equipment', language)}</span>
-        </button>
-
-        <div className="absolute bottom-8 left-6 right-6 text-white z-10">
-          <div className="flex items-center gap-2 mb-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center px-4 py-1.5 bg-emerald-500 rounded-full text-[11px] uppercase tracking-widest font-black shadow-lg shadow-emerald-900/20"
-            >
-              <ShieldCheck size={14} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-              {t(mosque.type, language)}
-            </motion.div>
-
-            {openingStatus && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className={cn(
-                  "inline-flex items-center px-4 py-1.5 rounded-full text-[11px] uppercase tracking-widest font-black shadow-lg",
-                  openingStatus.toLowerCase().includes('ouvert') 
-                    ? "bg-blue-500 shadow-blue-900/20" 
-                    : "bg-red-500 shadow-red-900/20"
-                )}
-              >
-                <Clock size={14} className={language === 'ar' ? 'ml-2' : 'mr-2'} />
-                {openingStatus}
-              </motion.div>
-            )}
-          </div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl sm:text-6xl font-serif font-black mb-4 leading-[1.1] tracking-tight drop-shadow-2xl"
+        <div className="flex gap-2">
+          <button 
+            onClick={handleShare}
+            className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-gray-900 border border-black/5 shadow-xl active:scale-95 transition-all"
           >
-            {getLocalizedName(mosque, language)}
-          </motion.h1>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex items-start text-white/95 text-lg font-medium bg-black/20 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl">
-              <MapPin size={22} className={cn("shrink-0 mt-1", language === 'ar' ? 'ml-4' : 'mr-4')} />
-              <span className="leading-relaxed">{t(mosque.address, language)}</span>
-            </div>
-            
-            {mosque.commune && (
-              <div className="flex items-center text-white/90 text-sm font-bold px-4 py-2 bg-white/5 backdrop-blur-md rounded-xl w-fit border border-white/5">
-                <Building2 size={18} className={cn("shrink-0", language === 'ar' ? 'ml-3' : 'mr-3')} />
-                <span>{t(mosque.commune, language)}</span>
-              </div>
+            <Share2 size={22} />
+          </button>
+          <button 
+            onClick={() => toggleFavorite(mosque.id)}
+            className={cn(
+              "p-3 backdrop-blur-md rounded-2xl border shadow-xl active:scale-95 transition-all",
+              isFavorite 
+                ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                : "bg-white/90 text-gray-900 border-black/5"
             )}
-          </motion.div>
+          >
+            <Heart size={22} className={cn(isFavorite && "fill-current")} />
+          </button>
         </div>
       </div>
 
-      <div className="p-6 pb-24 max-w-2xl mx-auto -mt-6 relative z-20 bg-white rounded-t-[32px] shadow-2xl shadow-black/5">
-        {/* Quick Actions */}
-        <div className="flex gap-3 mb-10">
-          <motion.button 
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleOpenGoogleMapsRoute}
-            className="flex-1 flex flex-col items-center justify-center py-4 bg-emerald-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-200"
-          >
-            <Navigation size={24} className="mb-1" />
-            <span className="text-[10px] uppercase tracking-widest">{t('Google Maps', language)}</span>
-          </motion.button>
-          <motion.button 
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCopyPosition}
-            className="flex-1 flex flex-col items-center justify-center py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold transition-all"
-          >
-            {copied ? <Check size={24} className="mb-1 text-emerald-600" /> : <Clipboard size={24} className="mb-1" />}
-            <span className="text-[10px] uppercase tracking-widest">{t(copied ? 'Copied' : 'Position', language)}</span>
-          </motion.button>
-          <motion.button 
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleShare}
-            className="flex-1 flex flex-col items-center justify-center py-4 bg-gray-50 text-gray-700 rounded-2xl font-bold transition-all"
-          >
-            <Share2 size={24} className="mb-1" />
-            <span className="text-[10px] uppercase tracking-widest">{t('Share', language)}</span>
-          </motion.button>
-          <motion.button 
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => toggleFavorite(mosque.id)}
-            className={cn(
-              "w-16 flex items-center justify-center rounded-2xl transition-all border",
-              isFavorite 
-                ? "bg-red-50 text-red-500 border-red-100" 
-                : "bg-white text-gray-400 border-gray-100"
-            )}
-          >
-            <Heart size={24} className={cn(isFavorite && "fill-current")} />
-          </motion.button>
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {/* Banner Section */}
+        <div className="relative h-[55vh] min-h-[450px]">
+          <img 
+            src={mosque.image} 
+            alt={mosque.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent h-40" />
+
+          {/* Title & Location Header */}
+          <div className="absolute bottom-12 left-6 right-6">
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center gap-3 mb-4"
+            >
+              <div className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/30">
+                {t(mosque.type, language)}
+              </div>
+              {openingStatus && (
+                <div className="px-3 py-1 bg-white/90 backdrop-blur-md text-gray-900 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] border border-black/5 shadow-lg">
+                  {t(openingStatus, language)}
+                </div>
+              )}
+            </motion.div>
+
+            <motion.h1 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl sm:text-6xl font-serif font-black text-gray-900 leading-[1.05] tracking-tight mb-4"
+            >
+              {getLocalizedName(mosque, language)}
+            </motion.h1>
+
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-start gap-2 text-gray-500 font-medium"
+            >
+              <MapPin size={18} className="shrink-0 mt-1" />
+              <span className="text-lg leading-tight">{t(mosque.address, language)}</span>
+            </motion.div>
+          </div>
         </div>
 
-        {/* Key Highlights */}
-        {highlights.length > 0 && (
-          <section className="mb-16">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] uppercase tracking-[0.4em] font-black text-gray-300">{t('Key Highlights', language)}</h3>
-              <div className="h-px flex-1 bg-gray-100 mx-6" />
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              {highlights.map((h, idx) => (
-                <motion.div 
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="relative group overflow-hidden"
-                >
-                  <div className="flex items-start gap-4 p-2">
-                    <div className={cn("p-3 rounded-2xl shadow-sm transition-transform group-hover:scale-110", `bg-${h.color}-50 text-${h.color}-600`)}>
-                      <h.icon size={24} />
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black block mb-1">{t(h.label, language)}</span>
-                      <span className="text-2xl text-gray-900 font-serif font-black leading-none">{h.value}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Intelligent Data Sections */}
-        <div className="space-y-12">
-          {organizedData.map((cat, catIdx) => (
-            <motion.section 
-              key={cat.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + catIdx * 0.1 }}
+        {/* Content Body */}
+        <div className="px-6 pb-32">
+          {/* Action Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-10">
+            <button 
+              onClick={handleOpenGoogleMapsRoute}
+              className="flex items-center justify-between p-4 bg-emerald-600 rounded-[24px] text-white shadow-2xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-xl shadow-sm", cat.bgColor, cat.color)}>
-                    <cat.icon size={18} />
-                  </div>
-                  <h3 className="text-sm font-serif font-black uppercase tracking-widest text-gray-900">{cat.title}</h3>
-                </div>
-                <div className="h-px flex-1 bg-gray-100 mx-6" />
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-70 block mb-1">{t('Navigation', language)}</span>
+                <span className="text-sm font-bold">{t('Google Maps', language)}</span>
               </div>
-              
-              <div className={cn(
-                "grid gap-3",
-                cat.id === 'components' ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"
-              )}>
-                {cat.items.map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className={cn(
-                      "bg-white border border-gray-100 rounded-xl p-3 flex flex-col justify-between hover:border-emerald-200 hover:shadow-md transition-all group cursor-default",
-                      cat.id === 'components' && "flex-row items-center gap-6 bg-emerald-50/10 border-emerald-100/50 p-5"
-                    )}
-                  >
-                    <div className={cn(cat.id === 'components' ? "flex-1" : "")}>
-                      <span className="text-[9px] uppercase tracking-[0.15em] text-gray-400 font-black mb-1.5 block group-hover:text-emerald-600 transition-colors">
-                        {t(item.key, language)}
-                      </span>
-                      {cat.id === 'components' && String(item.value).includes(':') ? (
-                        <div className="grid grid-cols-1 gap-2">
-                          {String(item.value).split(', ').map((part, pIdx) => {
-                            const [label, val] = part.split(': ');
-                            return (
-                              <div key={pIdx} className="flex items-center justify-between bg-white/80 backdrop-blur-sm p-2 rounded-lg border border-emerald-100/30 shadow-sm">
-                                <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">{label}</span>
-                                <span className="text-base font-serif font-black text-gray-900">{val}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <span className={cn(
-                          "text-gray-900 font-serif font-bold leading-tight",
-                          cat.id === 'components' ? "text-lg" : "text-sm"
-                        )}>
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                <Navigation size={20} />
+              </div>
+            </button>
+
+            <button 
+              onClick={handleCopyPosition}
+              className="flex items-center justify-between p-4 bg-blue-600 rounded-[24px] text-white shadow-2xl shadow-blue-600/20 active:scale-[0.98] transition-all"
+            >
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-70 block mb-1">{t('Coordinates', language)}</span>
+                <span className="text-sm font-bold">{copied ? t('Copied', language) : t('Copy GPS', language)}</span>
+              </div>
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                {copied ? <Check size={20} /> : <Clipboard size={20} />}
+              </div>
+            </button>
+          </div>
+
+          {/* Key Facts / Highlights Row */}
+          <div className="flex gap-4 overflow-x-auto pb-4 mb-10 scrollbar-hide -mx-6 px-6">
+            {highlights.map((h, i) => (
+              <div key={i} className="bg-gray-50/50 border border-gray-100 p-4 rounded-[24px] min-w-[160px] flex items-center gap-4">
+                <div className={cn("p-2.5 rounded-xl", `bg-${h.color}-50 text-${h.color}-600`)}>
+                  <h.icon size={20} />
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{t(h.label, language)}</span>
+                  <span className="text-sm font-bold text-gray-900">{h.value}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Area Visualization */}
+          {totalArea > 0 && (
+            <div className="mb-12 bg-white border border-gray-100 p-6 rounded-[32px] shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black uppercase tracking-widest text-gray-900">{t('Built vs Total Space', language)}</h3>
+                <span className="text-xs font-bold text-emerald-600 font-mono">{builtPercentage.toFixed(1)}%</span>
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-4 border border-black/5">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${builtPercentage}%` }}
+                  className="h-full bg-emerald-500 rounded-full"
+                />
+              </div>
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>{t('Built Area', language)}: {builtArea} m²</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-100 border border-black/5" />
+                  <span>{t('Total Area', language)}: {totalArea} m²</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Organized Content Sections */}
+          <div className="space-y-12">
+            {organizedSections.map((section, idx) => (
+              <motion.section 
+                key={section.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="relative"
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <div className={cn("p-2.5 rounded-2xl shadow-sm", section.bgColor, section.color)}>
+                    <section.icon size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-serif font-black text-gray-900 leading-none mb-1">{section.title}</h2>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      {section.items.length} {t('Data Points', language)}
+                    </p>
+                  </div>
+                  <div className="flex-1 h-px bg-gray-100 ml-4 rounded-full" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {section.items.map((item, i) => (
+                    <div 
+                      key={i} 
+                      className="group bg-white border border-gray-100 p-4 rounded-[20px] hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-900/5 transition-all duration-300"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.15em] group-hover:text-emerald-500 transition-colors">
+                          {t(item.key, language)}
+                        </span>
+                        <span className="text-sm font-bold text-gray-800 leading-tight">
                           {t(String(item.value), language)}
                         </span>
-                      )}
+                      </div>
                     </div>
-                    {cat.id === 'components' && (
-                      <div className="h-12 w-1 bg-emerald-200 rounded-full group-hover:bg-emerald-400 transition-colors" />
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </motion.section>
+            ))}
+          </div>
+
+          {/* Equipment Quick Link */}
+          <button 
+            onClick={() => setIsEquipmentOpen(true)}
+            className="mt-16 w-full p-6 bg-gray-900 rounded-[32px] text-white flex items-center justify-between group active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
+                <Package size={24} />
               </div>
-            </motion.section>
-          ))}
-        </div>
-
-        {/* Services & Facilities */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12 pt-12 border-t border-gray-100">
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400">{t('Services', language)}</h3>
-              <div className="h-px flex-1 bg-gray-100 mx-4" />
+              <div className="text-left">
+                <h4 className="text-lg font-bold leading-none mb-1">{t('Mosque Equipment', language)}</h4>
+                <p className="text-xs text-gray-400 font-medium">{t('Manage technical items and tracking', language)}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              {mosque.services.map(service => (
-                <motion.div 
-                  key={service} 
-                  whileHover={{ x: 4 }}
-                  className="flex items-center p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 hover:bg-emerald-50 transition-colors"
-                >
-                  <CheckCircle2 size={18} className={`text-emerald-600 shrink-0 ${language === 'ar' ? 'ml-3' : 'mr-3'}`} />
-                  <span className="text-sm text-emerald-900 font-bold">{t(service, language)}</span>
-                </motion.div>
-              ))}
+            <div className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-gray-900 transition-all">
+              <ArrowLeft size={20} className={language === 'ar' ? '' : 'rotate-180'} />
             </div>
-          </section>
-
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400">{t('Facilities', language)}</h3>
-              <div className="h-px flex-1 bg-gray-100 mx-4" />
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              {mosque.items.map(item => (
-                <span key={item} className="px-5 py-2.5 bg-gray-50 text-gray-700 text-[11px] font-bold uppercase tracking-widest rounded-full border border-gray-100 hover:bg-white hover:border-emerald-200 transition-all cursor-default">
-                  {t(item, language)}
-                </span>
-              ))}
-              {mosque.items.length === 0 && (
-                <span className="text-xs text-gray-400 italic font-medium">{t('No facilities listed', language)}</span>
-              )}
-            </div>
-          </section>
+          </button>
         </div>
       </div>
     </motion.div>

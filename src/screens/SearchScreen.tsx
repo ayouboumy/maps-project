@@ -1,25 +1,55 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, MapPin, Heart, ArrowUpDown, Sparkles, Brain } from 'lucide-react';
+import { Search, Filter, MapPin, Heart, ArrowUpDown, Sparkles, Brain, Loader2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Mosque } from '../types';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
 import PullToRefresh from '../components/PullToRefresh';
+import { smartSearchMosques } from '../services/aiService';
 
 export default function SearchScreen() {
-  const { mosques, favorites, setSelectedMosque, setActiveTab, language, userLocation, refreshLocation, knowledgeBase } = useAppStore();
+  const { 
+    mosques, favorites, setSelectedMosque, setActiveTab, language, 
+    userLocation, refreshLocation, knowledgeBase,
+    aiRecommendedIds, setAiRecommendedIds, isAiSearching, setIsAiSearching 
+  } = useAppStore();
+  
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'distance'>(userLocation ? 'distance' : 'name');
+  const [isUsingSmartSearch, setIsUsingSmartSearch] = useState(false);
 
   // Debounce search input to prevent lag while typing
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 300);
     return () => clearTimeout(timer);
   }, [query]);
+
+  // Reset Smart Search results when regular query is cleared or changed
+  useEffect(() => {
+    if (!query) {
+      setAiRecommendedIds([]);
+      setIsUsingSmartSearch(false);
+    }
+  }, [query, setAiRecommendedIds]);
+
+  const handleSmartSearch = async () => {
+    if (!query.trim()) return;
+    
+    setIsAiSearching(true);
+    setIsUsingSmartSearch(true);
+    try {
+      const results = await smartSearchMosques(query, mosques);
+      setAiRecommendedIds(results);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAiSearching(false);
+    }
+  };
 
   const types = useMemo(() => {
     const allTypes = mosques.map(m => m.type).filter(Boolean);
@@ -32,6 +62,11 @@ export default function SearchScreen() {
   }, [mosques]);
 
   const filteredMosques = useMemo(() => {
+    // If AI recommended results are present and we specifically asked for smart search
+    if (isUsingSmartSearch && aiRecommendedIds.length > 0) {
+      return mosques.filter(m => aiRecommendedIds.includes(String(m.id)));
+    }
+
     const lowerQuery = debouncedQuery.toLowerCase().trim();
     
     let filtered = mosques.filter(mosque => {
@@ -81,7 +116,7 @@ export default function SearchScreen() {
 
     // Limit to 100 results to prevent rendering lag with large datasets
     return filtered.slice(0, 100);
-  }, [mosques, debouncedQuery, selectedType, selectedCommune, language, sortBy, userLocation]);
+  }, [mosques, debouncedQuery, selectedType, selectedCommune, language, sortBy, userLocation, aiRecommendedIds, isUsingSmartSearch]);
 
   const handleSelect = (mosque: Mosque) => {
     setSelectedMosque(mosque);
@@ -127,7 +162,18 @@ export default function SearchScreen() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          {(query || selectedType || selectedCommune) && (
+          {query.trim() && (
+            <button
+              onClick={handleSmartSearch}
+              disabled={isAiSearching}
+              className={`px-4 py-2 ${isAiSearching ? 'bg-gray-100' : 'bg-emerald-50 hover:bg-emerald-100'} text-emerald-700 rounded-xl text-sm font-bold transition-all border border-emerald-100/50 flex items-center gap-2 active:scale-95`}
+              title={t('Smart Search', language)}
+            >
+              {isAiSearching ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-emerald-600" />}
+              <span className="hidden sm:inline">{t('AI Search', language)}</span>
+            </button>
+          )}
+          {(query || selectedType || selectedCommune || isUsingSmartSearch) && (
             <button
               onClick={() => {
                 setQuery('');

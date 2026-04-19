@@ -5,7 +5,7 @@ import process from 'process';
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.get('/api/config', (req, res) => {
     // Priority: 1. USER_GEMINI_KEY (manual override), 2. GEMINI_API_KEY (system/secrets)

@@ -13,6 +13,7 @@ import DirectionsPanel from './components/DirectionsPanel';
 import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
+import AiSmartOverlay from './components/AiSmartOverlay';
 
 export default function App() {
   const { activeTab, setUserLocation, language, routingToMosque, refreshLocation, mosques, mapStyle, setMapStyle, isEquipmentOpen } = useAppStore();
@@ -63,6 +64,7 @@ export default function App() {
           {activeTab === 'map' && (
             <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
+              <AiSmartOverlay />
               
               {/* Floating Location Button */}
               {!routingToMosque && (
