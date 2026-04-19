@@ -7,6 +7,12 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
+  app.get('/api/config', (req, res) => {
+    res.json({
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY
+    });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

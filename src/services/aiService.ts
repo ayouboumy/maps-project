@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from "../store/useAppStore";
+import { getDynamicApiKey } from "../utils/config";
 
 function cleanJsonResponse(text: string): string {
   if (!text) return "";
@@ -19,7 +20,7 @@ let aiInstance: any = null;
 
 async function getAI() {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = await getDynamicApiKey();
     if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
       throw new Error("To use the AI on a phone or shared URL, you MUST add your own Gemini API Key to the 'Secrets' menu in AI Studio. The 'Free Model' network proxy only works inside the AI Studio editor window.");
     }
