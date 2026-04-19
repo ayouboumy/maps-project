@@ -28,10 +28,10 @@ function getAI() {
   return aiInstance;
 }
 
-export async function trainSystemOnData(): Promise<boolean> {
+export async function trainSystemOnData(): Promise<{success: boolean, error?: string}> {
   const { mosques, setKnowledgeBase, setAiInsights, setIsTraining, setLastTrainingDate } = useAppStore.getState();
   
-  if (mosques.length === 0) return false;
+  if (mosques.length === 0) return { success: false, error: "No mosques found to analyze" };
 
   setIsTraining(true);
 
@@ -55,9 +55,9 @@ export async function trainSystemOnData(): Promise<boolean> {
     {
       "commonTypes": ["list of most frequent mosque types"],
       "commonServices": ["list of most frequent services/facilities"],
-      "regionalPatterns": {
-        "communeName": "A short insight about mosques in this commune"
-      },
+      "regionalPatterns": [
+        { "communeName": "Name of commune", "insight": "A short insight about mosques in this commune" }
+      ],
       "aiInsights": ["3-5 high-level insights about the dataset architecture and logic"]
     }`;
 
@@ -71,7 +71,17 @@ export async function trainSystemOnData(): Promise<boolean> {
           properties: {
             commonTypes: { type: Type.ARRAY, items: { type: Type.STRING } },
             commonServices: { type: Type.ARRAY, items: { type: Type.STRING } },
-            regionalPatterns: { type: Type.OBJECT, additionalProperties: { type: Type.STRING } },
+            regionalPatterns: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  communeName: { type: Type.STRING },
+                  insight: { type: Type.STRING }
+                },
+                required: ["communeName", "insight"]
+              }
+            },
             aiInsights: { type: Type.ARRAY, items: { type: Type.STRING } }
           },
           required: ["commonTypes", "commonServices", "regionalPatterns", "aiInsights"]
@@ -82,20 +92,30 @@ export async function trainSystemOnData(): Promise<boolean> {
     const jsonStr = response.text || "{}";
     const result = JSON.parse(cleanJsonResponse(jsonStr));
 
+    // Convert regionalPatterns from array to Record
+    const regionalPatternsRecord: Record<string, string> = {};
+    if (Array.isArray(result.regionalPatterns)) {
+      result.regionalPatterns.forEach((p: any) => {
+        if (p?.communeName && p?.insight) {
+          regionalPatternsRecord[p.communeName] = p.insight;
+        }
+      });
+    }
+
     setKnowledgeBase({
       commonTypes: result.commonTypes || [],
       commonServices: result.commonServices || [],
-      regionalPatterns: result.regionalPatterns || {},
+      regionalPatterns: regionalPatternsRecord,
       lastAnalysisCount: mosques.length
     });
 
     setAiInsights(result.aiInsights || []);
     setLastTrainingDate(new Date().toISOString());
-    return true;
+    return { success: true };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Training Error:", error);
-    return false;
+    return { success: false, error: error?.message || String(error) };
   } finally {
     setIsTraining(false);
   }
