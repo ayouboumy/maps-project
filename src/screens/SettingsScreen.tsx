@@ -12,8 +12,7 @@ export default function SettingsScreen() {
     mosques, importMosques, language, setLanguage, addDynamicTranslations, 
     selectedCommune, setSelectedCommune, resetApp, downloadedCommunes, 
     downloadCommune, removeDownloadedCommune,
-    knowledgeBase, aiInsights, isTraining, lastTrainingDate,
-    mapProvider, setMapProvider, manualMapboxToken, setManualMapboxToken
+    knowledgeBase, aiInsights, isTraining, lastTrainingDate
   } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
@@ -427,78 +426,6 @@ export default function SettingsScreen() {
               </p>
             )}
           </div>
-        </div>
-
-        {/* Map Engine Selection */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-3">
-              <Sparkles size={20} className="text-emerald-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">{t('Map Provider', language)}</h2>
-              <p className="text-sm text-gray-500">{t('Switch System', language)}</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <button
-              onClick={() => setMapProvider('leaflet')}
-              className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
-                mapProvider === 'leaflet'
-                  ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                  : 'bg-white border-gray-100 text-gray-500 hover:border-emerald-200'
-              }`}
-            >
-              <div className="text-sm font-black mb-1">Leaflet</div>
-              <div className="text-[10px] uppercase font-bold opacity-60">{t('Leaflet (Classic)', language)}</div>
-            </button>
-            <button
-              onClick={() => setMapProvider('mapbox')}
-              className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
-                mapProvider === 'mapbox'
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'bg-white border-gray-100 text-gray-500 hover:border-blue-200'
-              }`}
-            >
-              <div className="text-sm font-black mb-1">Mapbox</div>
-              <div className="text-[10px] uppercase font-bold opacity-60">{t('Mapbox (Advanced)', language)}</div>
-            </button>
-          </div>
-          
-          {manualMapboxToken && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-blue-600" />
-                <span className="text-xs font-bold text-blue-900">Manual token active</span>
-              </div>
-              <button 
-                onClick={() => setManualMapboxToken(null)}
-                className="text-[10px] font-black text-red-600 uppercase tracking-widest hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-          
-          {mapProvider === 'mapbox' && !manualMapboxToken && !(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || (typeof process !== 'undefined' ? process.env.VITE_MAPBOX_ACCESS_TOKEN : '')) && (
-            <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100 flex flex-col gap-2">
-              <div className="flex items-start gap-2">
-                <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-[10px] font-bold text-amber-900 leading-relaxed">
-                  Mapbox access token is missing. 
-                </p>
-              </div>
-              <div className="bg-white/50 p-2 rounded-lg border border-amber-200">
-                <p className="text-[9px] text-amber-800 font-medium">To fix this:</p>
-                <ol className="text-[9px] text-amber-700 list-decimal list-inside mt-1 space-y-1">
-                  <li>Open the <span className="font-bold">Settings / Secrets</span> menu in the sidebar.</li>
-                  <li>Add a variable named <code className="bg-amber-100 px-1 rounded text-amber-900 font-mono">VITE_MAPBOX_ACCESS_TOKEN</code>.</li>
-                  <li>Paste your public token (starting with <code className="bg-amber-100 px-1 rounded text-amber-900 font-mono">pk.</code>).</li>
-                </ol>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Offline Data Manager */}

@@ -25,8 +25,6 @@ interface AppState {
   dynamicTranslations: Record<string, Record<Language, string>>;
   selectedCommune: string | null;
   mapStyle: MapStyle;
-  mapProvider: 'leaflet' | 'mapbox';
-  manualMapboxToken: string | null;
   isEquipmentOpen: boolean;
   downloadedCommunes: string[];
   knowledgeBase: {
@@ -51,8 +49,6 @@ interface AppState {
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
   setSelectedCommune: (commune: string | null) => void;
   setMapStyle: (style: MapStyle) => void;
-  setMapProvider: (provider: 'leaflet' | 'mapbox') => void;
-  setManualMapboxToken: (token: string | null) => void;
   refreshLocation: () => Promise<void>;
   resetApp: () => void;
   updateMosqueItems: (id: number, items: string[]) => void;
@@ -80,8 +76,6 @@ export const useAppStore = create<AppState>()(
       dynamicTranslations: {},
       selectedCommune: null,
       mapStyle: 'street',
-      mapProvider: 'leaflet',
-      manualMapboxToken: null,
       isEquipmentOpen: false,
       downloadedCommunes: [],
       knowledgeBase: {
@@ -113,8 +107,6 @@ export const useAppStore = create<AppState>()(
       })),
       setSelectedCommune: (commune) => set({ selectedCommune: commune }),
       setMapStyle: (style) => set({ mapStyle: style }),
-      setMapProvider: (provider) => set({ mapProvider: provider }),
-      setManualMapboxToken: (token) => set({ manualMapboxToken: token }),
       refreshLocation: () => new Promise((resolve) => {
         if ('geolocation' in navigator) {
           navigator.geolocation.getCurrentPosition(
@@ -186,8 +178,6 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: state.dynamicTranslations,
         selectedCommune: state.selectedCommune,
         mapStyle: state.mapStyle,
-        mapProvider: state.mapProvider,
-        manualMapboxToken: state.manualMapboxToken,
         downloadedCommunes: state.downloadedCommunes,
         knowledgeBase: state.knowledgeBase,
         aiInsights: state.aiInsights,
