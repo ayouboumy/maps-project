@@ -1,16 +1,11 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
-import path from "path";
-import process from "process";
+import express from 'express';
+import { createServer as createViteServer } from 'vite';
+import path from 'path';
+import process from 'process';
 
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
-
-  // API Route to inject Gemini Key into the frontend safely at runtime
-  app.get("/api/config", (req, res) => {
-    res.json({ apiKey: process.env.GEMINI_API_KEY || "" });
-  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

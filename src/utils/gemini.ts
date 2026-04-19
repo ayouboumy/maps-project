@@ -19,15 +19,9 @@ let aiInstance: any = null;
 
 async function getAI() {
   if (!aiInstance) {
-    let apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "undefined") {
-      try {
-        const res = await fetch("/api/config");
-        const data = await res.json();
-        if (data.apiKey) apiKey = data.apiKey;
-      } catch (e) {
-        console.warn("Could not fetch API key dynamically", e);
-      }
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+      throw new Error("To use the AI on a phone or shared URL, you MUST add your own Gemini API Key to the 'Secrets' menu in AI Studio. The 'Free Model' network proxy only works inside the AI Studio editor window.");
     }
     aiInstance = new GoogleGenAI({ apiKey });
   }
