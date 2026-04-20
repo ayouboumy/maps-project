@@ -38,6 +38,7 @@ interface AppState {
   lastTrainingDate: string | null;
   aiRecommendedIds: string[];
   isAiSearching: boolean;
+  optimizedRouteIds: number[] | null;
   
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
@@ -63,6 +64,7 @@ interface AppState {
   setLastTrainingDate: (date: string) => void;
   setAiRecommendedIds: (ids: string[]) => void;
   setIsAiSearching: (isSearching: boolean) => void;
+  setOptimizedRouteIds: (ids: number[] | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -93,6 +95,7 @@ export const useAppStore = create<AppState>()(
       lastTrainingDate: null,
       aiRecommendedIds: [],
       isAiSearching: false,
+      optimizedRouteIds: null,
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -176,6 +179,7 @@ export const useAppStore = create<AppState>()(
       setLastTrainingDate: (date) => set({ lastTrainingDate: date }),
       setAiRecommendedIds: (ids) => set({ aiRecommendedIds: ids }),
       setIsAiSearching: (isSearching) => set({ isAiSearching: isSearching }),
+      setOptimizedRouteIds: (ids) => set({ optimizedRouteIds: ids }),
     }),
     {
       name: 'mosque-finder-storage',

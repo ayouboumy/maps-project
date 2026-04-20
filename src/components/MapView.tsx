@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Fragment } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
@@ -8,6 +8,84 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
+import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// MultiStopRoute component for optimized routes
+function MultiStopRoute({ stops, routeProfile = 'foot' }: { stops: [number, number][], routeProfile?: string }) {
+  const [segments, setSegments] = useState<[number, number][][]>([]);
+  
+  useEffect(() => {
+    if (stops.length < 2) return;
+    
+    let isMounted = true;
+    const fetchFullTour = async () => {
+      const allSegments: [number, number][][] = [];
+      
+      for (let i = 0; i < stops.length - 1; i++) {
+        const start = stops[i];
+        const end = stops[i+1];
+        
+        try {
+          const profile = routeProfile === 'foot' ? 'foot' : 'driving';
+          const baseUrl = profile === 'foot' 
+            ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
+            : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+          
+          const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
+          const data = await response.json();
+          
+          if (isMounted && data.routes && data.routes.length > 0) {
+            const bestRoute = data.routes[0];
+            if (bestRoute.geometry) {
+              const coords = bestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+              allSegments.push(coords);
+            }
+          }
+        } catch (e) {
+          allSegments.push([start, end]);
+        }
+      }
+      
+      if (isMounted) setSegments(allSegments);
+    };
+    
+    fetchFullTour();
+    return () => { isMounted = false; };
+  }, [stops, routeProfile]);
+
+  const isDriving = routeProfile === 'driving';
+  const color = isDriving ? '#4285F4' : '#1A73E8';
+  const dashArray = isDriving ? undefined : "1, 14";
+
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <Fragment key={i}>
+          <Polyline 
+            positions={seg}
+            color={isDriving ? '#174EA6' : '#FFFFFF'}
+            weight={10}
+            opacity={0.8}
+            lineCap="round"
+            lineJoin="round"
+            dashArray={dashArray}
+          />
+          <Polyline 
+            positions={seg}
+            color={color}
+            weight={6}
+            opacity={1}
+            lineCap="round"
+            lineJoin="round"
+            dashArray={dashArray}
+          />
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 // Fix for default marker icons in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -211,8 +289,37 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune, mapStyle, setMapStyle } = useAppStore();
+  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, setOptimizedRouteIds } = useAppStore();
   const [zoom, setZoom] = useState(12);
+
+  // Simple Nearest Neighbor TSP Solver
+  const handleOptimizeRoute = () => {
+    if (!isUserLocationValid || nearestMosques.length === 0) return;
+    
+    const unvisited = [...nearestMosques];
+    const tour: any[] = [];
+    let currentPos = { latitude: userLocation.latitude, longitude: userLocation.longitude };
+    
+    while (unvisited.length > 0) {
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      
+      for (let i = 0; i < unvisited.length; i++) {
+        const d = getDistance(currentPos, { latitude: unvisited[i].latitude, longitude: unvisited[i].longitude });
+        if (d < minDist) {
+          minDist = d;
+          nearestIdx = i;
+        }
+      }
+      
+      const next = unvisited.splice(nearestIdx, 1)[0];
+      tour.push(next.id);
+      currentPos = { latitude: next.latitude, longitude: next.longitude };
+    }
+    
+    setOptimizedRouteIds(tour);
+    setRoutingToMosque(null);
+  };
 
   const isUserLocationValid = userLocation && 
     typeof userLocation.latitude === 'number' && !isNaN(userLocation.latitude) &&
@@ -405,7 +512,20 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
 
-        {showNearest && isUserLocationValid && !routingToMosque && nearestMosques.map((mosque) => {
+        {optimizedRouteIds && isUserLocationValid && (
+          <MultiStopRoute 
+            stops={[
+              [userLocation.latitude, userLocation.longitude],
+              ...optimizedRouteIds.map(id => {
+                const m = mosques.find(msq => msq.id === id);
+                return [m!.latitude, m!.longitude] as [number, number];
+              })
+            ]}
+            routeProfile={routeProfile}
+          />
+        )}
+
+        {showNearest && isUserLocationValid && !routingToMosque && !optimizedRouteIds && nearestMosques.map((mosque) => {
           if (typeof mosque.latitude !== 'number' || typeof mosque.longitude !== 'number') return null;
           return (
             <RouteLine 
@@ -501,6 +621,75 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         
         <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} selectedMosque={selectedMosque} />
       </MapContainer>
+
+      {/* Map Overlays for Multi-stop Routing */}
+      <AnimatePresence>
+        {(showNearest && !routingToMosque && nearestMosques.length > 1 && !optimizedRouteIds) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-max max-w-[90vw]"
+          >
+            <button
+              onClick={handleOptimizeRoute}
+              className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold hover:bg-blue-700 transition-colors border-2 border-white/20 backdrop-blur-sm"
+            >
+              <ListOrdered size={20} />
+              <span>{t('Optimize Route', language)}</span>
+            </button>
+          </motion.div>
+        )}
+
+        {optimizedRouteIds && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-max max-w-[90vw] flex flex-col gap-2 items-center"
+          >
+            <div className="bg-white/90 backdrop-blur-md border border-blue-100 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {optimizedRouteIds.slice(0, 3).map((id, i) => (
+                  <div key={id} className="w-8 h-8 rounded-full bg-blue-600 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white z-[3-i]">
+                    {i + 1}
+                  </div>
+                ))}
+                {optimizedRouteIds.length > 3 && (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-600">
+                    +{optimizedRouteIds.length - 3}
+                  </div>
+                )}
+              </div>
+              <div className="text-sm font-bold text-gray-800">
+                {optimizedRouteIds.length} {t('Mosques', language)}
+              </div>
+              <button
+                onClick={() => setOptimizedRouteIds(null)}
+                className="ml-2 p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+                title={t('Clear Optimized Route', language)}
+              >
+                <RefreshCw size={16} />
+              </button>
+            </div>
+            
+            <button
+              onClick={() => {
+                // Here we could open external maps with multiple waypoints if supported
+                const waypoints = optimizedRouteIds.map(id => {
+                  const m = mosques.find(msq => msq.id === id);
+                  return `${m?.latitude},${m?.longitude}`;
+                }).join('/');
+                window.open(`https://www.google.com/maps/dir/${userLocation?.latitude},${userLocation?.longitude}/${waypoints}`, '_blank');
+              }}
+              className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold hover:bg-green-700 transition-colors border-2 border-white/20"
+            >
+              <Navigation size={20} />
+              <span>{t('Start Tour', language)}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
