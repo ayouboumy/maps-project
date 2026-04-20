@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Footprints, MapPin, Car, ArrowLeft } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { t } from '../utils/translations';
+import { cn } from '../lib/utils';
 
 export default function DirectionsPanel() {
   const { routingToMosque, routeInfo, setRoutingToMosque, language, routeProfile, setRouteProfile } = useAppStore();
@@ -47,7 +48,7 @@ export default function DirectionsPanel() {
                   <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0 z-10">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                   </div>
-                  <div className="bg-gray-100 rounded-xl px-4 py-2.5 flex-1 text-sm text-gray-600 font-medium border border-gray-200">
+                  <div className="bg-gray-100 rounded-xl px-4 py-2 flex-1 text-xs text-gray-600 font-medium border border-gray-200">
                     {t('Your Location', language)}
                   </div>
                 </div>
@@ -56,11 +57,19 @@ export default function DirectionsPanel() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 z-10">
                     <MapPin size={18} className="text-red-500" fill="#ef4444" stroke="white" strokeWidth={2} />
                   </div>
-                  <div className="bg-white rounded-xl px-4 py-2.5 flex-1 text-sm text-gray-900 font-bold border border-gray-200 shadow-sm">
+                  <div className="bg-white rounded-xl px-4 py-2 flex-1 text-xs text-gray-900 font-bold border border-gray-200 shadow-sm line-clamp-1">
                     {routingToMosque.name}
                   </div>
                 </div>
               </div>
+
+              {/* Quick Profile Toggle in Top Bar */}
+              <button
+                onClick={() => setRouteProfile(routeProfile === 'driving' ? 'foot' : 'driving')}
+                className="mt-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-blue-600 hover:bg-blue-50 transition-colors shadow-sm"
+              >
+                {routeProfile === 'driving' ? <Car size={20} /> : <Footprints size={20} />}
+              </button>
             </div>
           </motion.div>
 
@@ -77,21 +86,41 @@ export default function DirectionsPanel() {
             </div>
 
             <div className="px-5 pb-6 pt-2">
-              {/* Travel Modes */}
-              <div className="flex gap-3 mb-6">
+              {/* Polished Segmented Control */}
+              <div className="bg-gray-100 p-1.5 rounded-[20px] flex gap-1 mb-6 relative">
+                <motion.div 
+                  className="absolute top-1.5 bottom-1.5 bg-white rounded-[14px] shadow-sm pointer-events-none"
+                  initial={false}
+                  animate={{ 
+                    x: routeProfile === 'driving' 
+                      ? (language === 'ar' ? '100%' : '0%') 
+                      : (language === 'ar' ? '0%' : '100%'),
+                    left: routeProfile === 'driving' ? '6px' : 'calc(50% + 2px)',
+                    width: 'calc(50% - 8px)'
+                  }}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                />
+                
                 <button
                   onClick={() => setRouteProfile('driving')}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border-2 transition-all ${routeProfile === 'driving' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}
+                  className={cn(
+                    "relative flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] text-sm font-bold z-10 transition-colors",
+                    routeProfile === 'driving' ? "text-blue-600" : "text-gray-500"
+                  )}
                 >
-                  <Car size={24} />
-                  <span className="text-xs font-bold">{t('Driving', language)}</span>
+                  <Car size={20} />
+                  <span>{t('Driving', language)}</span>
                 </button>
+                
                 <button
                   onClick={() => setRouteProfile('foot')}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border-2 transition-all ${routeProfile === 'foot' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}
+                  className={cn(
+                    "relative flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] text-sm font-bold z-10 transition-colors",
+                    routeProfile === 'foot' ? "text-blue-600" : "text-gray-500"
+                  )}
                 >
-                  <Footprints size={24} />
-                  <span className="text-xs font-bold">{t('Walking', language)}</span>
+                  <Footprints size={20} />
+                  <span>{t('Walking', language)}</span>
                 </button>
               </div>
 
