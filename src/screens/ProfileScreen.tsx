@@ -70,30 +70,51 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     
     if (!mosque.extraData) return { sections, highlights, openingStatus: null };
 
-    // 1. Priority Map for Exact Arabic & French Document Labels
+    // 1. Explicit Category Prefix Detection (Since user says Excel has these titles)
+    const categoryPrefixes: Record<string, keyof typeof sections> = {
+      'معلومات عامة': 'general',
+      'معلومات القطعة أرضية': 'land', // Matches slightly variations
+      'معلومات القطعة الأرضية': 'land',
+      'معلومات البناء': 'construction',
+      'معلومات الخدمات': 'services',
+      'مكونات المسجد': 'components',
+      'معلومات الأملاك ذات العائد': 'revenue',
+      'الأملاك ذات العائد': 'revenue',
+      'general information': 'general',
+      'land information': 'land',
+      'construction information': 'construction',
+      'services information': 'services',
+      'mosque components': 'components',
+      'revenue assets': 'revenue'
+    };
+
+    // 2. Priority Map for Exact Arabic & French Document Labels
     const explicitMap: Record<string, keyof typeof sections> = {
       // 1. General (معلومات عامة)
       'اسم المسجد': 'general', 'رمز المسجد': 'general', 'عنوان المسجد': 'general', 'الجماعة': 'general', 
       'جهة الإنفاق': 'general', 'تاريخ البناء': 'general', 'تاريخ الافتتاح': 'general', 'حالة البناية': 'general', 
       'طبيعة البناية': 'general', 'نظام الفتح': 'general', 'الوضعية العقارية': 'general', 'nom': 'general', 'code': 'general',
+      'financement': 'general', 'nature de construction': 'general', 'état bâti': 'general',
       
       // 2. Land (معلومات القطعة الأرضية)
       'مساحة القطعة الأرضية': 'land', 'المساحة المبنية': 'land', 'غير المبنية: المساحة': 'land', 
       'غير المبنية: المساحة المهيأة': 'land', 'غير المبنية: المساحة غير المهيأة': 'land', 'X': 'land', 'Y': 'land', 
       'الاحداثيات': 'land', 'Latitude': 'land', 'Longitude': 'land', 'طبغرافي': 'land', 'وجود انحدار': 'land', 
-      'وجود سواقي': 'land', 'المنطقة الحرارية': 'land', 'terrain': 'land',
+      'وجود سواقي': 'land', 'المنطقة الحرارية': 'land', 'terrain': 'land', 'topographie': 'land',
       
       // 3. Construction (معلومات البناء)
       'نوع اليناء': 'construction', 'نوع البناء': 'construction', 'خراسانة مسلحة': 'construction', 
       'تراب أدوبي': 'construction', 'تراب بيزي': 'construction', 'حجر': 'construction', 
       'ياجور تقليدي': 'construction', 'توب خشبي': 'construction', 'توب معدني': 'construction', 
       'مواد البناء': 'construction', 'structure': 'construction', 'matériaux': 'construction',
+      'type structure': 'construction', 'ossature': 'construction',
       
       // 4. Services (معلومات الخدمات)
       'عدد الولوجيات': 'services', 'شبكة طرقية': 'services', 'مسلك للعربات': 'services', 
       'مسلك غير صالح للعربات': 'services', 'ولوجيات ذوي الاحتياجات': 'services', 'شبكة الماء': 'services', 
       'بئر': 'services', 'عيون': 'services', 'شبكة الكهرباء': 'services', 'ألواح شمسية': 'services', 
       'شبكة التطهير': 'services', 'حفرة صحية': 'services', 'services': 'services', 'eau': 'services', 'électricité': 'services',
+      'accès': 'services', 'routes': 'services', 'assainissement': 'services',
       
       // 5. Components (مكونات المسجد)
       'مساحة المقصورة': 'components', 'عدد قاعة الصلاة للرجال': 'components', 'مساحة قاعة الصلاة للرجال': 'components', 
@@ -109,24 +130,30 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       'عدد غرفة الامام': 'components', 'مساحة غرفة الامام': 'components', 'عدد غرفة المؤذن': 'components', 
       'مساحة غرفة المؤذن': 'components', 'عدد غرفة المؤقت': 'components', 'مساحة غرفة المؤقت': 'components', 
       'عدد غرفة الموتى': 'components', 'مساحة غرفة الموتى': 'components', 'salle de prière': 'components', 'toilette': 'components',
+      'minaret': 'components', 'logement imam': 'components', 'logement muezzin': 'components', 'msid': 'components',
+      'Count سكن الامام': 'components', 'Area سكن الامام': 'components', 'Count سكن المؤذن': 'components', 'Area سكن المؤذن': 'components',
+      'Nombre سكن الامام': 'components', 'Surface سكن الامام': 'components', 'Nombre سكن المؤذن': 'components', 'Surface سكن المؤذن': 'components',
       
       // 6. Revenue Assets (معلومات الأملاك ذات العائد)
       'عدد محلات تجارية': 'revenue', 'مساحة محلات تجارية': 'revenue', 'عدد سكن': 'revenue', 
-      'مساحة سكن': 'revenue', 'الأملاك': 'revenue', 'محلات': 'revenue', 'عائدات': 'revenue', 'boutique': 'revenue', 'commerce': 'revenue'
+      'مساحة سكن': 'revenue', 'الأملاك': 'revenue', 'محلات': 'revenue', 'عائدات': 'revenue', 'boutique': 'revenue', 'commerce': 'revenue',
+      'locaux commerciaux': 'revenue', 'revenus': 'revenue', 'loyer': 'revenue',
+      'Count محلات تجارية': 'revenue', 'Area محلات تجارية': 'revenue', 'Count سكن': 'revenue', 'Area سكن': 'revenue',
+      'Nombre محلات تجارية': 'revenue', 'Surface محلات تجارية': 'revenue', 'Nombre سكن': 'revenue', 'Surface سكن': 'revenue'
     };
 
-    // 2. Fallback Keyword Patterns
+    // 3. Fallback Keyword Patterns (Carefully selected to avoid bleeding)
     const mapKeywords = {
-      general: ['adresse', 'commune', 'financement', 'nature', 'état', 'date', 'ouverture', 'spending', 'gestionnaire', 'نظام'],
-      land: ['area', 'surface', 'coords', 'gps', 'topogra', 'slopes', 'gutters', 'thermal'],
+      general: ['adresse', 'commune', 'ouverture', 'spending', 'gestionnaire', 'نظام'],
+      land: ['area', 'surface terrain', 'coords', 'gps', 'topogra', 'slopes', 'gutters', 'thermal'],
       construction: ['concrete', 'adobe', 'pierre', 'brick', 'metal', 'bois', 'armé'],
       services: ['accès', 'piste', 'handicapé', 'puits', 'sources', 'photovolta', 'assainissement', 'septique', 'réseau'],
-      components: ['maqasoura', 'wc', 'minaret', 'صومعة', 'magasin', 'msid', 'médersa', 'réunion', 'صحن', 'أروقة', 'mortuaire', 'chambre', 'imam', 'muezzin'],
-      revenue: ['loyer', 'unités', 'residential', 'asset', 'income']
+      components: ['maqasoura', 'wc', 'minaret', 'صومعة', 'magasin', 'msid', 'médersa', 'réunion', 'صحن', 'أروقة', 'mortuaire', 'chambre'],
+      revenue: ['loyer', 'unités', 'residential', 'asset', 'income', 'commercial']
     };
 
     Object.entries(mosque.extraData).forEach(([key, value]) => {
-      const lowerKey = key.toLowerCase();
+      const lowerKey = key.toLowerCase().trim();
       const valStr = String(value);
 
       if (lowerKey.includes('ouverture') || lowerKey.includes('ouvert')) {
@@ -137,9 +164,23 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         highlights.push({ label: 'Capacity', value: valStr, icon: Users, color: 'emerald' });
       }
 
+      // Priority 0: Forced Prefix Match (Highest Priority)
+      for (const [prefix, cat] of Object.entries(categoryPrefixes)) {
+        if (lowerKey.includes(prefix.toLowerCase())) {
+          sections[cat].push({ key, value });
+          return;
+        }
+      }
+
       // Priority 1: Explicit mapping
       if (explicitMap[key]) {
         sections[explicitMap[key]].push({ key, value });
+        return;
+      }
+      
+      // Try again with trimmed key in case of whitespace
+      if (explicitMap[key.trim()]) {
+        sections[explicitMap[key.trim()]].push({ key, value });
         return;
       }
 
