@@ -289,7 +289,12 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 }
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
-  const { mosques, userLocation, selectedMosque, setSelectedMosque, language, routingToMosque, setRoutingToMosque, routeProfile, selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, setOptimizedRouteIds } = useAppStore();
+  const { 
+    mosques, userLocation, selectedMosque, setSelectedMosque, 
+    language, routingToMosque, setRoutingToMosque, routeProfile, 
+    selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
+    setOptimizedRouteIds, darkMode 
+  } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
   // Simple Nearest Neighbor TSP Solver
@@ -474,8 +479,14 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         
         {mapStyle === 'street' && (
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution={darkMode 
+              ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }
+            url={darkMode 
+              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            }
           />
         )}
         {mapStyle === 'satellite' && (
@@ -564,17 +575,26 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                     offset={[0, -10]} 
                     opacity={0.9} 
                     permanent 
-                    className="bg-white/90 border-none shadow-md rounded px-2 py-1"
+                    className={cn(
+                      "border-none shadow-md rounded px-2 py-1 transition-colors duration-300",
+                      darkMode ? "!bg-gray-900 !text-white" : "!bg-white/90 !text-gray-800"
+                    )}
                   >
                     <div className="flex flex-col items-center">
                       <div 
-                        className="max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center text-gray-800"
+                        className={cn(
+                          "max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center transition-colors",
+                          darkMode ? "text-white !text-white" : "text-gray-800"
+                        )}
                         title={getLocalizedName(mosque, language)}
                       >
                         {getLocalizedName(mosque, language)}
                       </div>
                       {showNearest && roadDistances[mosque.id] !== undefined && (
-                        <div className="text-[10px] font-semibold text-blue-600 mt-0.5 bg-blue-50 px-1.5 rounded">
+                        <div className={cn(
+                          "text-[10px] font-semibold mt-0.5 px-1.5 rounded",
+                          darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-50 text-blue-600"
+                        )}>
                           {(roadDistances[mosque.id] / 1000).toFixed(1)} km
                         </div>
                       )}
@@ -600,7 +620,10 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               offset={[0, -10]} 
               opacity={0.9} 
               permanent 
-              className="bg-white/90 border-none shadow-md rounded px-2 py-1 ring-2 ring-red-500"
+              className={cn(
+                "border-none shadow-md rounded px-2 py-1 ring-2 ring-red-500 transition-colors duration-300",
+                darkMode ? "bg-gray-800" : "bg-white/90"
+              )}
             >
               <div className="flex flex-col items-center">
                 <div 
@@ -610,7 +633,10 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   {getLocalizedName(routingToMosque, language)}
                 </div>
                 {roadDistances[routingToMosque.id] !== undefined && (
-                  <div className="text-[10px] font-semibold text-red-600 mt-0.5 bg-red-50 px-1.5 rounded">
+                  <div className={cn(
+                    "text-[10px] font-semibold mt-0.5 px-1.5 rounded",
+                    darkMode ? "bg-red-900/40 text-red-400" : "bg-red-50 text-red-600"
+                  )}>
                     {(roadDistances[routingToMosque.id] / 1000).toFixed(1)} km
                   </div>
                 )}

@@ -29,6 +29,8 @@ async function getAI() {
   return aiInstance;
 }
 
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 export async function trainSystemOnData(): Promise<{success: boolean, error?: string}> {
   const { mosques, setKnowledgeBase, setAiInsights, setIsTraining, setLastTrainingDate } = useAppStore.getState();
   
@@ -62,33 +64,45 @@ export async function trainSystemOnData(): Promise<{success: boolean, error?: st
       "aiInsights": ["3-5 high-level insights about the dataset architecture and logic"]
     }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            commonTypes: { type: Type.ARRAY, items: { type: Type.STRING } },
-            commonServices: { type: Type.ARRAY, items: { type: Type.STRING } },
-            regionalPatterns: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  communeName: { type: Type.STRING },
-                  insight: { type: Type.STRING }
+    let response: any;
+    let attempts = 0;
+    while (attempts < 2) {
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                commonTypes: { type: Type.ARRAY, items: { type: Type.STRING } },
+                commonServices: { type: Type.ARRAY, items: { type: Type.STRING } },
+                regionalPatterns: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      communeName: { type: Type.STRING },
+                      insight: { type: Type.STRING }
+                    },
+                    required: ["communeName", "insight"]
+                  }
                 },
-                required: ["communeName", "insight"]
-              }
-            },
-            aiInsights: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["commonTypes", "commonServices", "regionalPatterns", "aiInsights"]
-        }
+                aiInsights: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["commonTypes", "commonServices", "regionalPatterns", "aiInsights"]
+            }
+          }
+        });
+        break;
+      } catch (err: any) {
+        attempts++;
+        if ((err?.message?.includes('429') || err?.status === 'RESOURCE_EXHAUSTED') && attempts < 2) {
+          await delay(2000);
+        } else throw err;
       }
-    });
+    }
 
     const jsonStr = response.text || "{}";
     const result = JSON.parse(cleanJsonResponse(jsonStr));
@@ -115,6 +129,9 @@ export async function trainSystemOnData(): Promise<{success: boolean, error?: st
     return { success: true };
 
   } catch (error: any) {
+    if (error?.message?.includes('429') || error?.status === 'RESOURCE_EXHAUSTED') {
+      return { success: false, error: "AI Quota exceeded. Please try again in 1 minute." };
+    }
     console.error("AI Training Error:", error);
     return { success: false, error: error?.message || String(error) };
   } finally {
@@ -143,9 +160,6 @@ export async function smartSearchMosques(query: string, mosques: any[]): Promise
       extra: Object.keys(m.extraData || {}).slice(0, 10) // Just keys to help AI understand schema
     }));
 
-    // We only process the top matches by relevance if the list is huge, 
-    // but for 680 mosques we might need to be careful. 
-    // Let's analyze top 150 for this call or ask for keyword priorities.
     const prompt = `You are an intelligent search assistant for a Moroccan mosque database.
     User Query: "${query}"
     
@@ -169,49 +183,12 @@ export async function smartSearchMosques(query: string, mosques: any[]): Promise
 
     const result = JSON.parse(cleanJsonResponse(response.text || "[]"));
     return Array.isArray(result) ? result : [];
-  } catch (error) {
-    console.error("Smart Search Error:", error);
-    return [];
-  }
-}
-
-/**
- * Smart Recommendations
- * Finds mosques that are philosophically or structurally similar.
- */
-export async function getRecommendSimilar(targetMosque: any, allMosques: any[]): Promise<string[]> {
-  try {
-    const ai = await getAI();
-    
-    const prompt = `Target Mosque: ${JSON.stringify({
-      name: targetMosque.name,
-      type: targetMosque.type,
-      services: targetMosque.services,
-      items: targetMosque.items,
-      commune: targetMosque.commune
-    })}
-    
-    Database Sample: ${JSON.stringify(allMosques.filter(m => m.id !== targetMosque.id).slice(0, 50))}
-    
-    Find 3-5 mosques from the sample that are most similar to the target or offer complementary services.
-    Return a JSON array of their IDs.`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
-      }
-    });
-
-    const result = JSON.parse(cleanJsonResponse(response.text || "[]"));
-    return Array.isArray(result) ? result : [];
-  } catch (error) {
-    console.error("AI Recommendation Error:", error);
+  } catch (error: any) {
+    if (error?.message?.includes('429') || error?.status === 'RESOURCE_EXHAUSTED') {
+      console.warn("Smart Search Quota Exhausted");
+    } else {
+      console.error("Smart Search Error:", error);
+    }
     return [];
   }
 }

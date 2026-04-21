@@ -19,9 +19,9 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
-  const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen } = useAppStore();
+  const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen, darkMode } = useAppStore();
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identity' | 'structure' | 'utility' | 'assets'>('identity');
+  const [activeTab, setActiveTab] = useState<'general' | 'land' | 'construction' | 'services' | 'components' | 'revenue'>('general');
   const isFavorite = favorites.includes(mosque.id);
 
   const handleCopyPosition = () => {
@@ -54,25 +54,75 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     }
   };
 
-  // Intelligent & Organized Data Categorization
+  // Optimized & Strict Manual Data Categorization based on specific 6-category structure
   const categories = useMemo(() => {
     const sections = {
-      identity: [] as any[],
-      structure: [] as any[],
-      utility: [] as any[],
-      assets: [] as any[]
+      general: [] as any[],
+      land: [] as any[],
+      construction: [] as any[],
+      services: [] as any[],
+      components: [] as any[],
+      revenue: [] as any[]
     };
 
     const highlights: any[] = [];
-    let opening: string | null = null;
+    let openingStatus: string | null = null;
     
     if (!mosque.extraData) return { sections, highlights, openingStatus: null };
 
+    // 1. Priority Map for Exact Arabic & French Document Labels
+    const explicitMap: Record<string, keyof typeof sections> = {
+      // 1. General (معلومات عامة)
+      'اسم المسجد': 'general', 'رمز المسجد': 'general', 'عنوان المسجد': 'general', 'الجماعة': 'general', 
+      'جهة الإنفاق': 'general', 'تاريخ البناء': 'general', 'تاريخ الافتتاح': 'general', 'حالة البناية': 'general', 
+      'طبيعة البناية': 'general', 'نظام الفتح': 'general', 'الوضعية العقارية': 'general', 'nom': 'general', 'code': 'general',
+      
+      // 2. Land (معلومات القطعة الأرضية)
+      'مساحة القطعة الأرضية': 'land', 'المساحة المبنية': 'land', 'غير المبنية: المساحة': 'land', 
+      'غير المبنية: المساحة المهيأة': 'land', 'غير المبنية: المساحة غير المهيأة': 'land', 'X': 'land', 'Y': 'land', 
+      'الاحداثيات': 'land', 'Latitude': 'land', 'Longitude': 'land', 'طبغرافي': 'land', 'وجود انحدار': 'land', 
+      'وجود سواقي': 'land', 'المنطقة الحرارية': 'land', 'terrain': 'land',
+      
+      // 3. Construction (معلومات البناء)
+      'نوع اليناء': 'construction', 'نوع البناء': 'construction', 'خراسانة مسلحة': 'construction', 
+      'تراب أدوبي': 'construction', 'تراب بيزي': 'construction', 'حجر': 'construction', 
+      'ياجور تقليدي': 'construction', 'توب خشبي': 'construction', 'توب معدني': 'construction', 
+      'مواد البناء': 'construction', 'structure': 'construction', 'matériaux': 'construction',
+      
+      // 4. Services (معلومات الخدمات)
+      'عدد الولوجيات': 'services', 'شبكة طرقية': 'services', 'مسلك للعربات': 'services', 
+      'مسلك غير صالح للعربات': 'services', 'ولوجيات ذوي الاحتياجات': 'services', 'شبكة الماء': 'services', 
+      'بئر': 'services', 'عيون': 'services', 'شبكة الكهرباء': 'services', 'ألواح شمسية': 'services', 
+      'شبكة التطهير': 'services', 'حفرة صحية': 'services', 'services': 'services', 'eau': 'services', 'électricité': 'services',
+      
+      // 5. Components (مكونات المسجد)
+      'مساحة المقصورة': 'components', 'عدد قاعة الصلاة للرجال': 'components', 'مساحة قاعة الصلاة للرجال': 'components', 
+      'عدد قاعة الصلاة للنساء': 'components', 'مساحة قاعة الصلاة للنساء': 'components', 'عدد مراحيض الرجال': 'components', 
+      'مساحة مراحيض الرجال': 'components', 'عدد مراحيض للنساء': 'components', 'مساحة مراحيض للنساء': 'components', 
+      'ارتفاع الصومعة': 'components', 'عدد طبقات الصومعة': 'components', 'قاعدة الصومعة': 'components', 
+      'عدد سكن الامام': 'components', 'مساحة سكن الإمام': 'components', 'عدد سكن المؤذن': 'components', 
+      'مساحة سكن المؤذن': 'components', 'عدد المخزن': 'components', 'مساحة المخزن': 'components', 
+      'عدد المسيد': 'components', 'مساحة المسيد': 'components', 'عدد الكتاب القرآني القرآنية': 'components', 
+      'مساحة الكتاب القرآني القرآنية': 'components', 'عدد المدرسة': 'components', 'مساحة المدرسة': 'components', 
+      'عدد قاعة الاجتماعات': 'components', 'مساحة قاعة الاجتماعات': 'components', 'عدد الصحن': 'components', 
+      'مساحة الصحن': 'components', 'عدد الأروقة': 'components', 'مساحة الأروقة': 'components', 
+      'عدد غرفة الامام': 'components', 'مساحة غرفة الامام': 'components', 'عدد غرفة المؤذن': 'components', 
+      'مساحة غرفة المؤذن': 'components', 'عدد غرفة المؤقت': 'components', 'مساحة غرفة المؤقت': 'components', 
+      'عدد غرفة الموتى': 'components', 'مساحة غرفة الموتى': 'components', 'salle de prière': 'components', 'toilette': 'components',
+      
+      // 6. Revenue Assets (معلومات الأملاك ذات العائد)
+      'عدد محلات تجارية': 'revenue', 'مساحة محلات تجارية': 'revenue', 'عدد سكن': 'revenue', 
+      'مساحة سكن': 'revenue', 'الأملاك': 'revenue', 'محلات': 'revenue', 'عائدات': 'revenue', 'boutique': 'revenue', 'commerce': 'revenue'
+    };
+
+    // 2. Fallback Keyword Patterns
     const mapKeywords = {
-      identity: ['nom', 'code', 'adresse', 'commune', 'financement', 'type', 'nature', 'construction', 'état', 'mhai', 'association', 'bienfaiteurs', 'ouverture', 'nidhara', 'awqaf'],
-      structure: ['terrain', 'bâtie', 'aménagée', 'x', 'y', 'longitude', 'latitude', 'topographie', 'talus', 'rigoles', 'ravin', 'zone thermique', 'béton', 'terre', 'adobe', 'pisé', 'pierre', 'brique', 'tôle', 'bois', 'métallique', 'matériaux', 'maqasoura', 'salle', 'prière', 'hommes', 'femmes', 'toilette', 'minaret', 'صومعة', 'طبقات', 'magasin', 'msid', 'médersa', 'réunion', 'صحن', 'أروقة', 'mortuaire'],
-      utility: ['accès', 'routier', 'piste', 'handicapé', 'eau', 'puits', 'sources', 'électricité', 'photovoltaïque', 'assainissement', 'fosse', 'septique', 'logement', 'imam', 'muezzin', 'mouadhine'],
-      assets: ['boutique', 'commerce', 'locaux', 'سكن', 'عائد', 'loyer']
+      general: ['adresse', 'commune', 'financement', 'nature', 'état', 'date', 'ouverture', 'spending', 'gestionnaire', 'نظام'],
+      land: ['area', 'surface', 'coords', 'gps', 'topogra', 'slopes', 'gutters', 'thermal'],
+      construction: ['concrete', 'adobe', 'pierre', 'brick', 'metal', 'bois', 'armé'],
+      services: ['accès', 'piste', 'handicapé', 'puits', 'sources', 'photovolta', 'assainissement', 'septique', 'réseau'],
+      components: ['maqasoura', 'wc', 'minaret', 'صومعة', 'magasin', 'msid', 'médersa', 'réunion', 'صحن', 'أروقة', 'mortuaire', 'chambre', 'imam', 'muezzin'],
+      revenue: ['loyer', 'unités', 'residential', 'asset', 'income']
     };
 
     Object.entries(mosque.extraData).forEach(([key, value]) => {
@@ -80,28 +130,37 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       const valStr = String(value);
 
       if (lowerKey.includes('ouverture') || lowerKey.includes('ouvert')) {
-        opening = valStr;
+        openingStatus = valStr;
       }
 
       if (lowerKey.includes('capacité') && !highlights.find(h => h.label === 'Capacity')) {
         highlights.push({ label: 'Capacity', value: valStr, icon: Users, color: 'emerald' });
       }
 
+      // Priority 1: Explicit mapping
+      if (explicitMap[key]) {
+        sections[explicitMap[key]].push({ key, value });
+        return;
+      }
+
+      // Priority 2: Keyword mapping
       let matched = false;
-      for (const [tab, keywords] of Object.entries(mapKeywords)) {
-        if (keywords.some(kw => lowerKey.includes(kw))) {
-          sections[tab as keyof typeof sections].push({ key, value });
+      const cats: (keyof typeof sections)[] = ['revenue', 'components', 'services', 'construction', 'land', 'general'];
+      for (const cat of cats) {
+        if (mapKeywords[cat].some(kw => lowerKey.includes(kw))) {
+          sections[cat].push({ key, value });
           matched = true;
           break;
         }
       }
       
+      // Priority 3: Final Fallback to general
       if (!matched) {
-        sections.identity.push({ key, value });
+        sections.general.push({ key, value });
       }
     });
 
-    return { sections, highlights, openingStatus: opening };
+    return { sections, highlights, openingStatus };
   }, [mosque.extraData, language]);
 
   const totalArea = parseFloat(String(mosque.extraData?.['Surface du terrain'] || mosque.extraData?.['مساحة القطعة الأرضية'] || 0));
@@ -109,10 +168,12 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const builtPercentage = totalArea > 0 ? (builtArea / totalArea) * 100 : 0;
 
   const tabs = [
-    { id: 'identity', label: 'Identity', icon: Info },
-    { id: 'structure', label: 'Structure', icon: Layout },
-    { id: 'utility', label: 'Facilities', icon: Zap },
-    { id: 'assets', label: 'Economy', icon: DollarSign }
+    { id: 'general', label: 'General Information', icon: Info },
+    { id: 'land', label: 'Land Information', icon: Map },
+    { id: 'construction', label: 'Construction Information', icon: Building2 },
+    { id: 'services', label: 'Services Information', icon: Zap },
+    { id: 'components', label: 'Mosque Components', icon: Layout },
+    { id: 'revenue', label: 'Revenue Assets', icon: DollarSign }
   ] as const;
 
   return (
@@ -120,13 +181,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[2000] bg-gray-50 overflow-hidden flex flex-col"
+      className="fixed inset-0 z-[2000] bg-gray-50 dark:bg-gray-950 overflow-hidden flex flex-col transition-colors duration-300"
     >
       {/* Compact Navigation Bar */}
-      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 px-6 pt-safe-4 backdrop-blur-sm bg-white/10">
+      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 px-6 pt-safe-4 backdrop-blur-sm bg-white/10 dark:bg-black/10">
         <button 
           onClick={onClose}
-          className="p-2.5 bg-white rounded-xl text-gray-900 border border-gray-100 shadow-lg active:scale-90 transition-all"
+          className="p-2.5 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-800 shadow-lg active:scale-90 transition-all"
         >
           <ArrowLeft size={20} className={language === 'ar' ? 'rotate-180' : ''} />
         </button>
@@ -134,7 +195,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         <div className="flex gap-2">
           <button 
             onClick={handleShare}
-            className="p-2.5 bg-white rounded-xl text-gray-900 border border-gray-100 shadow-lg active:scale-90 transition-all"
+            className="p-2.5 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-800 shadow-lg active:scale-90 transition-all"
           >
             <Share2 size={20} />
           </button>
@@ -144,7 +205,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
               "p-2.5 rounded-xl border shadow-lg active:scale-90 transition-all",
               isFavorite 
                 ? "bg-red-500 text-white border-red-500" 
-                : "bg-white text-gray-900 border-gray-100"
+                : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-100 dark:border-gray-800"
             )}
           >
             <Heart size={20} className={cn(isFavorite && "fill-current")} />
@@ -167,13 +228,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2 py-0.5 bg-emerald-500 text-white rounded-md text-[8px] font-black uppercase tracking-widest">{mosque.type}</span>
               {categories.openingStatus && (
-                <span className="px-2 py-0.5 bg-white/90 text-gray-900 rounded-md text-[8px] font-black uppercase tracking-widest border border-gray-200">{categories.openingStatus}</span>
+                <span className="px-2 py-0.5 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white rounded-md text-[8px] font-black uppercase tracking-widest border border-gray-200 dark:border-gray-800">{categories.openingStatus}</span>
               )}
             </div>
-            <h1 className="text-3xl font-serif font-black text-gray-900 leading-tight mb-1 drop-shadow-sm">
+            <h1 className="text-3xl font-serif font-black text-gray-900 dark:text-white leading-tight mb-1 drop-shadow-sm">
               {getLocalizedName(mosque, language)}
             </h1>
-            <div className="flex items-center gap-1.5 text-gray-500 text-sm font-medium">
+            <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-sm font-medium">
               <MapPin size={14} className="shrink-0" />
               <span className="line-clamp-1">{t(mosque.address, language)}</span>
             </div>
@@ -192,40 +253,40 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             </button>
             <button 
               onClick={handleCopyPosition}
-              className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-2xl shadow-xl active:scale-95 transition-all text-center"
+              className="flex flex-col items-center justify-center p-3 bg-blue-600 dark:bg-blue-500 text-white rounded-2xl shadow-xl active:scale-95 transition-all text-center"
             >
               {copied ? <Check size={20} /> : <Clipboard size={20} />}
               <span className="text-[8px] font-black uppercase tracking-tighter mt-1">{copied ? t('Copied', language) : t('Copy GPS', language)}</span>
             </button>
-            <div className="flex flex-col items-center justify-center p-3 bg-white border border-gray-100 rounded-2xl text-center shadow-sm">
-              <Users size={20} className="text-gray-400" />
-              <span className="text-[8px] font-black uppercase text-gray-400 tracking-tighter mt-1 truncate">
+            <div className="flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-center shadow-sm">
+              <Users size={20} className="text-gray-400 dark:text-gray-500" />
+              <span className="text-[8px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-tighter mt-1 truncate">
                 {categories.highlights[0]?.value || 'N/A'}
               </span>
             </div>
-            <div className="flex flex-col items-center justify-center p-3 bg-white border border-gray-100 rounded-2xl text-center shadow-sm">
-              <Maximize size={20} className="text-gray-400" />
-              <span className="text-[8px] font-black uppercase text-gray-400 tracking-tighter mt-1 truncate">
+            <div className="flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-center shadow-sm">
+              <Maximize size={20} className="text-gray-400 dark:text-gray-500" />
+              <span className="text-[8px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-tighter mt-1 truncate">
                 {totalArea} m²
               </span>
             </div>
           </div>
 
           {/* Sticky Tabs Navigation */}
-          <div className="sticky top-2 z-40 bg-white/70 backdrop-blur-xl p-1.5 rounded-2xl border border-white shadow-xl flex gap-1 items-center">
+          <div className="sticky top-2 z-40 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl p-1.5 rounded-2xl border border-white dark:border-gray-800 shadow-xl flex gap-1 items-center transition-all overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all",
+                  "flex-1 min-w-[40px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all",
                   activeTab === tab.id 
-                    ? "bg-gray-900 text-white shadow-lg" 
-                    : "text-gray-500 hover:bg-gray-100"
+                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg" 
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 )}
               >
                 <tab.icon size={14} />
-                <span className="hidden sm:inline">{t(tab.label, language)}</span>
+                <span className="hidden lg:inline whitespace-nowrap">{t(tab.label, language)}</span>
               </button>
             ))}
           </div>
@@ -240,20 +301,20 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
               transition={{ duration: 0.15 }}
               className="space-y-4"
             >
-              {/* Specialized Component for Structure Tab */}
-              {activeTab === 'structure' && totalArea > 0 && (
-                <div className="bg-white p-5 rounded-[28px] border border-gray-100 shadow-sm">
+              {/* Specialized Component for Land Tab */}
+              {activeTab === 'land' && totalArea > 0 && (
+                <div className="bg-white dark:bg-gray-900 p-5 rounded-[28px] border border-gray-100 dark:border-gray-800 shadow-sm transition-colors">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t('Occupancy Rate', language)}</h3>
-                    <span className="text-xs font-bold text-emerald-600">{builtPercentage.toFixed(1)}%</span>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">{t('Occupancy Rate', language)}</h3>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{builtPercentage.toFixed(1)}%</span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-2">
+                  <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
                     <div 
-                      className="h-full bg-emerald-500 rounded-full" 
+                      className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full" 
                       style={{ width: `${builtPercentage}%` }} 
                     />
                   </div>
-                  <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase">
+                  <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase">
                     <span>{builtArea} m² {t('Built', language)}</span>
                     <span>{totalArea} m² {t('Total', language)}</span>
                   </div>
@@ -266,43 +327,43 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                   <div 
                     key={i} 
                     className={cn(
-                      "group bg-white border border-gray-100 p-3 rounded-2xl hover:border-emerald-200 hover:shadow-lg transition-all",
+                      "group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-3 rounded-2xl hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-lg transition-all",
                       categories.sections[activeTab].length % 2 !== 0 && i === 0 ? "col-span-2" : ""
                     )}
                   >
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest group-hover:text-emerald-500 transition-colors block mb-0.5">
+                    <span className="text-[8px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-widest group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors block mb-0.5 uppercase">
                       {t(item.key, language)}
                     </span>
-                    <span className="text-xs font-bold text-gray-800 line-clamp-1">
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 line-clamp-1">
                       {t(String(item.value), language)}
                     </span>
                   </div>
                 ))}
                 {categories.sections[activeTab].length === 0 && (
-                  <div className="col-span-2 flex flex-col items-center justify-center py-12 text-gray-400 opacity-50">
+                  <div className="col-span-2 flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-600 opacity-50">
                     <Layout size={32} strokeWidth={1} />
                     <span className="mt-2 text-xs font-medium italic">{t('Not categorized yet', language)}</span>
                   </div>
                 )}
               </div>
 
-              {/* Utility / Services Tab Footer */}
-              {activeTab === 'utility' && (
+              {/* Public/Private Services Tab Footer */}
+              {activeTab === 'services' && (
                 <div className="pt-4 grid grid-cols-1 gap-2">
                   <button 
                     onClick={() => setIsEquipmentOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-900 rounded-3xl text-white shadow-xl active:scale-95 transition-all"
+                    className="w-full flex items-center justify-between p-4 bg-gray-900 dark:bg-white rounded-3xl text-white dark:text-gray-900 shadow-xl active:scale-95 transition-all transition-colors duration-300"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-white/10 dark:bg-black/10 rounded-xl flex items-center justify-center">
                         <Package size={20} />
                       </div>
                       <div className="text-left">
                         <h4 className="text-sm font-bold leading-none mb-1">{t('Manage Equipment', language)}</h4>
-                        <p className="text-[10px] text-gray-400">{t('Technical inventory tracking', language)}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{t('Technical inventory tracking', language)}</p>
                       </div>
                     </div>
-                    <ArrowLeft size={16} className={language === 'ar' ? '' : 'rotate-180'} />
+                    <ArrowLeft size={16} className={cn(language === 'ar' ? '' : 'rotate-180')} />
                   </button>
                 </div>
               )}

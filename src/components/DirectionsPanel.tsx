@@ -30,25 +30,25 @@ export default function DirectionsPanel() {
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
-            className="absolute top-safe-4 left-4 right-4 z-[1001] bg-white rounded-2xl shadow-lg p-3 border border-gray-100"
+            className="absolute top-safe-4 left-4 right-4 z-[1001] bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-3 border border-gray-100 dark:border-gray-800 transition-colors duration-300"
           >
             <div className="flex items-start gap-3">
               <button 
                 onClick={() => setRoutingToMosque(null)}
-                className="mt-1 p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
+                className="mt-1 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 transition-colors"
               >
                 <ArrowLeft size={20} className={language === 'ar' ? 'rotate-180' : ''} />
               </button>
               
               <div className="flex-1 flex flex-col gap-2 relative">
                 {/* Vertical dotted line connecting the two dots */}
-                <div className="absolute left-[9px] top-[20px] bottom-[20px] w-[2px] bg-gray-300 border-l-2 border-dotted border-gray-400" />
+                <div className="absolute left-[9px] top-[20px] bottom-[20px] w-[2px] bg-gray-300 dark:bg-gray-700 border-l-2 border-dotted border-gray-400 dark:border-gray-600" />
                 
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0 z-10">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0 z-10 transition-colors">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400" />
                   </div>
-                  <div className="bg-gray-100 rounded-xl px-4 py-2 flex-1 text-xs text-gray-600 font-medium border border-gray-200">
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 flex-1 text-xs text-gray-600 dark:text-gray-400 font-medium border border-gray-200 dark:border-gray-700 transition-colors">
                     {t('Your Location', language)}
                   </div>
                 </div>
@@ -57,7 +57,7 @@ export default function DirectionsPanel() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 z-10">
                     <MapPin size={18} className="text-red-500" fill="#ef4444" stroke="white" strokeWidth={2} />
                   </div>
-                  <div className="bg-white rounded-xl px-4 py-2 flex-1 text-xs text-gray-900 font-bold border border-gray-200 shadow-sm line-clamp-1">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl px-4 py-2 flex-1 text-xs text-gray-900 dark:text-white font-bold border border-gray-200 dark:border-gray-700 shadow-sm line-clamp-1 transition-colors">
                     {routingToMosque.name}
                   </div>
                 </div>
@@ -66,7 +66,7 @@ export default function DirectionsPanel() {
               {/* Quick Profile Toggle in Top Bar */}
               <button
                 onClick={() => setRouteProfile(routeProfile === 'driving' ? 'foot' : 'driving')}
-                className="mt-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-blue-600 hover:bg-blue-50 transition-colors shadow-sm"
+                className="mt-1 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors shadow-sm"
               >
                 {routeProfile === 'driving' ? <Car size={20} /> : <Footprints size={20} />}
               </button>
@@ -79,17 +79,17 @@ export default function DirectionsPanel() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 z-[1001] bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] pb-safe"
+            className="absolute bottom-0 left-0 right-0 z-[1001] bg-white dark:bg-gray-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.4)] pb-safe transition-colors duration-300"
           >
             <div className="w-full flex justify-center pt-3 pb-2">
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full" />
             </div>
 
             <div className="px-5 pb-6 pt-2">
               {/* Polished Segmented Control */}
-              <div className="bg-gray-100 p-1.5 rounded-[20px] flex gap-1 mb-6 relative">
+              <div className="bg-gray-100 dark:bg-gray-800 p-1.5 rounded-[20px] flex gap-1 mb-6 relative transition-colors duration-300">
                 <motion.div 
-                  className="absolute top-1.5 bottom-1.5 bg-white rounded-[14px] shadow-sm pointer-events-none"
+                  className="absolute top-1.5 bottom-1.5 bg-white dark:bg-gray-700 rounded-[14px] shadow-sm pointer-events-none"
                   initial={false}
                   animate={{ 
                     x: routeProfile === 'driving' 
@@ -105,7 +105,7 @@ export default function DirectionsPanel() {
                   onClick={() => setRouteProfile('driving')}
                   className={cn(
                     "relative flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] text-sm font-bold z-10 transition-colors",
-                    routeProfile === 'driving' ? "text-blue-600" : "text-gray-500"
+                    routeProfile === 'driving' ? "text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400"
                   )}
                 >
                   <Car size={20} />
@@ -116,7 +116,7 @@ export default function DirectionsPanel() {
                   onClick={() => setRouteProfile('foot')}
                   className={cn(
                     "relative flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] text-sm font-bold z-10 transition-colors",
-                    routeProfile === 'foot' ? "text-blue-600" : "text-gray-500"
+                    routeProfile === 'foot' ? "text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400"
                   )}
                 >
                   <Footprints size={20} />
@@ -129,15 +129,15 @@ export default function DirectionsPanel() {
                 <div>
                   {routeInfo ? (
                     <>
-                      <div className={`text-3xl font-black tracking-tight ${routeProfile === 'driving' ? 'text-emerald-600' : 'text-blue-600'}`}>
+                      <div className={`text-3xl font-black tracking-tight ${routeProfile === 'driving' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
                         {formatDuration(routeInfo.duration)}
                       </div>
-                      <div className="text-gray-500 font-medium mt-1">
+                      <div className="text-gray-500 dark:text-gray-400 font-medium mt-1">
                         {(routeInfo.distance / 1000).toFixed(1)} km
                       </div>
                     </>
                   ) : (
-                    <div className="text-xl font-bold text-gray-300 animate-pulse">
+                    <div className="text-xl font-bold text-gray-300 dark:text-gray-600 animate-pulse">
                       {t('Calculating...', language)}
                     </div>
                   )}
@@ -146,7 +146,7 @@ export default function DirectionsPanel() {
                 <button 
                   onClick={handleOpenMaps}
                   disabled={!routeInfo}
-                  className="flex items-center gap-2 bg-blue-600 disabled:bg-blue-300 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 active:scale-95"
+                  className="flex items-center gap-2 bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-900/40 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors shadow-lg shadow-blue-600/30 active:scale-95"
                 >
                   <Navigation size={22} className={language === 'ar' ? 'ml-1' : 'mr-1'} fill="currentColor" />
                   {t('Start', language)}

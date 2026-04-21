@@ -1,49 +1,24 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Navigation, Heart, Info, Map, Route, Share2, Phone, Clock, MapPin, Clipboard, Check, Sparkles, Brain, Loader2 } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, MapPin, Clipboard, Check, Share2, Compass } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState, useMemo, useEffect } from 'react';
 import ProfileScreen from '../screens/ProfileScreen';
 import { t, getLocalizedName } from '../utils/translations';
 import { getDistance } from 'geolib';
-import { getRecommendSimilar } from '../services/aiService';
 
 export default function BottomSheet() {
   const { 
     mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, 
-    language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile 
+    language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile,
+    darkMode
   } = useAppStore();
   
   const [showProfile, setShowProfile] = useState(false);
   const [roadDistance, setRoadDistance] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const [smartRecommendations, setSmartRecommendations] = useState<any[]>([]);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isRoutingToThis = routingToMosque?.id === selectedMosque?.id;
-
-  // Fetch AI recommended similar mosques
-  useEffect(() => {
-    if (!selectedMosque) {
-      setSmartRecommendations([]);
-      return;
-    }
-
-    const fetchSmart = async () => {
-      setIsAiLoading(true);
-      try {
-        const ids = await getRecommendSimilar(selectedMosque, mosques);
-        const matches = mosques.filter(m => ids.includes(String(m.id)));
-        setSmartRecommendations(matches);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsAiLoading(false);
-      }
-    };
-
-    fetchSmart();
-  }, [selectedMosque, mosques]);
 
   // Fetch road distance when a mosque is selected
   useEffect(() => {
@@ -167,24 +142,24 @@ export default function BottomSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 z-[1001] bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] max-w-md mx-auto pb-safe"
+            className="fixed bottom-0 left-0 right-0 z-[1001] bg-white dark:bg-gray-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.4)] max-w-md mx-auto pb-safe transition-colors duration-300"
           >
             {/* Drag Handle */}
             <div className="w-full flex justify-center pt-3 pb-1">
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full" />
             </div>
 
             <div className="px-5 pb-6 pt-2 max-h-[80vh] overflow-y-auto scrollbar-hide">
               {/* Header */}
               <div className="flex justify-between items-start mb-3">
                 <div className="pr-4">
-                  <h3 className="text-2xl font-bold text-gray-900 leading-tight">{selectedMosque.name}</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{selectedMosque.name}</h3>
                   <div className="flex items-center gap-2 mt-1.5 text-sm">
-                    <span className="text-emerald-600 font-medium">{t(selectedMosque.type, language)}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{t(selectedMosque.type, language)}</span>
                     {distance && (
                       <>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-gray-600">
+                        <span className="text-gray-300 dark:text-gray-700">•</span>
+                        <span className="text-gray-600 dark:text-gray-400">
                           {distance} km {roadDistance !== null || (isRoutingToThis && routeInfo) ? `(${t('Road', language)})` : ''}
                         </span>
                       </>
@@ -193,9 +168,9 @@ export default function BottomSheet() {
                 </div>
                 <button 
                   onClick={() => setSelectedMosque(null)}
-                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors shrink-0 mt-1"
+                  className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0 mt-1"
                 >
-                  <X size={20} className="text-gray-600" />
+                  <X size={20} className="text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
 
@@ -203,16 +178,16 @@ export default function BottomSheet() {
               <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 scrollbar-hide -mx-5 px-5">
                 <button 
                   onClick={handleOpenGoogleMapsRoute}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-full font-medium hover:bg-emerald-700 transition-colors shadow-sm shrink-0"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 dark:bg-emerald-500 text-white rounded-full font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shadow-sm shrink-0"
                 >
                   <Navigation size={18} />
                   {t('Google Maps', language)}
                 </button>
                 <button 
                   onClick={handleCopyPosition}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors shrink-0"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0"
                 >
-                  {copied ? <Check size={18} className="text-emerald-600" /> : <Clipboard size={18} />}
+                  {copied ? <Check size={18} className="text-emerald-600 dark:text-emerald-400" /> : <Clipboard size={18} />}
                   {t(copied ? 'Copied' : 'Position', language)}
                 </button>
                 <button 
@@ -220,8 +195,8 @@ export default function BottomSheet() {
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-colors shrink-0 border",
                     isFavorite 
-                      ? "bg-red-50 text-red-600 border-red-100" 
-                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                      ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900" 
+                      : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
                   )}
                 >
                   <Heart size={18} className={cn(isFavorite && "fill-current")} />
@@ -229,7 +204,7 @@ export default function BottomSheet() {
                 </button>
                 <button 
                   onClick={handleShare}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full font-medium hover:bg-gray-50 transition-colors shrink-0"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-full font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shrink-0"
                 >
                   <Share2 size={18} />
                   {t('Share', language)}
@@ -243,13 +218,13 @@ export default function BottomSheet() {
                   alt={getLocalizedName(selectedMosque, language)} 
                   className="w-28 h-28 rounded-2xl object-cover shadow-sm shrink-0"
                 />
-                <div className="flex-1 flex flex-col justify-center gap-2">
-                  <div className="flex items-start gap-2 text-gray-600 text-sm">
-                    <MapPin size={16} className="shrink-0 mt-0.5 text-gray-400" />
+                <div className="flex-1 flex flex-col justify-center gap-2 text-gray-900 dark:text-white">
+                  <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 text-sm">
+                    <MapPin size={16} className="shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" />
                     <div className="flex flex-col">
                       <span className="line-clamp-2 leading-snug font-medium">{t(selectedMosque.address, language)}</span>
                       {selectedMosque.commune && (
-                        <span className="text-xs text-gray-400 mt-0.5">{selectedMosque.commune}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{selectedMosque.commune}</span>
                       )}
                     </div>
                   </div>
@@ -257,12 +232,12 @@ export default function BottomSheet() {
                   {/* Quick Services Preview */}
                   <div className="flex flex-wrap gap-1.5">
                     {selectedMosque.services.slice(0, 3).map(service => (
-                      <span key={service} className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-medium rounded-md border border-emerald-100/50">
+                      <span key={service} className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-medium rounded-md border border-emerald-100/50 dark:border-emerald-800/50">
                         {t(service, language)}
                       </span>
                     ))}
                     {selectedMosque.services.length > 3 && (
-                      <span className="px-2 py-1 bg-gray-50 text-gray-600 text-[10px] font-medium rounded-md border border-gray-200/50">
+                      <span className="px-2 py-1 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] font-medium rounded-md border border-gray-200/50 dark:border-gray-700">
                         +{selectedMosque.services.length - 3}
                       </span>
                     )}
@@ -273,33 +248,25 @@ export default function BottomSheet() {
               {/* Full Details Button */}
               <button 
                 onClick={() => setShowProfile(true)}
-                className="w-full mt-5 flex items-center justify-center gap-2 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-medium hover:bg-gray-100 transition-colors border border-gray-200/60"
+                className="w-full mt-5 flex items-center justify-center gap-2 py-3.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200/60 dark:border-gray-700 transition-all"
               >
                 <Info size={18} />
                 {t('View Full Details', language)}
               </button>
 
-              {/* Smart Recommendations Label */}
-              <div className="mt-6 flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={14} className="text-purple-600" />
-                  <h4 className="text-sm font-bold text-gray-900">{t('Smart AI Matches', language)}</h4>
-                </div>
-                {isAiLoading && <Loader2 size={14} className="animate-spin text-purple-600" />}
+              {/* Nearby Mosques Header */}
+              <div className="mt-6 flex items-center gap-2 px-1">
+                <Compass size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">{t('Nearby Mosques', language)}</h4>
               </div>
 
-              {/* Recommended Mosques */}
+              {/* Nearby Mosques List */}
               <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5">
-                {(smartRecommendations.length > 0 ? smartRecommendations : nearbyMosques).map(mosque => (
+                {nearbyMosques.map(mosque => (
                   <button
                     key={mosque.id}
                     onClick={() => setSelectedMosque(mosque)}
-                    className={cn(
-                      "flex flex-col gap-2 p-2.5 rounded-2xl min-w-[140px] max-w-[140px] text-left transition-all border shrink-0 group active:scale-95",
-                      smartRecommendations.length > 0 && smartRecommendations.find(m => m.id === mosque.id)
-                        ? "bg-purple-50/50 border-purple-100 hover:bg-purple-50"
-                        : "bg-gray-50 border-gray-200/50 hover:bg-gray-100"
-                    )}
+                    className="flex flex-col gap-2 p-2.5 rounded-2xl min-w-[140px] max-w-[140px] text-left transition-all border shrink-0 group active:scale-95 bg-gray-50 dark:bg-gray-800 border-gray-200/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <div className="relative">
                       <img 
@@ -307,15 +274,10 @@ export default function BottomSheet() {
                         alt={getLocalizedName(mosque, language)} 
                         className="w-full h-20 rounded-xl object-cover"
                       />
-                      {smartRecommendations.length > 0 && smartRecommendations.find(m => m.id === mosque.id) && (
-                        <div className="absolute top-1 right-1 bg-white/90 p-1 rounded-lg border border-purple-100">
-                          <Brain size={10} className="text-purple-600" />
-                        </div>
-                      )}
                     </div>
                     <div>
-                      <h5 className="font-semibold text-gray-900 text-xs line-clamp-1 group-hover:text-emerald-700 transition-colors">{mosque.name}</h5>
-                      <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500 font-medium">
+                      <h5 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{mosque.name}</h5>
+                      <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 font-medium">
                         <MapPin size={10} className="shrink-0" />
                         <span>{mosque.commune}</span>
                       </div>
@@ -323,13 +285,6 @@ export default function BottomSheet() {
                   </button>
                 ))}
               </div>
-
-              {/* Nearby Mosques Fallback (only if AI failed and didn't find matches) */}
-              {smartRecommendations.length === 0 && !isAiLoading && (
-                <div className="mt-1 px-1">
-                   <p className="text-[10px] text-gray-400 italic">{t('Showing nearby results (AI processing offline)', language)}</p>
-                </div>
-              )}
             </div>
           </motion.div>
         )}

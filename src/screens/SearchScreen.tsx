@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, MapPin, Heart, ArrowUpDown, Sparkles, Brain, Loader2 } from 'lucide-react';
+import { Search, Filter, MapPin, Heart, ArrowUpDown, Sparkles, Brain, Loader2, Crosshair } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Mosque } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -145,9 +145,9 @@ export default function SearchScreen() {
   }, [knowledgeBase, language]);
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col max-w-md mx-auto">
-      <div className="bg-white px-4 pt-safe-4 pb-4 shadow-sm z-10">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('Search', language)}</h1>
+    <div className="h-full bg-gray-50 dark:bg-gray-950 flex flex-col max-w-md mx-auto transition-colors duration-300">
+      <div className="bg-white dark:bg-gray-900 px-4 pt-safe-4 pb-4 shadow-sm z-10 border-b dark:border-gray-800 transition-colors duration-300">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('Search', language)}</h1>
         
         <div className="relative mb-4 flex gap-2">
           <div className="relative flex-1">
@@ -156,7 +156,7 @@ export default function SearchScreen() {
             </div>
             <input
               type="text"
-              className={`block w-full ${language === 'ar' ? 'pr-10 pl-3' : 'pl-10 pr-3'} py-3 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors`}
+              className={`block w-full ${language === 'ar' ? 'pr-10 pl-3' : 'pl-10 pr-3'} py-3 border border-gray-200 dark:border-gray-700 rounded-xl leading-5 bg-gray-50 dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors`}
               placeholder={t('Search mosques, cities...', language)}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -166,10 +166,10 @@ export default function SearchScreen() {
             <button
               onClick={handleSmartSearch}
               disabled={isAiSearching}
-              className={`px-4 py-2 ${isAiSearching ? 'bg-gray-100' : 'bg-emerald-50 hover:bg-emerald-100'} text-emerald-700 rounded-xl text-sm font-bold transition-all border border-emerald-100/50 flex items-center gap-2 active:scale-95`}
+              className={`px-4 py-2 ${isAiSearching ? 'bg-gray-100 dark:bg-gray-800' : 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'} text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold transition-all border border-emerald-100/50 dark:border-emerald-800/50 flex items-center gap-2 active:scale-95`}
               title={t('Smart Search', language)}
             >
-              {isAiSearching ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-emerald-600" />}
+              {isAiSearching ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-emerald-600 dark:text-emerald-400" />}
               <span className="hidden sm:inline">{t('AI Search', language)}</span>
             </button>
           )}
@@ -180,7 +180,7 @@ export default function SearchScreen() {
                 setSelectedType(null);
                 setSelectedCommune(null);
               }}
-              className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors whitespace-nowrap flex items-center justify-center"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               {t('Clear', language)}
             </button>
@@ -191,8 +191,8 @@ export default function SearchScreen() {
         {smartSuggestions.length > 0 && query === '' && !selectedType && !selectedCommune && (
           <div className="mb-4">
             <div className={`flex items-center gap-2 mb-2 px-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <Sparkles size={14} className="text-purple-500" />
-              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">{t('Smart Suggestion', language)}</span>
+              <Sparkles size={14} className="text-purple-500 dark:text-purple-400" />
+              <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">{t('Smart Suggestion', language)}</span>
             </div>
             <div className={`flex gap-2 overflow-x-auto pb-2 no-scrollbar ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
               {smartSuggestions.map((suggestion, idx) => (
@@ -202,7 +202,7 @@ export default function SearchScreen() {
                     if (suggestion.type === 'type') setSelectedType(suggestion.value);
                     else setQuery(suggestion.value);
                   }}
-                  className="whitespace-nowrap px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold border border-purple-100 flex items-center gap-2 shadow-sm active:scale-95 transition-transform"
+                  className="whitespace-nowrap px-4 py-2 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold border border-purple-100 dark:border-purple-800 flex items-center gap-2 shadow-sm active:scale-95 transition-all"
                 >
                   <Brain size={12} />
                   {suggestion.label}
@@ -214,7 +214,7 @@ export default function SearchScreen() {
 
         <div className="flex flex-col gap-3 mb-2">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <div className={`flex items-center text-gray-500 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+            <div className={`flex items-center text-gray-500 dark:text-gray-400 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
               <Filter size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
               <span className="text-xs font-medium uppercase tracking-wider">{t('Type', language)}</span>
             </div>
@@ -222,8 +222,8 @@ export default function SearchScreen() {
               onClick={() => setSelectedType(null)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 selectedType === null 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {t('All', language)}
@@ -234,8 +234,8 @@ export default function SearchScreen() {
                 onClick={() => setSelectedType(type)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   selectedType === type 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {t(type, language)}
@@ -244,7 +244,7 @@ export default function SearchScreen() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <div className={`flex items-center text-gray-500 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+            <div className={`flex items-center text-gray-500 dark:text-gray-400 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
               <Filter size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
               <span className="text-xs font-medium uppercase tracking-wider">{t('Commune', language)}</span>
             </div>
@@ -252,8 +252,8 @@ export default function SearchScreen() {
               onClick={() => setSelectedCommune(null)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 selectedCommune === null 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {t('All', language)}
@@ -264,8 +264,8 @@ export default function SearchScreen() {
                 onClick={() => setSelectedCommune(commune)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   selectedCommune === commune 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {commune}
@@ -274,7 +274,7 @@ export default function SearchScreen() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <div className={`flex items-center text-gray-500 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+            <div className={`flex items-center text-gray-500 dark:text-gray-400 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
               <ArrowUpDown size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
               <span className="text-xs font-medium uppercase tracking-wider">{t('Sort', language)}</span>
             </div>
@@ -282,8 +282,8 @@ export default function SearchScreen() {
               onClick={() => setSortBy('name')}
               className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 sortBy === 'name' 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {t('Name', language)}
@@ -293,8 +293,8 @@ export default function SearchScreen() {
                 onClick={() => setSortBy('distance')}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   sortBy === 'distance' 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {t('Distance', language)}
@@ -314,7 +314,7 @@ export default function SearchScreen() {
               transition={{ delay: i * 0.05 }}
               key={mosque.id}
               onClick={() => handleSelect(mosque)}
-              className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:shadow-md transition-shadow relative"
+              className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 flex gap-4 cursor-pointer hover:shadow-md transition-all relative"
             >
               <img 
                 src={mosque.image} 
@@ -323,44 +323,57 @@ export default function SearchScreen() {
               />
               <div className={`flex-1 py-1 ${language === 'ar' ? 'pl-2' : 'pr-2'}`}>
                 <div className="flex justify-between items-start">
-                  <div className="text-xs font-medium text-emerald-600 mb-1">{t(mosque.type, language)}</div>
-                  <div className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{mosque.commune}</div>
+                  <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">{t(mosque.type, language)}</div>
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded transition-colors">{mosque.commune}</div>
                 </div>
-                <h3 className="font-bold text-gray-900 leading-tight mb-1 flex items-center gap-1.5">
+                <h3 className="font-bold text-gray-900 dark:text-white leading-tight mb-1 flex items-center gap-1.5">
                   <span className="line-clamp-1">{mosque.name}</span>
                   {favorites.includes(mosque.id) && (
                     <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
                   )}
                 </h3>
-                <div className="flex items-start text-gray-500 text-xs">
+                <div className="flex items-center text-gray-500 dark:text-gray-400 text-xs">
                   <MapPin size={12} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                   <span className="line-clamp-1">{t(mosque.address, language)}</span>
                 </div>
-                {userLocation && (
-                  <div className="text-xs text-emerald-600 mt-1 font-medium">
-                    {(() => {
-                      try {
-                        return (getDistance(
-                          { latitude: userLocation.latitude, longitude: userLocation.longitude },
-                          { latitude: mosque.latitude, longitude: mosque.longitude }
-                        ) / 1000).toFixed(1) + ' km';
-                      } catch (e) {
-                        return '';
-                      }
-                    })()}
-                  </div>
-                )}
+                <div className="flex items-center justify-between mt-1">
+                  {userLocation && (
+                    <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      {(() => {
+                        try {
+                          return (getDistance(
+                            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                            { latitude: mosque.latitude, longitude: mosque.longitude }
+                          ) / 1000).toFixed(1) + ' km';
+                        } catch (e) {
+                          return '';
+                        }
+                      })()}
+                    </div>
+                  )}
+                  {!userLocation && <div></div>}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelect(mosque);
+                    }}
+                    className="p-1.5 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all active:scale-90"
+                    title={t('View on map', language)}
+                  >
+                    <Crosshair size={16} />
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
           
           {filteredMosques.length === 0 && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search size={24} className="text-gray-400" />
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
+                <Search size={24} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">{t('No mosques found', language)}</h3>
-              <p className="text-gray-500 text-sm">{t('Try adjusting your search or filters', language)}</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1 transition-colors">{t('No mosques found', language)}</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors">{t('Try adjusting your search or filters', language)}</p>
             </div>
           )}
         </div>

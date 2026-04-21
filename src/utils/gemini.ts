@@ -38,14 +38,20 @@ export async function translateTerms(terms: string[]): Promise<Record<string, Re
     // Chunk terms if there are too many to avoid hitting token limits
     const chunkSize = 50;
     const results: Record<string, Record<Language, string>> = {};
-    const promises: Promise<void>[] = [];
     
+    // Helper for delay/backoff
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
     for (let i = 0; i < terms.length; i += chunkSize) {
       const chunk = terms.slice(i, i + chunkSize);
-      
-      const promise = ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `You are an expert translator specializing in Islamic terminology and architecture. 
+      let attempts = 0;
+      let success = false;
+
+      while (attempts < 3 && !success) {
+        try {
+          const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `You are an expert translator specializing in Islamic terminology and architecture. 
 The following JSON array contains terms extracted from a French dataset about mosques in Morocco.
 
 Your task:
@@ -56,25 +62,25 @@ Your task:
 
 Terms to translate:
 ${JSON.stringify(chunk)}`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                originalTerm: { type: Type.STRING, description: "The exact original French term provided" },
-                en: { type: Type.STRING, description: "English translation" },
-                fr: { type: Type.STRING, description: "Standardized French term" },
-                ar: { type: Type.STRING, description: "Arabic translation" }
-              },
-              required: ["originalTerm", "en", "fr", "ar"]
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    originalTerm: { type: Type.STRING, description: "The exact original French term provided" },
+                    en: { type: Type.STRING, description: "English translation" },
+                    fr: { type: Type.STRING, description: "Standardized French term" },
+                    ar: { type: Type.STRING, description: "Arabic translation" }
+                  },
+                  required: ["originalTerm", "en", "fr", "ar"]
+                }
+              }
             }
-          }
-        }
-      }).then(response => {
-        const jsonStr = response.text || "[]";
-        try {
+          });
+
+          const jsonStr = response.text || "[]";
           const parsed = JSON.parse(cleanJsonResponse(jsonStr));
           for (const item of parsed) {
             if (item.originalTerm && item.en && item.fr && item.ar) {
@@ -85,17 +91,23 @@ ${JSON.stringify(chunk)}`,
               };
             }
           }
-        } catch (e) {
-          console.error("JSON Parse Error in translateTerms. String length:", jsonStr.length, "Error:", e);
+          success = true;
+        } catch (err: any) {
+          attempts++;
+          if (err?.message?.includes('429') || err?.status === 'RESOURCE_EXHAUSTED') {
+            console.warn(`Translation rate limit hit (attempt ${attempts}). Waiting before retry...`);
+            await delay(2000 * attempts); // Linear backoff
+          } else {
+            console.error("Error translating chunk:", err);
+            break; // Stop retrying on non-quota errors
+          }
         }
-      }).catch(err => {
-        console.error("Error translating chunk:", err);
-      });
+      }
       
-      promises.push(promise);
+      // Small pause between successful chunks to be polite to the API
+      if (i + chunkSize < terms.length) await delay(500);
     }
     
-    await Promise.all(promises);
     return results;
   } catch (error) {
     console.error("Translation error:", error);

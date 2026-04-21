@@ -16,7 +16,11 @@ import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
 
 export default function App() {
-  const { activeTab, setUserLocation, language, routingToMosque, refreshLocation, mosques, mapStyle, setMapStyle, isEquipmentOpen } = useAppStore();
+  const { 
+    activeTab, setUserLocation, language, routingToMosque, 
+    refreshLocation, mosques, mapStyle, setMapStyle, 
+    isEquipmentOpen, darkMode 
+  } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
@@ -51,13 +55,29 @@ export default function App() {
     requestLocation();
   }, []);
 
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   return (
     <div 
-      className="fixed inset-0 bg-gray-100 font-sans text-gray-900 flex justify-center overflow-hidden h-[100dvh]"
+      className={cn(
+        "fixed inset-0 font-sans flex justify-center overflow-hidden h-[100dvh] transition-colors duration-300",
+        darkMode ? "bg-gray-950 text-gray-100 dark" : "bg-gray-100 text-gray-900"
+      )}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {/* Mobile container constraint for desktop viewing */}
-      <div className="w-full max-w-md h-full bg-white relative shadow-2xl overflow-hidden flex flex-col">
+      <div className={cn(
+        "w-full max-w-md h-full relative shadow-2xl overflow-hidden flex flex-col transition-colors duration-300",
+        darkMode ? "bg-gray-900 dark" : "bg-white"
+      )}>
         
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden">
@@ -68,17 +88,22 @@ export default function App() {
               
               {/* Floating Location Button */}
               {!routingToMosque && (
-                <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3`}>
+                <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3 transition-all`}>
                   <button 
                     onClick={requestLocation}
-                    className="p-3 bg-white rounded-full shadow-md text-gray-700 hover:text-blue-600 transition-colors"
+                    className="p-3 bg-white dark:bg-gray-900 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     title={t("My Location", language)}
                   >
                     <LocateFixed size={24} className={isLocating ? "animate-pulse text-blue-500" : ""} />
                   </button>
                   <button 
                     onClick={() => setShowNearest(!showNearest)}
-                    className={`p-3 rounded-full shadow-md transition-colors ${showNearest ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:text-blue-600'}`}
+                    className={cn(
+                      "p-3 rounded-full shadow-md transition-colors",
+                      showNearest 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                    )}
                     title={t("Nearest Mosques", language)}
                   >
                     <MapPin size={24} />
@@ -94,7 +119,7 @@ export default function App() {
                     }}
                     className={cn(
                       "p-3 rounded-full shadow-md transition-all duration-300",
-                      mapStyle === 'street' ? "bg-white text-gray-700 hover:text-blue-600" :
+                      mapStyle === 'street' ? "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400" :
                       mapStyle === 'satellite' ? "bg-blue-600 text-white" :
                       "bg-emerald-600 text-white"
                     )}
@@ -109,7 +134,12 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => setShowLegend(!showLegend)}
-                    className={`p-3 rounded-full shadow-md transition-colors ${showLegend ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:text-blue-600'}`}
+                    className={cn(
+                      "p-3 rounded-full shadow-md transition-colors",
+                      showLegend 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                    )}
                     title={t("Map Legend", language)}
                   >
                     <HelpCircle size={24} />
@@ -125,38 +155,38 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 10 }}
                     className={cn(
-                      "absolute bottom-24 z-[1000] bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-gray-100 w-64",
+                      "absolute bottom-24 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 w-64 transition-colors duration-300",
                       language === 'ar' ? "left-4" : "right-4"
                     )}
                   >
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">{t("Map Legend", language)}</h4>
-                      <button onClick={() => setShowLegend(false)} className="text-gray-400 hover:text-gray-600">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">{t("Map Legend", language)}</h4>
+                      <button onClick={() => setShowLegend(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                         <X size={16} />
                       </button>
                     </div>
                     
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-sm" />
-                        <span className="text-xs font-bold text-gray-700">{t("User Location", language)}</span>
+                        <div className="w-4 h-4 bg-blue-500 border-2 border-white dark:border-gray-800 rounded-full shadow-sm" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("User Location", language)}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" className="w-4 h-6 object-contain" alt="" />
-                        <span className="text-xs font-bold text-gray-700">{t("Mosque", language)}</span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Mosque", language)}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" className="w-4 h-6 object-contain" alt="" />
-                        <span className="text-xs font-bold text-gray-700">{t("Destination", language)}</span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Destination", language)}</span>
                       </div>
-                      <div className="pt-2 border-t border-gray-100 space-y-2">
+                      <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-1 bg-blue-600 rounded-full" style={{ borderBottom: '2px dotted white' }} />
-                          <span className="text-[10px] font-bold text-gray-500">{t("Walking Route", language)}</span>
+                          <div className="w-8 h-1 bg-blue-600 dark:bg-blue-400 rounded-full" style={{ borderBottom: darkMode ? '2px dotted #1f2937' : '2px dotted white' }} />
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{t("Walking Route", language)}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-1 bg-blue-600 rounded-full" />
-                          <span className="text-[10px] font-bold text-gray-500">{t("Driving Route", language)}</span>
+                          <div className="w-8 h-1 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{t("Driving Route", language)}</span>
                         </div>
                       </div>
                     </div>
@@ -165,7 +195,7 @@ export default function App() {
               </AnimatePresence>
 
               {locationError && (
-                <div className="absolute top-safe-20 left-4 right-4 z-[1000] p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl shadow-sm">
+                <div className="absolute top-safe-20 left-4 right-4 z-[1000] p-3 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400 text-sm rounded-xl shadow-sm transition-colors">
                   {locationError}
                 </div>
               )}

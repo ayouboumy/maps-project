@@ -26,6 +26,7 @@ interface AppState {
   selectedCommune: string | null;
   mapStyle: MapStyle;
   isEquipmentOpen: boolean;
+  darkMode: boolean;
   downloadedCommunes: string[];
   knowledgeBase: {
     commonTypes: string[];
@@ -56,6 +57,7 @@ interface AppState {
   resetApp: () => void;
   updateMosqueItems: (id: number, items: string[]) => void;
   setIsEquipmentOpen: (isOpen: boolean) => void;
+  setDarkMode: (enabled: boolean) => void;
   downloadCommune: (commune: string) => void;
   removeDownloadedCommune: (commune: string) => void;
   setKnowledgeBase: (kb: AppState['knowledgeBase']) => void;
@@ -83,6 +85,7 @@ export const useAppStore = create<AppState>()(
       selectedCommune: null,
       mapStyle: 'street',
       isEquipmentOpen: false,
+      darkMode: false,
       downloadedCommunes: [],
       knowledgeBase: {
         commonTypes: [],
@@ -165,6 +168,7 @@ export const useAppStore = create<AppState>()(
         });
       },
       setIsEquipmentOpen: (isOpen) => set({ isEquipmentOpen: isOpen }),
+      setDarkMode: (enabled) => set({ darkMode: enabled }),
       downloadCommune: (commune) => set((state) => ({
         downloadedCommunes: state.downloadedCommunes.includes(commune) 
           ? state.downloadedCommunes 
@@ -190,6 +194,7 @@ export const useAppStore = create<AppState>()(
         dynamicTranslations: state.dynamicTranslations,
         selectedCommune: state.selectedCommune,
         mapStyle: state.mapStyle,
+        darkMode: state.darkMode,
         downloadedCommunes: state.downloadedCommunes,
         knowledgeBase: state.knowledgeBase,
         aiInsights: state.aiInsights,

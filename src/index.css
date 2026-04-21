@@ -6,6 +6,40 @@
   --font-serif: "Playfair Display", serif;
 }
 
+@variant dark (&:where(.dark, .dark *));
+
+:root.dark {
+  color-scheme: dark;
+}
+
+@layer base {
+  .leaflet-tooltip {
+    @apply border-none shadow-lg transition-colors duration-300;
+  }
+  .dark .leaflet-tooltip {
+    @apply bg-gray-900 text-white;
+  }
+  .leaflet-tooltip-top:before {
+    @apply border-t-white transition-colors duration-300;
+  }
+  .dark .leaflet-tooltip-top:before {
+    @apply border-t-gray-900;
+  }
+  
+  /* Marker Cluster Dark Mode */
+  .dark .marker-cluster div {
+    @apply bg-gray-800/80 text-white border border-gray-700;
+  }
+  .dark .marker-cluster-small,
+  .dark .marker-cluster-medium,
+  .dark .marker-cluster-large {
+    @apply bg-transparent;
+  }
+  .dark .marker-cluster-small div { @apply bg-emerald-700/80; }
+  .dark .marker-cluster-medium div { @apply bg-amber-700/80; }
+  .dark .marker-cluster-large div { @apply bg-rose-700/80; }
+}
+
 @layer utilities {
   .pb-safe {
     padding-bottom: 0px;
