@@ -313,103 +313,131 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             </div>
           </div>
 
-          {/* Sticky Tabs Navigation */}
-          <div className="sticky top-2 z-40 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl p-1.5 rounded-2xl border border-white dark:border-gray-800 shadow-xl flex gap-1 items-center transition-all overflow-x-auto no-scrollbar">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex-1 min-w-[40px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-                  activeTab === tab.id 
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg" 
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                )}
-              >
-                <tab.icon size={14} />
-                <span className="hidden lg:inline whitespace-nowrap">{t(tab.label, language)}</span>
-              </button>
-            ))}
-          </div>
+          {/* Document Content */}
+          <div className="space-y-10 pb-20">
+            {tabs.map((tab) => {
+              const items = categories.sections[tab.id];
+              if (items.length === 0) return null;
 
-          {/* Tab Content Display */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.15 }}
-              className="space-y-4"
-            >
-              {/* Specialized Component for Land Tab */}
-              {activeTab === 'land' && totalArea > 0 && (
-                <div className="bg-white dark:bg-gray-900 p-5 rounded-[28px] border border-gray-100 dark:border-gray-800 shadow-sm transition-colors">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">{t('Occupancy Rate', language)}</h3>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{builtPercentage.toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
-                    <div 
-                      className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full" 
-                      style={{ width: `${builtPercentage}%` }} 
-                    />
-                  </div>
-                  <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase">
-                    <span>{builtArea} m² {t('Built', language)}</span>
-                    <span>{totalArea} m² {t('Total', language)}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* High Density Grid for All Tabs */}
-              <div className="grid grid-cols-2 gap-2.5">
-                {categories.sections[activeTab].map((item, i) => (
-                  <div 
-                    key={i} 
-                    className={cn(
-                      "group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-3 rounded-2xl hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-lg transition-all",
-                      categories.sections[activeTab].length % 2 !== 0 && i === 0 ? "col-span-2" : ""
-                    )}
-                  >
-                    <span className="text-[8px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-widest group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors block mb-0.5 uppercase">
-                      {t(item.key, language)}
-                    </span>
-                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 line-clamp-1">
-                      {t(String(item.value), language)}
-                    </span>
-                  </div>
-                ))}
-                {categories.sections[activeTab].length === 0 && (
-                  <div className="col-span-2 flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-600 opacity-50">
-                    <Layout size={32} strokeWidth={1} />
-                    <span className="mt-2 text-xs font-medium italic">{t('Not categorized yet', language)}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Public/Private Services Tab Footer */}
-              {activeTab === 'services' && (
-                <div className="pt-4 grid grid-cols-1 gap-2">
-                  <button 
-                    onClick={() => setIsEquipmentOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-900 dark:bg-white rounded-3xl text-white dark:text-gray-900 shadow-xl active:scale-95 transition-all transition-colors duration-300"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/10 dark:bg-black/10 rounded-xl flex items-center justify-center">
-                        <Package size={20} />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-sm font-bold leading-none mb-1">{t('Manage Equipment', language)}</h4>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{t('Technical inventory tracking', language)}</p>
+              return (
+                <div key={tab.id} className="relative">
+                  {/* Category Header */}
+                  <div className="flex items-center gap-4 mb-6 sticky top-0 z-20 py-2 bg-gray-50/80 dark:bg-gray-950/80 backdrop-blur-md">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 shadow-xl shadow-gray-200 dark:shadow-none">
+                      <tab.icon size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">
+                        {t(tab.label, language)}
+                      </h3>
+                      <div className="flex gap-1 mt-1.5 focus:outline-none">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="h-1 w-4 rounded-full bg-emerald-500/30" />
+                        ))}
                       </div>
                     </div>
-                    <ArrowLeft size={16} className={cn(language === 'ar' ? '' : 'rotate-180')} />
-                  </button>
+                  </div>
+
+                  {/* Specialized Land Metrics */}
+                  {tab.id === 'land' && totalArea > 0 && (
+                    <div className="mb-6 bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden relative group">
+                      <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+                      
+                      <div className="relative z-10">
+                        <div className="flex items-end justify-between mb-6">
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest block mb-1">{t('Total Surface', language)}</span>
+                            <span className="text-3xl font-serif font-black text-gray-900 dark:text-white">{totalArea} <span className="text-xs font-sans font-bold text-gray-400">m²</span></span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest block mb-1">{t('Built Ratio', language)}</span>
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">{builtPercentage.toFixed(1)}%</span>
+                          </div>
+                        </div>
+
+                        <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-3 p-0.5">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${builtPercentage}%` }}
+                            transition={{ duration: 1.2, ease: "circOut" }}
+                            className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full shadow-sm" 
+                          />
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] font-bold">
+                          <div className="flex items-center gap-2 text-gray-900 dark:text-white">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span>{builtArea} m² {t('Built Coverage', language)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
+                            <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            <span>{totalArea - builtArea} m² {t('Open Space', language)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Components Data Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {items.map((item, i) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.03 }}
+                        className={cn(
+                          "group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-3xl hover:border-emerald-200 dark:hover:border-emerald-800 transition-all duration-300",
+                          items.length % 2 !== 0 && i === 0 ? "sm:col-span-2" : ""
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <span className="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest block mb-1 group-hover:text-emerald-500 transition-colors">
+                              {item.key}
+                            </span>
+                            <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                              {item.value}
+                            </span>
+                          </div>
+                          <div className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30 group-hover:text-emerald-500 transition-all shrink-0">
+                            <CheckCircle2 size={14} />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+              );
+            })}
+          </div>
+
+          {/* Technical Inventory Footer Link */}
+          <div className="pt-6">
+            <button 
+              onClick={() => setIsEquipmentOpen(true)}
+              className="group relative w-full overflow-hidden p-6 bg-gray-900 dark:bg-white rounded-[40px] text-white dark:text-gray-900 shadow-2xl active:scale-95 transition-all"
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                <Package size={80} />
+              </div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white/10 dark:bg-black/10 rounded-2xl flex items-center justify-center text-emerald-400 dark:text-emerald-600">
+                    <Activity size={28} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black tracking-tight leading-none mb-1.5">{t('Technical Inventory', language)}</h4>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">{t('Track state of maintenance and equipment', language)}</p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white/5 dark:bg-gray-100 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                  <ArrowLeft size={20} className={cn(language === 'ar' ? '' : 'rotate-180')} />
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
