@@ -21,7 +21,7 @@ interface ProfileScreenProps {
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen, darkMode } = useAppStore();
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'land' | 'construction' | 'services' | 'components' | 'revenue'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'land' | 'construction' | 'services' | 'components' | 'revenue' | 'other'>('general');
   const isFavorite = favorites.includes(mosque.id);
 
   const handleCopyPosition = () => {
@@ -225,64 +225,93 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             </button>
           </div>
 
-          {/* Document Content */}
-          <div className="space-y-10 pb-20">
-            {tabs.map((tab) => {
-              const items = categories.sections[tab.id];
-              if (items.length === 0) return null;
+          {/* Tab Navigation */}
+          <div className="flex overflow-x-auto no-scrollbar gap-2 py-1 -mx-5 px-5">
+            {tabs.map(tab => {
+              const isActive = activeTab === tab.id;
+              const items = categories.sections[tab.id as keyof typeof categories.sections];
+              if (!items || items.length === 0) return null;
 
               return (
-                <div key={tab.id} className="relative">
-                  {/* Category Header */}
-                  <div className="flex items-center gap-4 mb-6 sticky top-0 z-20 py-2 bg-gray-50/80 dark:bg-gray-950/80 backdrop-blur-md">
-                    <div className="w-12 h-12 rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 shadow-xl shadow-gray-200 dark:shadow-none">
-                      <tab.icon size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">
-                        {t(tab.label, language)}
-                      </h3>
-                      <div className="flex gap-1 mt-1.5 focus:outline-none">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="h-1 w-4 rounded-full bg-emerald-500/30" />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Components Data Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {items.map((item, i) => (
-                      <motion.div 
-                        key={i} 
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.03 }}
-                        className={cn(
-                          "group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-3xl hover:border-emerald-200 dark:hover:border-emerald-800 transition-all duration-300",
-                          items.length % 2 !== 0 && i === 0 ? "sm:col-span-2" : ""
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <span className="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest block mb-1 group-hover:text-emerald-500 transition-colors">
-                              {item.key}
-                            </span>
-                            <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                              {item.value}
-                            </span>
-                          </div>
-                          <div className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30 group-hover:text-emerald-500 transition-all shrink-0">
-                            <CheckCircle2 size={14} />
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-2xl whitespace-nowrap transition-all flex-shrink-0 font-bold text-sm",
+                    isActive 
+                      ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
+                      : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800"
+                  )}
+                >
+                  <tab.icon size={16} className={isActive ? "" : "text-gray-400"} />
+                  {t(tab.label, language)}
+                </button>
               );
             })}
+          </div>
+
+          {/* Document Content */}
+          <div className="pb-20 pt-4">
+            <AnimatePresence mode="wait">
+              {tabs.map((tab) => {
+                if (tab.id !== activeTab) return null;
+                
+                const items = categories.sections[tab.id as keyof typeof categories.sections];
+                if (!items || items.length === 0) return (
+                  <motion.div 
+                    key="empty"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="p-8 text-center text-gray-400 dark:text-gray-600 font-medium"
+                  >
+                    {t('No data available in this category', language)}
+                  </motion.div>
+                );
+
+                return (
+                  <motion.div 
+                    key={tab.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative"
+                  >
+                    {/* Components Data Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {items.map((item, i) => (
+                        <motion.div 
+                          key={i} 
+                          initial={{ opacity: 0, y: 15 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.03 }}
+                          className={cn(
+                            "group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-3xl hover:border-emerald-200 dark:hover:border-emerald-800 transition-all duration-300",
+                            items.length % 2 !== 0 && i === 0 ? "sm:col-span-2" : ""
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <span className="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest block mb-1 group-hover:text-emerald-500 transition-colors">
+                                {item.key}
+                              </span>
+                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                                {item.value}
+                              </span>
+                            </div>
+                            <div className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30 group-hover:text-emerald-500 transition-all shrink-0">
+                              <CheckCircle2 size={14} />
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
 
           {/* Technical Inventory Footer Link */}
