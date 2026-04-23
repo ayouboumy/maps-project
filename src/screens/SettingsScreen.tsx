@@ -127,7 +127,6 @@ export default function SettingsScreen() {
             // Collect all other columns into extraData
             const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'adresse', 'location', 'city', 'emplacement', 'lieu', 'العنوان', 'الموقع', 'المدينة', 'type', 'category', 'catégorie', 'genre', 'النوع', 'الصنف', 'services', 'facilities', 'équipements', 'equipements', 'الخدمات', 'المرافق', 'items', 'amenities', 'features', 'articles', 'composants', 'العناصر', 'المكونات', 'image', 'photo', 'picture', 'image_url', 'url_image', 'الصورة', 'commune', 'municipality', 'district', 'commune_ar', 'commune_fr', 'ville', 'الجماعة', 'المقاطعة', 'العمالة'];
             const extraData: Record<string, any> = {};
-            const combinedData: Record<string, { N?: any, S?: any, H?: any, originalKey?: string }> = {};
             
             Object.keys(item).forEach(key => {
               const lowerKey = key.toLowerCase().trim();
@@ -140,55 +139,8 @@ export default function SettingsScreen() {
               const valStr = String(val).trim().toUpperCase();
               if (valStr === 'N' || valStr === 'لا') return;
 
-              let isCombined = false;
-              
-              if (lowerKey.startsWith('nombre') || lowerKey.startsWith('عدد')) {
-                const base = lowerKey.replace(/^nombre\s*/, '').replace(/^عدد\s*/, '').trim();
-                if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^nombre\s*/i, '').replace(/^عدد\s*/i, '').trim() };
-                  combinedData[base].N = val;
-                  isCombined = true;
-                }
-              } else if (lowerKey.startsWith('surface') || lowerKey.startsWith('مساحة')) {
-                const base = lowerKey.replace(/^surface\s*/, '').replace(/^مساحة\s*/, '').trim();
-                if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^surface\s*/i, '').replace(/^مساحة\s*/i, '').trim() };
-                  combinedData[base].S = val;
-                  isCombined = true;
-                }
-              } else if (lowerKey.startsWith('hauteur') || lowerKey.startsWith('ارتفاع')) {
-                const base = lowerKey.replace(/^hauteur\s*/, '').replace(/^ارتفاع\s*/, '').trim();
-                if (base) {
-                  if (!combinedData[base]) combinedData[base] = { originalKey: key.replace(/^hauteur\s*/i, '').replace(/^ارتفاع\s*/i, '').trim() };
-                  combinedData[base].H = val;
-                  isCombined = true;
-                }
-              }
-
-              if (!isCombined) {
-                extraData[key] = val;
-              }
-            });
-
-            // Process combined data
-            Object.keys(combinedData).forEach(base => {
-              const { N, S, H, originalKey } = combinedData[base];
-              const displayKey = originalKey || base;
-              
-              const parts = [];
-              if (N !== undefined) parts.push(`${t('Count', language)}: ${N}`);
-              if (S !== undefined) parts.push(`${t('Area', language)}: ${S}`);
-              if (H !== undefined) parts.push(`${t('Height', language)}: ${H}`);
-              
-              if (parts.length > 1) {
-                extraData[displayKey] = parts.join(', ');
-              } else if (N !== undefined) {
-                extraData[`${t('Count', language)} ${displayKey}`] = N;
-              } else if (S !== undefined) {
-                extraData[`${t('Area', language)} ${displayKey}`] = S;
-              } else if (H !== undefined) {
-                extraData[`${t('Height', language)} ${displayKey}`] = H;
-              }
+              // Simply pass the raw column key to extraData exactly as it was in the Excel definition.
+              extraData[key.trim()] = val;
             });
 
             return {

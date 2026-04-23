@@ -56,166 +56,93 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
   // Optimized & Strict Manual Data Categorization based on specific 6-category structure
   const categories = useMemo(() => {
+    const exactStructure = {
+      general: [
+        "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق",
+        "تاريخ البناء", "تاريخ الافتتاح", "حالة البناية", "طبيعة البناية", "نظام الفتح", "الوضعية العقارية"
+      ],
+      land: [
+        "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة",
+        "غير المبنية: المساحة غير المهيأة", "X", "Y", "الاحداثيات", "Latitude", "Longitude", "طبغرافي",
+        "وجود انحدار", "وجود سواقي", "المنطقة الحرارية"
+      ],
+      construction: [
+        "نوع البناء", "خرسانة مسلحة", "خراسانة مسلحة", "تراب أدوبي", "تراب بيزي", "حجر",
+        "ياجور تقليدي", "توب خشبي", "توب معدني", "مواد البناء"
+      ],
+      services: [
+        "عدد الولوجيات", "شبكة طرقية", "مسلك للعربات", "مسلك غير صالح للعربات", "ولوجيات ذوي الاحتياجات",
+        "شبكة الماء", "بئر", "عيون", "شبكة الكهرباء", "ألواح شمسية", "شبكة التطهير", "حفرة صحية"
+      ],
+      components: [
+        "مساحة المقصورة", "عدد قاعة الصلاة للرجال", "مساحة قاعة الصلاة للرجال", "عدد قاعة الصلاة للنساء",
+        "مساحة قاعة الصلاة للنساء", "عدد مراحيض الرجال", "مساحة مراحيض الرجال", "عدد مراحيض للنساء",
+        "مساحة مراحيض للنساء", "ارتفاع الصومعة", "عدد طبقات الصومعة", "قاعدة الصومعة", "عدد سكن الامام",
+        "مساحة سكن الإمام", "مساحة سكن الامام", "عدد سكن المؤذن", "مساحة سكن المؤذن", "عدد المخزن", "مساحة المخزن",
+        "عدد المسيد", "مساحة المسيد", "عدد الكتاب القرآني القرآنية", "مساحة الكتاب القرآني القرآنية",
+        "عدد المدرسة", "مساحة المدرسة", "عدد قاعة الاجتماعات", "مساحة قاعة الاجتماعات", "عدد الصحن",
+        "مساحة الصحن", "عدد الأروقة", "مساحة الأروقة", "عدد غرفة الامام", "مساحة غرفة الامام",
+        "عدد غرفة المؤذن", "مساحة غرفة المؤذن", "عدد غرفة المؤقت", "مساحة غرفة المؤقت",
+        "عدد غرفة الموتى", "مساحة غرفة الموتى"
+      ],
+      revenue: [
+        "عدد محلات تجارية", "مساحة محلات تجارية", "عدد سكن", "مساحة سكن", "الأملاك", "محلات", "عائدات"
+      ]
+    };
+
     const sections = {
-      general: [] as any[],
-      land: [] as any[],
-      construction: [] as any[],
-      services: [] as any[],
-      components: [] as any[],
-      revenue: [] as any[]
+      general: [] as {key: string, value: any}[],
+      land: [] as {key: string, value: any}[],
+      construction: [] as {key: string, value: any}[],
+      services: [] as {key: string, value: any}[],
+      components: [] as {key: string, value: any}[],
+      revenue: [] as {key: string, value: any}[],
+      other: [] as {key: string, value: any}[]
     };
 
-    const highlights: any[] = [];
-    let openingStatus: string | null = null;
-    
-    if (!mosque.extraData) return { sections, highlights, openingStatus: null };
+    if (!mosque.extraData) return { sections };
 
-    // 1. Explicit Category Prefix Detection (Since user says Excel has these titles)
-    const categoryPrefixes: Record<string, keyof typeof sections> = {
-      'معلومات عامة': 'general',
-      'معلومات القطعة أرضية': 'land', // Matches slightly variations
-      'معلومات القطعة الأرضية': 'land',
-      'معلومات البناء': 'construction',
-      'معلومات الخدمات': 'services',
-      'مكونات المسجد': 'components',
-      'معلومات الأملاك ذات العائد': 'revenue',
-      'الأملاك ذات العائد': 'revenue',
-      'general information': 'general',
-      'land information': 'land',
-      'construction information': 'construction',
-      'services information': 'services',
-      'mosque components': 'components',
-      'revenue assets': 'revenue'
-    };
+    const usedKeys = new Set<string>();
 
-    // 2. Priority Map for Exact Arabic & French Document Labels
-    const explicitMap: Record<string, keyof typeof sections> = {
-      // 1. General (معلومات عامة)
-      'اسم المسجد': 'general', 'رمز المسجد': 'general', 'عنوان المسجد': 'general', 'الجماعة': 'general', 
-      'جهة الإنفاق': 'general', 'تاريخ البناء': 'general', 'تاريخ الافتتاح': 'general', 'حالة البناية': 'general', 
-      'طبيعة البناية': 'general', 'نظام الفتح': 'general', 'الوضعية العقارية': 'general', 'nom': 'general', 'code': 'general',
-      'financement': 'general', 'nature de construction': 'general', 'état bâti': 'general',
-      
-      // 2. Land (معلومات القطعة الأرضية)
-      'مساحة القطعة الأرضية': 'land', 'المساحة المبنية': 'land', 'غير المبنية: المساحة': 'land', 
-      'غير المبنية: المساحة المهيأة': 'land', 'غير المبنية: المساحة غير المهيأة': 'land', 'X': 'land', 'Y': 'land', 
-      'الاحداثيات': 'land', 'Latitude': 'land', 'Longitude': 'land', 'طبغرافي': 'land', 'وجود انحدار': 'land', 
-      'وجود سواقي': 'land', 'المنطقة الحرارية': 'land', 'terrain': 'land', 'topographie': 'land',
-      
-      // 3. Construction (معلومات البناء)
-      'نوع اليناء': 'construction', 'نوع البناء': 'construction', 'خراسانة مسلحة': 'construction', 
-      'تراب أدوبي': 'construction', 'تراب بيزي': 'construction', 'حجر': 'construction', 
-      'ياجور تقليدي': 'construction', 'توب خشبي': 'construction', 'توب معدني': 'construction', 
-      'مواد البناء': 'construction', 'structure': 'construction', 'matériaux': 'construction',
-      'type structure': 'construction', 'ossature': 'construction',
-      
-      // 4. Services (معلومات الخدمات)
-      'عدد الولوجيات': 'services', 'شبكة طرقية': 'services', 'مسلك للعربات': 'services', 
-      'مسلك غير صالح للعربات': 'services', 'ولوجيات ذوي الاحتياجات': 'services', 'شبكة الماء': 'services', 
-      'بئر': 'services', 'عيون': 'services', 'شبكة الكهرباء': 'services', 'ألواح شمسية': 'services', 
-      'شبكة التطهير': 'services', 'حفرة صحية': 'services', 'services': 'services', 'eau': 'services', 'électricité': 'services',
-      'accès': 'services', 'routes': 'services', 'assainissement': 'services',
-      
-      // 5. Components (مكونات المسجد)
-      'مساحة المقصورة': 'components', 'عدد قاعة الصلاة للرجال': 'components', 'مساحة قاعة الصلاة للرجال': 'components', 
-      'عدد قاعة الصلاة للنساء': 'components', 'مساحة قاعة الصلاة للنساء': 'components', 'عدد مراحيض الرجال': 'components', 
-      'مساحة مراحيض الرجال': 'components', 'عدد مراحيض للنساء': 'components', 'مساحة مراحيض للنساء': 'components', 
-      'ارتفاع الصومعة': 'components', 'عدد طبقات الصومعة': 'components', 'قاعدة الصومعة': 'components', 
-      'عدد سكن الامام': 'components', 'مساحة سكن الإمام': 'components', 'عدد سكن المؤذن': 'components', 
-      'مساحة سكن المؤذن': 'components', 'عدد المخزن': 'components', 'مساحة المخزن': 'components', 
-      'عدد المسيد': 'components', 'مساحة المسيد': 'components', 'عدد الكتاب القرآني القرآنية': 'components', 
-      'مساحة الكتاب القرآني القرآنية': 'components', 'عدد المدرسة': 'components', 'مساحة المدرسة': 'components', 
-      'عدد قاعة الاجتماعات': 'components', 'مساحة قاعة الاجتماعات': 'components', 'عدد الصحن': 'components', 
-      'مساحة الصحن': 'components', 'عدد الأروقة': 'components', 'مساحة الأروقة': 'components', 
-      'عدد غرفة الامام': 'components', 'مساحة غرفة الامام': 'components', 'عدد غرفة المؤذن': 'components', 
-      'مساحة غرفة المؤذن': 'components', 'عدد غرفة المؤقت': 'components', 'مساحة غرفة المؤقت': 'components', 
-      'عدد غرفة الموتى': 'components', 'مساحة غرفة الموتى': 'components', 'salle de prière': 'components', 'toilette': 'components',
-      'minaret': 'components', 'logement imam': 'components', 'logement muezzin': 'components', 'msid': 'components',
-      'Count سكن الامام': 'components', 'Area سكن الامام': 'components', 'Count سكن المؤذن': 'components', 'Area سكن المؤذن': 'components',
-      'Nombre سكن الامام': 'components', 'Surface سكن الامام': 'components', 'Nombre سكن المؤذن': 'components', 'Surface سكن المؤذن': 'components',
-      
-      // 6. Revenue Assets (معلومات الأملاك ذات العائد)
-      'عدد محلات تجارية': 'revenue', 'مساحة محلات تجارية': 'revenue', 'عدد سكن': 'revenue', 
-      'مساحة سكن': 'revenue', 'الأملاك': 'revenue', 'محلات': 'revenue', 'عائدات': 'revenue', 'boutique': 'revenue', 'commerce': 'revenue',
-      'locaux commerciaux': 'revenue', 'revenus': 'revenue', 'loyer': 'revenue',
-      'Count محلات تجارية': 'revenue', 'Area محلات تجارية': 'revenue', 'Count سكن': 'revenue', 'Area سكن': 'revenue',
-      'Nombre محلات تجارية': 'revenue', 'Surface محلات تجارية': 'revenue', 'Nombre سكن': 'revenue', 'Surface سكن': 'revenue'
-    };
+    // 1. Map exactly according to the provided structure in the exact order
+    Object.entries(exactStructure).forEach(([sectionId, keys]) => {
+      keys.forEach(k => {
+        // Find if this exact key or trimmed key exists in extraData
+        const foundKey = Object.keys(mosque.extraData!).find(
+          excelKey => excelKey.trim() === k || excelKey.trim().toLowerCase() === k.toLowerCase()
+        );
 
-    // 3. Fallback Keyword Patterns (Carefully selected to avoid bleeding)
-    const mapKeywords = {
-      general: ['adresse', 'commune', 'ouverture', 'spending', 'gestionnaire', 'نظام'],
-      land: ['area', 'surface terrain', 'coords', 'gps', 'topogra', 'slopes', 'gutters', 'thermal'],
-      construction: ['concrete', 'adobe', 'pierre', 'brick', 'metal', 'bois', 'armé'],
-      services: ['accès', 'piste', 'handicapé', 'puits', 'sources', 'photovolta', 'assainissement', 'septique', 'réseau'],
-      components: ['maqasoura', 'wc', 'minaret', 'صومعة', 'magasin', 'msid', 'médersa', 'réunion', 'صحن', 'أروقة', 'mortuaire', 'chambre'],
-      revenue: ['loyer', 'unités', 'residential', 'asset', 'income', 'commercial']
-    };
-
-    Object.entries(mosque.extraData).forEach(([key, value]) => {
-      const lowerKey = key.toLowerCase().trim();
-      const valStr = String(value);
-
-      if (lowerKey.includes('ouverture') || lowerKey.includes('ouvert')) {
-        openingStatus = valStr;
-      }
-
-      if (lowerKey.includes('capacité') && !highlights.find(h => h.label === 'Capacity')) {
-        highlights.push({ label: 'Capacity', value: valStr, icon: Users, color: 'emerald' });
-      }
-
-      // Priority 0: Forced Prefix Match (Highest Priority)
-      for (const [prefix, cat] of Object.entries(categoryPrefixes)) {
-        if (lowerKey.includes(prefix.toLowerCase())) {
-          sections[cat].push({ key, value });
-          return;
+        if (foundKey && !usedKeys.has(foundKey)) {
+          sections[sectionId as keyof typeof sections].push({ 
+            key: foundKey, 
+            value: mosque.extraData![foundKey] 
+          });
+          usedKeys.add(foundKey);
         }
-      }
+      });
+    });
 
-      // Priority 1: Explicit mapping
-      if (explicitMap[key]) {
-        sections[explicitMap[key]].push({ key, value });
-        return;
-      }
-      
-      // Try again with trimmed key in case of whitespace
-      if (explicitMap[key.trim()]) {
-        sections[explicitMap[key.trim()]].push({ key, value });
-        return;
-      }
-
-      // Priority 2: Keyword mapping
-      let matched = false;
-      const cats: (keyof typeof sections)[] = ['revenue', 'components', 'services', 'construction', 'land', 'general'];
-      for (const cat of cats) {
-        if (mapKeywords[cat].some(kw => lowerKey.includes(kw))) {
-          sections[cat].push({ key, value });
-          matched = true;
-          break;
-        }
-      }
-      
-      // Priority 3: Final Fallback to general
-      if (!matched) {
-        sections.general.push({ key, value });
+    // 2. Put any remaining uncategorized attributes into "other"
+    Object.keys(mosque.extraData).forEach(key => {
+      const val = mosque.extraData![key];
+      if (!usedKeys.has(key) && val !== undefined && val !== null && val !== '') {
+        sections.other.push({ key, value: val });
       }
     });
 
-    return { sections, highlights, openingStatus };
-  }, [mosque.extraData, language]);
-
-  const totalArea = parseFloat(String(mosque.extraData?.['Surface du terrain'] || mosque.extraData?.['مساحة القطعة الأرضية'] || 0));
-  const builtArea = parseFloat(String(mosque.extraData?.['Surface bâtie'] || mosque.extraData?.['المساحة المبنية'] || 0));
-  const builtPercentage = totalArea > 0 ? (builtArea / totalArea) * 100 : 0;
+    return { sections };
+  }, [mosque.extraData]);
 
   const tabs = [
-    { id: 'general', label: 'General Information', icon: Info },
-    { id: 'land', label: 'Land Information', icon: Map },
-    { id: 'construction', label: 'Construction Information', icon: Building2 },
-    { id: 'services', label: 'Services Information', icon: Zap },
-    { id: 'components', label: 'Mosque Components', icon: Layout },
-    { id: 'revenue', label: 'Revenue Assets', icon: DollarSign }
+    { id: 'general', label: 'معلومات عامة', icon: Info },
+    { id: 'land', label: 'معلومات القطعة الأرضية', icon: Map },
+    { id: 'construction', label: 'معلومات البناء', icon: Building2 },
+    { id: 'services', label: 'معلومات الخدمات', icon: Zap },
+    { id: 'components', label: 'مكونات المسجد', icon: Layout },
+    { id: 'revenue', label: 'معلومات الأملاك ذات العائد', icon: DollarSign },
+    { id: 'other', label: 'معلومات إضافية', icon: Clipboard }
   ] as const;
+
 
   return (
     <motion.div
@@ -268,9 +195,6 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           <div className="absolute bottom-6 left-6 right-6">
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2 py-0.5 bg-emerald-500 text-white rounded-md text-[8px] font-black uppercase tracking-widest">{mosque.type}</span>
-              {categories.openingStatus && (
-                <span className="px-2 py-0.5 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white rounded-md text-[8px] font-black uppercase tracking-widest border border-gray-200 dark:border-gray-800">{categories.openingStatus}</span>
-              )}
             </div>
             <h1 className="text-3xl font-serif font-black text-gray-900 dark:text-white leading-tight mb-1 drop-shadow-sm">
               {getLocalizedName(mosque, language)}
@@ -284,7 +208,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
         {/* Action & Stats Summary */}
         <div className="px-5 -mt-4 relative z-10 space-y-4">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button 
               onClick={handleOpenGoogleMapsRoute}
               className="flex flex-col items-center justify-center p-3 bg-emerald-600 text-white rounded-2xl shadow-xl active:scale-95 transition-all text-center"
@@ -299,18 +223,6 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
               {copied ? <Check size={20} /> : <Clipboard size={20} />}
               <span className="text-[8px] font-black uppercase tracking-tighter mt-1">{copied ? t('Copied', language) : t('Copy GPS', language)}</span>
             </button>
-            <div className="flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-center shadow-sm">
-              <Users size={20} className="text-gray-400 dark:text-gray-500" />
-              <span className="text-[8px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-tighter mt-1 truncate">
-                {categories.highlights[0]?.value || 'N/A'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-center shadow-sm">
-              <Maximize size={20} className="text-gray-400 dark:text-gray-500" />
-              <span className="text-[8px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-tighter mt-1 truncate">
-                {totalArea} m²
-              </span>
-            </div>
           </div>
 
           {/* Document Content */}
@@ -337,46 +249,6 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                       </div>
                     </div>
                   </div>
-
-                  {/* Specialized Land Metrics */}
-                  {tab.id === 'land' && totalArea > 0 && (
-                    <div className="mb-6 bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden relative group">
-                      <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
-                      
-                      <div className="relative z-10">
-                        <div className="flex items-end justify-between mb-6">
-                          <div>
-                            <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest block mb-1">{t('Total Surface', language)}</span>
-                            <span className="text-3xl font-serif font-black text-gray-900 dark:text-white">{totalArea} <span className="text-xs font-sans font-bold text-gray-400">m²</span></span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest block mb-1">{t('Built Ratio', language)}</span>
-                            <span className="text-2xl font-bold text-gray-900 dark:text-white">{builtPercentage.toFixed(1)}%</span>
-                          </div>
-                        </div>
-
-                        <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-3 p-0.5">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${builtPercentage}%` }}
-                            transition={{ duration: 1.2, ease: "circOut" }}
-                            className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full shadow-sm" 
-                          />
-                        </div>
-
-                        <div className="flex justify-between items-center text-[10px] font-bold">
-                          <div className="flex items-center gap-2 text-gray-900 dark:text-white">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <span>{builtArea} m² {t('Built Coverage', language)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
-                            <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700" />
-                            <span>{totalArea - builtArea} m² {t('Open Space', language)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Components Data Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
