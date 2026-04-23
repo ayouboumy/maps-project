@@ -189,7 +189,15 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', key }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, key?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
-  const { setRouteInfo, language } = useAppStore();
+  const { setRouteInfo, language, routeInfo } = useAppStore();
+
+  const formatDurationInner = (seconds: number) => {
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours} h ${remainingMinutes} min`;
+  };
 
   useEffect(() => {
     if (isNaN(start[0]) || isNaN(start[1]) || isNaN(end[0]) || isNaN(end[1])) {
@@ -283,7 +291,24 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         lineCap="round"
         lineJoin="round"
         dashArray={dashArray}
-      />
+      >
+        {isMainRoute && routeDistance > 0 && (
+          <Tooltip 
+            permanent 
+            direction="top"
+            className={cn(
+              "border-none shadow-lg rounded-xl px-3 py-1.5 font-bold text-sm z-[1000] scale-110",
+              isDriving ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"
+            )}
+          >
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <span>{formatDurationInner(routeInfo?.duration || Math.round(routeDistance / (isDriving ? 10 : 1.4)))}</span>
+              <span className="opacity-75 text-xs">•</span>
+              <span className="text-xs">{(routeDistance / 1000).toFixed(1)} km</span>
+            </div>
+          </Tooltip>
+        )}
+      </Polyline>
     </>
   );
 }
