@@ -70,22 +70,47 @@ export default function SettingsScreen() {
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          let parsed = XLSX.utils.sheet_to_json(worksheet);
+          let parsed;
+          const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
           
-          // Handle case where CSV is parsed as a single column due to semicolon separator
-          if (parsed.length > 0 && Object.keys(parsed[0] as object).length === 1) {
-            const firstKey = Object.keys(parsed[0] as object)[0];
-            if (firstKey.includes(';')) {
-              const headers = firstKey.split(';');
-              parsed = parsed.map((row: any) => {
-                const values = String(row[firstKey]).split(';');
-                const newRow: any = {};
-                headers.forEach((header, i) => {
-                  newRow[header] = values[i];
-                });
-                return newRow;
+          if (rawRows.length > 0) {
+            // Find the row that most likely contains our headers
+            // We look for rows that have string values and match some expected keys
+            let headerRowIndex = 0;
+            let maxMatches = 0;
+            const expectedKeywords = ['اسم', 'mosque', 'nom', 'lat', 'lng', 'مساحة', 'عدد'];
+
+            for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+              const row = rawRows[i];
+              if (!Array.isArray(row)) continue;
+              
+              let matches = 0;
+              row.forEach(cell => {
+                const str = String(cell).toLowerCase();
+                if (expectedKeywords.some(kw => str.includes(kw))) matches++;
               });
+
+              if (matches > maxMatches) {
+                maxMatches = matches;
+                headerRowIndex = i;
+              }
             }
+
+            // Extract the headers
+            const headers = rawRows[headerRowIndex].map((h, i) => h ? String(h).trim() : `__UNKNOWN_${i}`);
+
+            // Build the parsed object array
+            parsed = rawRows.slice(headerRowIndex + 1).map(row => {
+              const obj: any = {};
+              headers.forEach((header, i) => {
+                if (row[i] !== undefined) {
+                  obj[header] = row[i];
+                }
+              });
+              return obj;
+            }).filter(obj => Object.keys(obj).length > 0);
+          } else {
+            parsed = [];
           }
         
         if (Array.isArray(parsed)) {
@@ -124,14 +149,10 @@ export default function SettingsScreen() {
               return [];
             };
 
-            // Collect all other columns into extraData
-            const standardKeys = ['id', 'dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_ar', 'name ar', 'name_fr', 'name fr', 'name_en', 'name en', 'name', 'mosque name', 'mosque', 'nom', 'dénomination', 'denomination', 'latitude', 'lat', 'longitude', 'lng', 'long', 'address', 'adresse', 'location', 'city', 'emplacement', 'lieu', 'العنوان', 'الموقع', 'المدينة', 'type', 'category', 'catégorie', 'genre', 'النوع', 'الصنف', 'services', 'facilities', 'équipements', 'equipements', 'الخدمات', 'المرافق', 'items', 'amenities', 'features', 'articles', 'composants', 'العناصر', 'المكونات', 'image', 'photo', 'picture', 'image_url', 'url_image', 'الصورة', 'commune', 'municipality', 'district', 'commune_ar', 'commune_fr', 'ville', 'الجماعة', 'المقاطعة', 'العمالة'];
+            // Collect all columns into extraData
             const extraData: Record<string, any> = {};
             
             Object.keys(item).forEach(key => {
-              const lowerKey = key.toLowerCase().trim();
-              if (standardKeys.includes(lowerKey)) return;
-
               const val = item[key];
               
               // Ignore missing values, "N", and "لا"
@@ -139,7 +160,7 @@ export default function SettingsScreen() {
               const valStr = String(val).trim().toUpperCase();
               if (valStr === 'N' || valStr === 'لا') return;
 
-              // Simply pass the raw column key to extraData exactly as it was in the Excel definition.
+              // Pass the raw column key to extraData exactly as it was in the Excel definition.
               extraData[key.trim()] = val;
             });
 

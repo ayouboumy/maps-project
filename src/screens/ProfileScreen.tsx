@@ -104,12 +104,22 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
     const usedKeys = new Set<string>();
 
+    const normalize = (str: string) => {
+      return str.toLowerCase()
+        .replace(/\s+/g, '') // remove all spaces
+        .replace(/[أإآا]/g, 'ا') // normalize alif
+        .replace(/[ةه]/g, 'ه') // normalize taa marbuta/haa
+        .replace(/[يى]/g, 'ي') // normalize yaa/alif maqsura
+        .replace(/[^a-z0-9ا-ي]/g, ''); // strip special characters just in case
+    };
+
     // 1. Map exactly according to the provided structure in the exact order
     Object.entries(exactStructure).forEach(([sectionId, keys]) => {
       keys.forEach(k => {
-        // Find if this exact key or trimmed key exists in extraData
+        const normK = normalize(k);
+        // Find if this exact key or normalized key exists in extraData
         const foundKey = Object.keys(mosque.extraData!).find(
-          excelKey => excelKey.trim() === k || excelKey.trim().toLowerCase() === k.toLowerCase()
+          excelKey => excelKey.trim() === k || normalize(excelKey) === normK
         );
 
         if (foundKey && !usedKeys.has(foundKey)) {
