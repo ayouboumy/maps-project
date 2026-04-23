@@ -105,6 +105,17 @@ const mosqueIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const selectedMosqueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
+  className: 'animate-bounce-subtle'
+});
+
 const destinationIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
@@ -113,6 +124,17 @@ const destinationIcon = new L.Icon({
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41]
+});
+
+const selectedDestinationIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
+  className: 'animate-bounce-subtle'
 });
 
 const userIcon = L.divIcon({
@@ -594,7 +616,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               <Marker
                 key={mosque.id}
                 position={[mosque.latitude, mosque.longitude]}
-                icon={mosqueIcon}
+                icon={(!routingToMosque && selectedMosque?.id === mosque.id) ? selectedMosqueIcon : mosqueIcon}
                 eventHandlers={{
                   click: () => {
                     setSelectedMosque(mosque);
@@ -644,7 +666,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         {routingToMosque && (
           <Marker
             position={[routingToMosque.latitude, routingToMosque.longitude]}
-            icon={destinationIcon}
+            icon={(selectedMosque?.id === routingToMosque.id) ? selectedDestinationIcon : destinationIcon}
             eventHandlers={{
               click: () => {
                 setSelectedMosque(routingToMosque);

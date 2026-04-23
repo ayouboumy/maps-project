@@ -64,4 +64,16 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .animate-bounce-subtle {
+    animation: bounce-subtle 1.5s infinite ease-in-out;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
