@@ -293,9 +293,17 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     mosques, userLocation, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
-    setOptimizedRouteIds, darkMode 
+    setOptimizedRouteIds, darkMode, routeInfo 
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
+
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours} h ${remainingMinutes} min`;
+  };
 
   // Simple Nearest Neighbor TSP Solver
   const handleOptimizeRoute = () => {
@@ -592,10 +600,13 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                       </div>
                       {showNearest && roadDistances[mosque.id] !== undefined && (
                         <div className={cn(
-                          "text-[10px] font-semibold mt-0.5 px-1.5 rounded",
+                          "text-[10px] font-semibold mt-0.5 px-1.5 rounded flex items-center gap-1",
                           darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-50 text-blue-600"
                         )}>
-                          {(roadDistances[mosque.id] / 1000).toFixed(1)} km
+                          {roadDurations[mosque.id] !== undefined && (
+                            <span>{formatDuration(roadDurations[mosque.id])} • </span>
+                          )}
+                          <span>{(roadDistances[mosque.id] / 1000).toFixed(1)} km</span>
                         </div>
                       )}
                     </div>
@@ -632,12 +643,24 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                 >
                   {getLocalizedName(routingToMosque, language)}
                 </div>
-                {roadDistances[routingToMosque.id] !== undefined && (
+                {(routeInfo || roadDistances[routingToMosque.id] !== undefined) && (
                   <div className={cn(
-                    "text-[10px] font-semibold mt-0.5 px-1.5 rounded",
+                    "text-[10px] font-semibold mt-0.5 px-1.5 rounded flex items-center gap-1",
                     darkMode ? "bg-red-900/40 text-red-400" : "bg-red-50 text-red-600"
                   )}>
-                    {(roadDistances[routingToMosque.id] / 1000).toFixed(1)} km
+                    {routeInfo ? (
+                      <>
+                        <span>{formatDuration(routeInfo.duration)} • </span>
+                        <span>{(routeInfo.distance / 1000).toFixed(1)} km</span>
+                      </>
+                    ) : (
+                      <>
+                        {roadDurations[routingToMosque.id] !== undefined && (
+                          <span>{formatDuration(roadDurations[routingToMosque.id])} • </span>
+                        )}
+                        <span>{(roadDistances[routingToMosque.id] / 1000).toFixed(1)} km</span>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
