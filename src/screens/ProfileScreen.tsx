@@ -54,39 +54,43 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     }
   };
 
-  // Optimized & Strict Manual Data Categorization based on specific 6-category structure
+  // Optimized & Strict Manual Data Categorization based on specific 6-category structure provided by user
   const categories = useMemo(() => {
     const exactStructure = {
       general: [
-        "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق",
-        "تاريخ البناء", "تاريخ الافتتاح", "حالة البناية", "طبيعة البناية", "نظام الفتح", "الوضعية العقارية"
+        "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
+        "type", "nature", "تاريخ البناء", "حالة البناية", 
+        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture"
       ],
       land: [
-        "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة",
-        "غير المبنية: المساحة غير المهيأة", "X", "Y", "الاحداثيات", "Latitude", "Longitude", "طبغرافي",
-        "وجود انحدار", "وجود سواقي", "المنطقة الحرارية"
+        "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة", 
+        "غير المبنية: المساحة غير المهيأة", "x", "y", "longitude", "latitude", 
+        "topogaphique", "existance de talus", "existance de rigoles d'eau", "ravin", 
+        "ter_gmp_autre", "zone_thermique"
       ],
       construction: [
-        "نوع البناء", "خرسانة مسلحة", "خراسانة مسلحة", "تراب أدوبي", "تراب بيزي", "حجر",
-        "ياجور تقليدي", "توب خشبي", "توب معدني", "مواد البناء"
+        "نوع اليناء", "béton_armé", "construction_en_terre_adobe", "construction_en_terre_pisé", 
+        "msq_mat_pierre", "brique_traditionnel", "tôle_en_bois", "tôle_métallique"
       ],
       services: [
-        "عدد الولوجيات", "شبكة طرقية", "مسلك للعربات", "مسلك غير صالح للعربات", "ولوجيات ذوي الاحتياجات",
-        "شبكة الماء", "بئر", "عيون", "شبكة الكهرباء", "ألواح شمسية", "شبكة التطهير", "حفرة صحية"
+        "nombre_d_accès_à_la_mosquée", "réseau_routier", "piste_carossable", "piste_non_carossable", 
+        "accessibilité_handicapé", "branché_au_réseau_d_eau_potable", "puits", "sources", 
+        "branché_au_réseau_d_electricityé", "photovoltaïque", "traditionnel", 
+        "branché_au_réseau_d_assainissement", "fosse_septique_puits_perdu", "aucun"
       ],
       components: [
         "مساحة المقصورة", "عدد قاعة الصلاة للرجال", "مساحة قاعة الصلاة للرجال", "عدد قاعة الصلاة للنساء",
         "مساحة قاعة الصلاة للنساء", "عدد مراحيض الرجال", "مساحة مراحيض الرجال", "عدد مراحيض للنساء",
         "مساحة مراحيض للنساء", "ارتفاع الصومعة", "عدد طبقات الصومعة", "قاعدة الصومعة", "عدد سكن الامام",
-        "مساحة سكن الإمام", "مساحة سكن الامام", "عدد سكن المؤذن", "مساحة سكن المؤذن", "عدد المخزن", "مساحة المخزن",
+        "مساحة سكن الإمام", "عدد سكن المؤذن", "مساحة سكن المؤذن", "عدد المخزن", "مساحة المخزن",
         "عدد المسيد", "مساحة المسيد", "عدد الكتاب القرآني القرآنية", "مساحة الكتاب القرآني القرآنية",
-        "عدد المدرسة", "مساحة المدرسة", "عدد قاعة الاجتماعات", "مساحة قاعة الاجتماعات", "عدد الصحن",
-        "مساحة الصحن", "عدد الأروقة", "مساحة الأروقة", "عدد غرفة الامام", "مساحة غرفة الامام",
+        "عدد المدرسة", "مساحة المدرسة", "عدد قاعة الاجتماعات", "مساحة قاعة الاجتماعات",
+        "عدد الصحن", "مساحة الصحن", "عدد الأروقة", "مساحة الأروقة", "عدد غرفة الامام", "مساحة غرفة الامام",
         "عدد غرفة المؤذن", "مساحة غرفة المؤذن", "عدد غرفة المؤقت", "مساحة غرفة المؤقت",
         "عدد غرفة الموتى", "مساحة غرفة الموتى"
       ],
       revenue: [
-        "عدد محلات تجارية", "مساحة محلات تجارية", "عدد سكن", "مساحة سكن", "الأملاك", "محلات", "عائدات"
+        "عدد محلات تجارية", "مساحة محلات تجارية", "عدد سكن", "مساحة سكن"
       ]
     };
 
@@ -110,7 +114,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         .replace(/[أإآا]/g, 'ا') // normalize alif
         .replace(/[ةه]/g, 'ه') // normalize taa marbuta/haa
         .replace(/[يى]/g, 'ي') // normalize yaa/alif maqsura
-        .replace(/[^a-z0-9ا-ي]/g, ''); // strip special characters just in case
+        .replace(/[éèêë]/g, 'e') // normalize french e
+        .replace(/[àâ]/g, 'a') // normalize french a
+        .replace(/[îï]/g, 'i') // normalize french i
+        .replace(/[ôûù]/g, 'o') // normalize french o/u
+        .replace(/ç/g, 'c') // normalize french c
+        .replace(/_/g, '') // remove underscores for more flexible matching
+        .replace(/[^a-z0-9ا-ي]/g, ''); // strip remaining special characters
     };
 
     // 1. Map exactly according to the provided structure in the exact order
@@ -118,30 +128,39 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       keys.forEach(k => {
         const normK = normalize(k);
         // Find if this exact key or normalized key exists in extraData
-        const foundKey = Object.keys(mosque.extraData!).find(
-          excelKey => excelKey.trim() === k || normalize(excelKey) === normK
+        // Check core mosque fields as well just in case they are mapped there
+        const dataSource = { ...mosque, ...mosque.extraData };
+        
+        const foundKey = Object.keys(dataSource).find(
+          dataKey => dataKey.trim() === k || normalize(dataKey) === normK
         );
 
         if (foundKey && !usedKeys.has(foundKey)) {
-          sections[sectionId as keyof typeof sections].push({ 
-            key: foundKey, 
-            value: mosque.extraData![foundKey] 
-          });
-          usedKeys.add(foundKey);
+          const val = (dataSource as any)[foundKey];
+          if (val !== undefined && val !== null && val !== '') {
+            sections[sectionId as keyof typeof sections].push({ 
+              key: foundKey, 
+              value: val 
+            });
+            usedKeys.add(foundKey);
+          }
         }
       });
     });
 
-    // 2. Put any remaining uncategorized attributes into "other"
+    // 2. Put any remaining uncategorized attributes into "other" but keep it secondary as per user request for strictness
     Object.keys(mosque.extraData).forEach(key => {
-      const val = mosque.extraData![key];
-      if (!usedKeys.has(key) && val !== undefined && val !== null && val !== '') {
-        sections.other.push({ key, value: val });
+      if (!usedKeys.has(key)) {
+        const val = mosque.extraData![key];
+        if (val !== undefined && val !== null && val !== '') {
+          sections.other.push({ key, value: val });
+          usedKeys.add(key);
+        }
       }
     });
 
     return { sections };
-  }, [mosque.extraData]);
+  }, [mosque]);
 
   const tabs = [
     { id: 'general', label: 'معلومات عامة', icon: Info },
@@ -305,10 +324,10 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
                               <span className="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest block mb-1 group-hover:text-emerald-500 transition-colors">
-                                {item.key}
+                                {t(item.key, language)}
                               </span>
                               <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                                {item.value}
+                                {t(String(item.value), language)}
                               </span>
                             </div>
                             <div className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30 group-hover:text-emerald-500 transition-all shrink-0">
