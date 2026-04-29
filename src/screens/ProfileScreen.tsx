@@ -75,7 +75,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       services: [
         "nombre_d_accès_à_la_mosquée", "réseau_routier", "piste_carossable", "piste_non_carossable", 
         "accessibilité_handicapé", "branché_au_réseau_d_eau_potable", "puits", "sources", 
-        "branché_au_réseau_d_electricityé", "photovoltaïque", "traditionnel", 
+        "branché_au_réseau_d_électricité", "photovoltaïque", "traditionnel", 
         "branché_au_réseau_d_assainissement", "fosse_septique_puits_perdu", "aucun"
       ],
       components: [
@@ -104,42 +104,48 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       other: [] as {key: string, value: any}[]
     };
 
-    if (!mosque.extraData) return { sections };
-
     const usedKeys = new Set<string>();
 
     const normalize = (str: string) => {
+      // Gentle normalization to avoid destroying data
       return str.toLowerCase()
-        .replace(/\s+/g, '') // remove all spaces
-        .replace(/[أإآا]/g, 'ا') // normalize alif
-        .replace(/[ةه]/g, 'ه') // normalize taa marbuta/haa
-        .replace(/[يى]/g, 'ي') // normalize yaa/alif maqsura
-        .replace(/[éèêë]/g, 'e') // normalize french e
-        .replace(/[àâ]/g, 'a') // normalize french a
-        .replace(/[îï]/g, 'i') // normalize french i
-        .replace(/[ôûù]/g, 'o') // normalize french o/u
-        .replace(/ç/g, 'c') // normalize french c
-        .replace(/_/g, '') // remove underscores for more flexible matching
-        .replace(/[^a-z0-9ا-ي]/g, ''); // strip remaining special characters
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/[أإآا]/g, 'ا')
+        .replace(/[ةه]/g, 'ه')
+        .replace(/[يى]/g, 'ي')
+        .trim();
     };
 
-    // 1. Map exactly according to the provided structure in the exact order
+    // Include base properties as part of the data pool
+    const dataSource = { 
+      // Base mappings that correspond to user properties if they uploaded standard fields
+      "اسم المسجد": mosque.name,
+      "longitude": mosque.longitude,
+      "latitude": mosque.latitude,
+      "عنوان المسجد": mosque.address,
+      "type": mosque.type,
+      ...mosque.extraData
+    };
+
+    // Map according to exact user-defined structure
     Object.entries(exactStructure).forEach(([sectionId, keys]) => {
       keys.forEach(k => {
         const normK = normalize(k);
-        // Find if this exact key or normalized key exists in extraData
-        // Check core mosque fields as well just in case they are mapped there
-        const dataSource = { ...mosque, ...mosque.extraData };
         
-        const foundKey = Object.keys(dataSource).find(
-          dataKey => dataKey.trim() === k || normalize(dataKey) === normK
-        );
+        let foundKey = Object.keys(dataSource).find(dataKey => dataKey === k);
+        if (!foundKey) {
+          foundKey = Object.keys(dataSource).find(dataKey => dataKey.trim() === k.trim());
+        }
+        if (!foundKey) {
+          foundKey = Object.keys(dataSource).find(dataKey => normalize(dataKey) === normK);
+        }
 
         if (foundKey && !usedKeys.has(foundKey)) {
           const val = (dataSource as any)[foundKey];
           if (val !== undefined && val !== null && val !== '') {
             sections[sectionId as keyof typeof sections].push({ 
-              key: foundKey, 
+              key: k, // Display using the exact structured key requested by the user
               value: val 
             });
             usedKeys.add(foundKey);
@@ -148,16 +154,20 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       });
     });
 
-    // 2. Put any remaining uncategorized attributes into "other" but keep it secondary as per user request for strictness
-    Object.keys(mosque.extraData).forEach(key => {
-      if (!usedKeys.has(key)) {
-        const val = mosque.extraData![key];
-        if (val !== undefined && val !== null && val !== '') {
-          sections.other.push({ key, value: val });
-          usedKeys.add(key);
+    // 2. Put any remaining uncategorized attributes into "other"
+    if (mosque.extraData) {
+      Object.keys(mosque.extraData).forEach(key => {
+        if (!usedKeys.has(key)) {
+          const val = mosque.extraData![key];
+          if (val !== undefined && val !== null && val !== '') {
+            sections.other.push({ key, value: val });
+            usedKeys.add(key);
+          }
         }
-      }
-    });
+      });
+    }
+
+    // Include unmapped base fields into other if desired, but here we just map extraData
 
     return { sections };
   }, [mosque]);
