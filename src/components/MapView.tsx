@@ -95,47 +95,54 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const mosqueIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
-});
+const getMosqueIconColor = (mosque: any): 'green' | 'blue' | 'orange' | 'violet' => {
+  const typeStr = (mosque.type || '').toLowerCase();
+  
+  // Friday / Grand Mosque
+  if (typeStr.includes('جامع') || typeStr.includes('grand') || typeStr.includes('friday') || typeStr.includes('جمعة')) {
+    return 'green';
+  }
+  // 5 Prayers Mosque (including user's 4 prayers meaning)
+  if (typeStr.includes('خمس') || typeStr.includes('5') || typeStr.includes('4') || typeStr.includes('local') || typeStr.includes('اوقات')) {
+    return 'violet'; 
+  }
+  // Zawiya / Shrine
+  if (typeStr.includes('زاوية') || typeStr.includes('zaouia') || typeStr.includes('ضريح') || typeStr.includes('historic')) {
+    return 'orange';
+  }
+  // Default Mosques
+  return 'blue';
+};
 
-const selectedMosqueIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+const createMosqueIcon = (color: string, bounce = false) => new L.Icon({
+  iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
-  className: 'animate-bounce-subtle'
+  className: bounce ? 'animate-bounce-subtle' : undefined
 });
 
-const destinationIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
-});
+const mosqueIcon = createMosqueIcon('green');
+const selectedMosqueIcon = createMosqueIcon('green', true);
+const destinationIcon = createMosqueIcon('red');
+const selectedDestinationIcon = createMosqueIcon('red', true);
 
-const selectedDestinationIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41],
-  className: 'animate-bounce-subtle'
-});
+const iconsCache = {
+  green: createMosqueIcon('green'),
+  blue: createMosqueIcon('blue'),
+  orange: createMosqueIcon('orange'),
+  violet: createMosqueIcon('violet'),
+};
+
+const selectedIconsCache = {
+  green: createMosqueIcon('green', true),
+  blue: createMosqueIcon('blue', true),
+  orange: createMosqueIcon('orange', true),
+  violet: createMosqueIcon('violet', true),
+};
 
 const userIcon = L.divIcon({
   className: 'custom-user-icon',
@@ -144,7 +151,7 @@ const userIcon = L.divIcon({
   iconAnchor: [9, 9]
 });
 
-function MapController({ showNearest, nearestMosques, routingToMosque, selectedMosque }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any, selectedMosque: any }) {
+function MapController({ showNearest, nearestMosques, routingToMosque, selectedMosque, selectedCommune, filteredByCommune }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any, selectedMosque: any, selectedCommune: string | null, filteredByCommune: any[] }) {
   const { userLocation } = useAppStore();
   const map = useMap();
 
@@ -173,6 +180,15 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
       if (typeof selectedMosque.latitude === 'number' && typeof selectedMosque.longitude === 'number') {
         map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
       }
+    } else if (selectedCommune && filteredByCommune.length > 0) {
+      const validCommuneMosques = filteredByCommune.filter(m => 
+        typeof m.latitude === 'number' && !isNaN(m.latitude) &&
+        typeof m.longitude === 'number' && !isNaN(m.longitude)
+      );
+      if (validCommuneMosques.length > 0) {
+        const bounds = L.latLngBounds(validCommuneMosques.map(m => [m.latitude, m.longitude] as [number, number]));
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
     } else if (showNearest && isUserLocationValid && nearestMosques.length > 0) {
       const validNearest = nearestMosques.filter(m => 
         typeof m.latitude === 'number' && !isNaN(m.latitude) &&
@@ -188,7 +204,7 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
     } else if (!showNearest && isUserLocationValid && !routingToMosque) {
       map.flyTo([userLocation.latitude, userLocation.longitude], 13);
     }
-  }, [userLocation, isUserLocationValid, map, showNearest, nearestMosques, routingToMosque, selectedMosque]);
+  }, [userLocation, isUserLocationValid, map, showNearest, nearestMosques, routingToMosque, selectedMosque, selectedCommune, filteredByCommune]);
 
   return null;
 }
@@ -340,7 +356,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     mosques, userLocation, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
-    setOptimizedRouteIds, darkMode, routeInfo 
+    setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
@@ -522,6 +538,47 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
   const displayedMosques = showNearest && isUserLocationValid ? nearestMosques : filteredByCommune;
 
+  const communeClusters = useMemo(() => {
+    if (!clusterByCommune) return [];
+    const map = new Map<string, { latSum: number, lngSum: number, count: number, mosques: any[] }>();
+    
+    // Use the currently available data points (either all or filtered by search/commune... wait, if clusterByCommune is ON, usually we show ALL communes or just the ones in current dataset)
+    // We will just use 'mosques' to show all communes, unless we want to cluster just the currently visible stuff.
+    mosques.forEach(m => {
+       if (typeof m.latitude !== 'number' || typeof m.longitude !== 'number' || !m.commune) return;
+       // Skip if selectedCommune is active and it doesn't match? Or keep all. Let's keep all if clusterByCommune is active.
+       if (!map.has(m.commune)) {
+         map.set(m.commune, { latSum: 0, lngSum: 0, count: 0, mosques: [] });
+       }
+       const stat = map.get(m.commune)!;
+       stat.latSum += m.latitude;
+       stat.lngSum += m.longitude;
+       stat.count++;
+       stat.mosques.push(m);
+    });
+
+    const result: any[] = [];
+    map.forEach((stat, commune) => {
+       result.push({
+          commune,
+          latitude: stat.latSum / stat.count,
+          longitude: stat.lngSum / stat.count,
+          count: stat.count,
+          mosques: stat.mosques
+       });
+    });
+    return result;
+  }, [clusterByCommune, mosques]);
+
+  const communeClusterIcon = (count: number) => L.divIcon({
+    html: `<div class="bg-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold border-4 border-white shadow-xl">
+             ${count}
+           </div>`,
+    className: 'custom-commune-cluster',
+    iconSize: [48, 48],
+    iconAnchor: [24, 24]
+  });
+
   return (
     <div className="w-full h-full">
       <MapContainer 
@@ -605,64 +662,101 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           );
         })}
 
-        <MarkerClusterGroup
-          chunkedLoading
-          maxClusterRadius={50}
-          spiderfyOnMaxZoom={true}
-          showCoverageOnHover={false}
-        >
-          {displayedMosques
-            .filter(m => !routingToMosque || m.id !== routingToMosque.id)
-            .map((mosque) => (
-              <Marker
-                key={mosque.id}
-                position={[mosque.latitude, mosque.longitude]}
-                icon={(!routingToMosque && selectedMosque?.id === mosque.id) ? selectedMosqueIcon : mosqueIcon}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedMosque(mosque);
-                    setRoutingToMosque(null);
-                  },
-                }}
-              >
-                {(zoom >= 14 || showNearest) && (
-                  <Tooltip 
-                    direction="top" 
-                    offset={[0, -10]} 
-                    opacity={0.9} 
-                    permanent 
-                    className={cn(
-                      "border-none shadow-md rounded px-2 py-1 transition-colors duration-300",
-                      darkMode ? "!bg-gray-900 !text-white" : "!bg-white/90 !text-gray-800"
-                    )}
-                  >
-                    <div className="flex flex-col items-center">
-                      <div 
-                        className={cn(
-                          "max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center transition-colors",
-                          darkMode ? "text-white !text-white" : "text-gray-800"
-                        )}
-                        title={getLocalizedName(mosque, language)}
-                      >
-                        {getLocalizedName(mosque, language)}
-                      </div>
-                      {showNearest && roadDistances[mosque.id] !== undefined && (
-                        <div className={cn(
-                          "text-[10px] font-semibold mt-0.5 px-1.5 rounded flex items-center gap-1",
-                          darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-50 text-blue-600"
-                        )}>
-                          {roadDurations[mosque.id] !== undefined && (
-                            <span>{formatDuration(roadDurations[mosque.id])} • </span>
-                          )}
-                          <span>{(roadDistances[mosque.id] / 1000).toFixed(1)} km</span>
-                        </div>
-                      )}
-                    </div>
-                  </Tooltip>
+        {clusterByCommune && !routingToMosque ? (
+          communeClusters.map((cluster) => (
+            <Marker
+              key={cluster.commune}
+              position={[cluster.latitude, cluster.longitude]}
+              icon={communeClusterIcon(cluster.count)}
+              eventHandlers={{
+                click: () => {
+                   setSelectedCommune(cluster.commune);
+                   setClusterByCommune(false);
+                }
+              }}
+            >
+              <Tooltip
+                direction="top"
+                offset={[0, -20]}
+                className={cn(
+                  "border-none shadow-md rounded px-2 py-1 font-bold",
+                  darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-800"
                 )}
-              </Marker>
-            ))}
-        </MarkerClusterGroup>
+              >
+                {cluster.commune}
+              </Tooltip>
+            </Marker>
+          ))
+        ) : (
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={50}
+            spiderfyOnMaxZoom={true}
+            showCoverageOnHover={false}
+          >
+            {displayedMosques
+              .filter(m => !routingToMosque || m.id !== routingToMosque.id)
+              .map((mosque) => {
+                const isSelected = (!routingToMosque && selectedMosque?.id === mosque.id);
+                let currentIcon = isSelected ? selectedMosqueIcon : mosqueIcon;
+                
+                if (colorByPrayerType) {
+                  const color = getMosqueIconColor(mosque);
+                  currentIcon = isSelected ? selectedIconsCache[color] : iconsCache[color];
+                }
+
+                return (
+                <Marker
+                  key={mosque.id}
+                  position={[mosque.latitude, mosque.longitude]}
+                  icon={currentIcon}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedMosque(mosque);
+                      setRoutingToMosque(null);
+                    },
+                  }}
+                >
+                  {(zoom >= 14 || showNearest) && (
+                    <Tooltip 
+                      direction="top" 
+                      offset={[0, -10]} 
+                      opacity={0.9} 
+                      permanent 
+                      className={cn(
+                        "border-none shadow-md rounded px-2 py-1 transition-colors duration-300",
+                        darkMode ? "!bg-gray-900 !text-white" : "!bg-white/90 !text-gray-800"
+                      )}
+                    >
+                      <div className="flex flex-col items-center">
+                        <div 
+                          className={cn(
+                            "max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center transition-colors",
+                            darkMode ? "text-white !text-white" : "text-gray-800"
+                          )}
+                          title={getLocalizedName(mosque, language)}
+                        >
+                          {getLocalizedName(mosque, language)}
+                        </div>
+                        {showNearest && roadDistances[mosque.id] !== undefined && (
+                          <div className={cn(
+                            "text-[10px] font-semibold mt-0.5 px-1.5 rounded flex items-center gap-1",
+                            darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-50 text-blue-600"
+                          )}>
+                            {roadDurations[mosque.id] !== undefined && (
+                              <span>{formatDuration(roadDurations[mosque.id])} • </span>
+                            )}
+                            <span>{(roadDistances[mosque.id] / 1000).toFixed(1)} km</span>
+                          </div>
+                        )}
+                      </div>
+                    </Tooltip>
+                  )}
+                </Marker>
+               );
+              })}
+          </MarkerClusterGroup>
+        )}
 
         {routingToMosque && (
           <Marker
@@ -716,7 +810,14 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           </Marker>
         )}
         
-        <MapController showNearest={showNearest} nearestMosques={nearestMosques} routingToMosque={routingToMosque} selectedMosque={selectedMosque} />
+        <MapController 
+          showNearest={showNearest} 
+          nearestMosques={nearestMosques} 
+          routingToMosque={routingToMosque} 
+          selectedMosque={selectedMosque} 
+          selectedCommune={selectedCommune}
+          filteredByCommune={filteredByCommune}
+        />
       </MapContainer>
 
       {/* Map Overlays for Multi-stop Routing */}

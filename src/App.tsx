@@ -6,7 +6,7 @@ import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EquipmentScreen from './screens/EquipmentScreen';
-import { LocateFixed, MapPin, Layers, HelpCircle, X } from 'lucide-react';
+import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
@@ -19,12 +19,14 @@ export default function App() {
   const { 
     activeTab, setUserLocation, language, routingToMosque, 
     refreshLocation, mosques, mapStyle, setMapStyle, 
-    isEquipmentOpen, darkMode 
+    isEquipmentOpen, darkMode, clusterByCommune, setClusterByCommune,
+    colorByPrayerType, setColorByPrayerType
   } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
+  const [isMapToolsOpen, setIsMapToolsOpen] = useState(false);
 
   const requestLocation = () => {
     setIsLocating(true);
@@ -86,64 +88,114 @@ export default function App() {
               <MapView showNearest={showNearest} />
               <AiSmartOverlay />
               
-              {/* Floating Location Button */}
+              {/* Floating Location & Tools Buttons */}
               {!routingToMosque && (
-                <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3 transition-all`}>
+                <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3 items-end transition-all`}>
+                  {/* Primary Tools Toggle */}
                   <button 
-                    onClick={requestLocation}
-                    className="p-3 bg-white dark:bg-gray-900 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    title={t("My Location", language)}
-                  >
-                    <LocateFixed size={24} className={isLocating ? "animate-pulse text-blue-500" : ""} />
-                  </button>
-                  <button 
-                    onClick={() => setShowNearest(!showNearest)}
+                    onClick={() => setIsMapToolsOpen(!isMapToolsOpen)}
                     className={cn(
                       "p-3 rounded-full shadow-md transition-colors",
-                      showNearest 
-                        ? 'bg-blue-600 text-white' 
+                      isMapToolsOpen
+                        ? 'bg-blue-600 text-white'
                         : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
                     )}
-                    title={t("Nearest Mosques", language)}
+                    title={t("Map Tools", language)}
                   >
-                    <MapPin size={24} />
+                    {isMapToolsOpen ? <X size={24} /> : <Settings2 size={24} />}
                   </button>
-                  <button 
-                    onClick={() => {
-                      const nextStyle: Record<string, 'street' | 'satellite' | 'terrain'> = {
-                        'street': 'satellite',
-                        'satellite': 'terrain',
-                        'terrain': 'street'
-                      };
-                      setMapStyle(nextStyle[mapStyle]);
-                    }}
-                    className={cn(
-                      "p-3 rounded-full shadow-md transition-all duration-300",
-                      mapStyle === 'street' ? "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400" :
-                      mapStyle === 'satellite' ? "bg-blue-600 text-white" :
-                      "bg-emerald-600 text-white"
+
+                  {/* Expanded Tools Menu */}
+                  <AnimatePresence>
+                    {isMapToolsOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                        exit={{ opacity: 0, height: 0, scale: 0.9 }}
+                        className="flex flex-col gap-3"
+                      >
+                        <button 
+                          onClick={requestLocation}
+                          className="p-3 bg-white dark:bg-gray-900 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          title={t("My Location", language)}
+                        >
+                          <LocateFixed size={20} className={isLocating ? "animate-pulse text-blue-500" : ""} />
+                        </button>
+                        <button 
+                          onClick={() => setShowNearest(!showNearest)}
+                          className={cn(
+                            "p-3 rounded-full shadow-md transition-colors",
+                            showNearest 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                          )}
+                          title={t("Nearest Mosques", language)}
+                        >
+                          <MapPin size={20} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const nextStyle: Record<string, 'street' | 'satellite' | 'terrain'> = {
+                              'street': 'satellite',
+                              'satellite': 'terrain',
+                              'terrain': 'street'
+                            };
+                            setMapStyle(nextStyle[mapStyle]);
+                          }}
+                          className={cn(
+                            "p-3 rounded-full shadow-md transition-all duration-300",
+                            mapStyle === 'street' ? "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400" :
+                            mapStyle === 'satellite' ? "bg-blue-600 text-white" :
+                            "bg-emerald-600 text-white"
+                          )}
+                          title={t(
+                            mapStyle === 'street' ? 'Street Mode' : 
+                            mapStyle === 'satellite' ? 'Satellite Mode' : 
+                            'Terrain Mode', 
+                            language
+                          )}
+                        >
+                          <Layers size={20} />
+                        </button>
+                        <button 
+                          onClick={() => { setClusterByCommune(!clusterByCommune); }}
+                          className={cn(
+                            "p-3 rounded-full shadow-md transition-colors",
+                            clusterByCommune 
+                              ? 'bg-purple-600 text-white' 
+                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
+                          )}
+                          title={t("Cluster by Commune", language)}
+                        >
+                          <Network size={20} />
+                        </button>
+                        <button 
+                          onClick={() => setColorByPrayerType(!colorByPrayerType)}
+                          className={cn(
+                            "p-3 rounded-full shadow-md transition-colors",
+                            colorByPrayerType 
+                              ? 'bg-orange-500 text-white' 
+                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400'
+                          )}
+                          title={t("Color by Prayer Type", language)}
+                        >
+                          <Palette size={20} />
+                        </button>
+                        <button 
+                          onClick={() => setShowLegend(!showLegend)}
+                          className={cn(
+                            "p-3 rounded-full shadow-md transition-colors",
+                            showLegend 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                          )}
+                          title={t("Map Legend", language)}
+                        >
+                          <HelpCircle size={20} />
+                        </button>
+                      </motion.div>
                     )}
-                    title={t(
-                      mapStyle === 'street' ? 'Street Mode' : 
-                      mapStyle === 'satellite' ? 'Satellite Mode' : 
-                      'Terrain Mode', 
-                      language
-                    )}
-                  >
-                    <Layers size={24} />
-                  </button>
-                  <button 
-                    onClick={() => setShowLegend(!showLegend)}
-                    className={cn(
-                      "p-3 rounded-full shadow-md transition-colors",
-                      showLegend 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
-                    )}
-                    title={t("Map Legend", language)}
-                  >
-                    <HelpCircle size={24} />
-                  </button>
+                  </AnimatePresence>
                 </div>
               )}
 
@@ -171,10 +223,33 @@ export default function App() {
                         <div className="w-4 h-4 bg-blue-500 border-2 border-white dark:border-gray-800 rounded-full shadow-sm" />
                         <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("User Location", language)}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" className="w-4 h-6 object-contain" alt="" />
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Mosque", language)}</span>
-                      </div>
+                      
+                      {!colorByPrayerType ? (
+                        <div className="flex items-center gap-3">
+                          <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" className="w-4 h-6 object-contain" alt="" />
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Mosque", language)}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" className="w-4 h-6 object-contain" alt="" />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Friday Mosque", language)}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png" className="w-4 h-6 object-contain" alt="" />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("5 Prayers", language)}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" className="w-4 h-6 object-contain" alt="" />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Zawiya / Shrine", language)}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" className="w-4 h-6 object-contain" alt="" />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Default Mosque", language)}</span>
+                          </div>
+                        </>
+                      )}
+
                       <div className="flex items-center gap-3">
                         <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" className="w-4 h-6 object-contain" alt="" />
                         <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t("Destination", language)}</span>

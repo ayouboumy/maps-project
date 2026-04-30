@@ -114,6 +114,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         .replace(/[أإآا]/g, 'ا')
         .replace(/[ةه]/g, 'ه')
         .replace(/[يى]/g, 'ي')
+        .replace(/[\(\)\[\]\.،:]/g, '') // remove common punctuation from Excel headers
         .trim();
     };
 
@@ -138,7 +139,14 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           foundKey = Object.keys(dataSource).find(dataKey => dataKey.trim() === k.trim());
         }
         if (!foundKey) {
-          foundKey = Object.keys(dataSource).find(dataKey => normalize(dataKey) === normK);
+          foundKey = Object.keys(dataSource).find(dataKey => {
+            const nData = normalize(dataKey);
+            if (nData === normK) return true;
+            // Fuzzy match for longer keys (e.g. accounting for units like (م2) or extra words)
+            if (normK.length >= 5 && nData.includes(normK)) return true;
+            if (nData.length >= 5 && normK.includes(nData)) return true;
+            return false;
+          });
         }
 
         if (foundKey && !usedKeys.has(foundKey)) {
@@ -154,13 +162,29 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       });
     });
 
-    // 2. Put any remaining uncategorized attributes into "other"
+    // Heuristics for any MISSING unmapped keys
     if (mosque.extraData) {
       Object.keys(mosque.extraData).forEach(key => {
         if (!usedKeys.has(key)) {
           const val = mosque.extraData![key];
           if (val !== undefined && val !== null && val !== '') {
-            sections.other.push({ key, value: val });
+            const nData = normalize(key);
+            // Auto-categorize based on keywords if they were missed by exact structure
+            if (nData.includes('مساحه') || nData.includes('مساحات') || nData.includes('عدد')) {
+               if (nData.includes('سكن') || nData.includes('محل') || nData.includes('تجار')) {
+                 sections.revenue.push({ key, value: val });
+               } else if (nData.includes('ارض') || nData.includes('قطعه') || nData.includes('مبنيه')) {
+                 sections.land.push({ key, value: val });
+               } else {
+                 sections.components.push({ key, value: val });
+               }
+            } else if (nData.includes('شبكه') || nData.includes('ماء') || nData.includes('كهرباء') || nData.includes('صرف') || nData.includes('طريق')) {
+               sections.services.push({ key, value: val });
+            } else if (nData.includes('بناء') || nData.includes('تراب') || nData.includes('حجر') || nData.includes('اسمنت') || nData.includes('خرسانه')) {
+               sections.construction.push({ key, value: val });
+            } else {
+               sections.other.push({ key, value: val });
+            }
             usedKeys.add(key);
           }
         }

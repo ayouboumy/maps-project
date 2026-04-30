@@ -40,6 +40,8 @@ interface AppState {
   aiRecommendedIds: string[];
   isAiSearching: boolean;
   optimizedRouteIds: number[] | null;
+  clusterByCommune: boolean;
+  colorByPrayerType: boolean;
   
   toggleFavorite: (id: number) => void;
   setActiveTab: (tab: TabType) => void;
@@ -67,6 +69,8 @@ interface AppState {
   setAiRecommendedIds: (ids: string[]) => void;
   setIsAiSearching: (isSearching: boolean) => void;
   setOptimizedRouteIds: (ids: number[] | null) => void;
+  setClusterByCommune: (enabled: boolean) => void;
+  setColorByPrayerType: (enabled: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -99,6 +103,8 @@ export const useAppStore = create<AppState>()(
       aiRecommendedIds: [],
       isAiSearching: false,
       optimizedRouteIds: null,
+      clusterByCommune: false,
+      colorByPrayerType: false,
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -184,6 +190,8 @@ export const useAppStore = create<AppState>()(
       setAiRecommendedIds: (ids) => set({ aiRecommendedIds: ids }),
       setIsAiSearching: (isSearching) => set({ isAiSearching: isSearching }),
       setOptimizedRouteIds: (ids) => set({ optimizedRouteIds: ids }),
+      setClusterByCommune: (enabled) => set({ clusterByCommune: enabled }),
+      setColorByPrayerType: (enabled) => set({ colorByPrayerType: enabled }),
     }),
     {
       name: 'mosque-finder-storage',
@@ -198,7 +206,9 @@ export const useAppStore = create<AppState>()(
         downloadedCommunes: state.downloadedCommunes,
         knowledgeBase: state.knowledgeBase,
         aiInsights: state.aiInsights,
-        lastTrainingDate: state.lastTrainingDate
+        lastTrainingDate: state.lastTrainingDate,
+        clusterByCommune: state.clusterByCommune,
+        colorByPrayerType: state.colorByPrayerType
       }),
     }
   )
