@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, Circle } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -559,12 +559,25 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
     const result: any[] = [];
     map.forEach((stat, commune) => {
+       const centerLat = stat.latSum / stat.count;
+       const centerLng = stat.lngSum / stat.count;
+
+       // Calculate max distance to any mosque in this commune from the centroid to use as radius
+       let maxRadius = 0;
+       stat.mosques.forEach(m => {
+         const latDiff = (m.latitude - centerLat) * 111320; // rough meters
+         const lngDiff = (m.longitude - centerLng) * 111320 * Math.cos(centerLat * (Math.PI / 180));
+         const dist = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+         if (dist > maxRadius) maxRadius = dist;
+       });
+
        result.push({
           commune,
-          latitude: stat.latSum / stat.count,
-          longitude: stat.lngSum / stat.count,
+          latitude: centerLat,
+          longitude: centerLng,
           count: stat.count,
-          mosques: stat.mosques
+          mosques: stat.mosques,
+          radius: maxRadius > 500 ? maxRadius : 500 // minimum 500m radius
        });
     });
     return result;
@@ -664,28 +677,41 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         {clusterByCommune && !routingToMosque ? (
           communeClusters.map((cluster) => (
-            <Marker
-              key={cluster.commune}
-              position={[cluster.latitude, cluster.longitude]}
-              icon={communeClusterIcon(cluster.count)}
-              eventHandlers={{
-                click: () => {
-                   setSelectedCommune(cluster.commune);
-                   setClusterByCommune(false);
-                }
-              }}
-            >
-              <Tooltip
-                direction="top"
-                offset={[0, -20]}
-                className={cn(
-                  "border-none shadow-md rounded px-2 py-1 font-bold",
-                  darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-800"
-                )}
+            <Fragment key={cluster.commune}>
+              <Circle
+                center={[cluster.latitude, cluster.longitude]}
+                radius={cluster.radius}
+                pathOptions={{
+                  color: darkMode ? '#9333ea' : '#7e22ce',
+                  fillColor: darkMode ? '#9333ea' : '#7e22ce',
+                  fillOpacity: 0.1,
+                  weight: 2,
+                  dashArray: '5, 5'
+                }}
+              />
+              <Marker
+                position={[cluster.latitude, cluster.longitude]}
+                icon={communeClusterIcon(cluster.count)}
+                eventHandlers={{
+                  click: () => {
+                     setSelectedCommune(cluster.commune);
+                     setClusterByCommune(false);
+                  }
+                }}
               >
-                {cluster.commune}
-              </Tooltip>
-            </Marker>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -20]}
+                  permanent
+                  className={cn(
+                    "border-none shadow-lg rounded-md px-3 py-1 font-bold text-sm bg-opacity-90 transition-colors",
+                    darkMode ? "!bg-gray-900 !text-purple-300" : "!bg-white !text-purple-800"
+                  )}
+                >
+                  {cluster.commune}
+                </Tooltip>
+              </Marker>
+            </Fragment>
           ))
         ) : (
           <MarkerClusterGroup

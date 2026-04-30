@@ -83,7 +83,7 @@ export const useAppStore = create<AppState>()(
       routingToMosque: null,
       routeInfo: null,
       routeProfile: 'foot',
-      userLocation: null,
+      userLocation: { latitude: 34.9814488, longitude: -3.3934335 },
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
       selectedCommune: null,
