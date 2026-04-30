@@ -113,6 +113,13 @@ export const useAppStore = create<AppState>()(
             ? state.favorites.filter((favId) => favId !== id)
             : [...state.favorites, id],
         })),
+      updateMosque: (id, data) =>
+        set((state) => ({
+          mosques: state.mosques.map((m) => (m.id === id ? { ...m, ...data } : m)),
+          selectedMosque: state.selectedMosque?.id === id 
+            ? { ...state.selectedMosque, ...data } 
+            : state.selectedMosque,
+        })),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
       setRoutingToMosque: (mosque) => set({ routingToMosque: mosque }),
@@ -193,7 +200,6 @@ export const useAppStore = create<AppState>()(
       setOptimizedRouteIds: (ids) => set({ optimizedRouteIds: ids }),
       setClusterByCommune: (enabled) => set({ clusterByCommune: enabled }),
       setColorByPrayerType: (enabled) => set({ colorByPrayerType: enabled }),
-      setShowHeatmap: (enabled) => set({ showHeatmap: enabled }),
     }),
     {
       name: 'mosque-finder-storage',
@@ -210,8 +216,7 @@ export const useAppStore = create<AppState>()(
         aiInsights: state.aiInsights,
         lastTrainingDate: state.lastTrainingDate,
         clusterByCommune: state.clusterByCommune,
-        colorByPrayerType: state.colorByPrayerType,
-        showHeatmap: state.showHeatmap
+        colorByPrayerType: state.colorByPrayerType
       }),
     }
   )

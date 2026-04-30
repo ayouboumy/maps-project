@@ -6,6 +6,20 @@
   --font-serif: "Playfair Display", serif;
 }
 
+/* Fix for Leaflet tile gaps during capture/export */
+.leaflet-tile {
+  outline: 1px solid transparent;
+  box-shadow: 0 0 0 1px transparent;
+}
+
+.leaflet-tile-container {
+  will-change: auto !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
 @variant dark (&:where(.dark, .dark *));
 
 :root.dark {
