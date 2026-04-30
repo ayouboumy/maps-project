@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import * as turf from '@turf/turf';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -9,7 +8,6 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
-import { DRIOUCH_COMMUNES } from '../data/communes';
 import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -542,88 +540,46 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
   const communeClusters = useMemo(() => {
     if (!clusterByCommune) return [];
-    const map = new Map<string, { latSum: number, lngSum: number, count: number, mosques: any[], centerLat: number, centerLng: number }>();
+    const map = new Map<string, { latSum: number, lngSum: number, count: number, mosques: any[] }>();
     
-    // First step: Group existing mosques
     mosques.forEach(m => {
-       if (typeof m.latitude !== 'number' || typeof m.longitude !== 'number' || !m.commune) return;
+       const lat = Number(m.latitude);
+       const lng = Number(m.longitude);
+       if (isNaN(lat) || isNaN(lng) || !m.commune) return;
        const cName = m.commune.trim();
        if (!map.has(cName)) {
-         map.set(cName, { latSum: 0, lngSum: 0, count: 0, mosques: [], centerLat: 0, centerLng: 0 });
+         map.set(cName, { latSum: 0, lngSum: 0, count: 0, mosques: [] });
        }
        const stat = map.get(cName)!;
-       stat.latSum += m.latitude;
-       stat.lngSum += m.longitude;
+       stat.latSum += lat;
+       stat.lngSum += lng;
        stat.count++;
        stat.mosques.push(m);
     });
 
-    // Second step: Ensure all 23 Driouch Communes exist
-    DRIOUCH_COMMUNES.forEach(c => {
-       const existingK = Array.from(map.keys()).find(k => k.toLowerCase() === c.name.toLowerCase());
-       if (!existingK) {
-         if (c.lat && c.lng) {
-           map.set(c.name, { latSum: c.lat, lngSum: c.lng, count: 0, mosques: [], centerLat: c.lat, centerLng: c.lng });
-         }
-       }
-    });
-
     const result: any[] = [];
-    const points: turf.Feature<turf.Point>[] = [];
-
     map.forEach((stat, commune) => {
-       // Only update center if we have sum
        if (stat.count > 0) {
-         stat.centerLat = stat.latSum / stat.count;
-         stat.centerLng = stat.lngSum / stat.count;
+         result.push({
+            commune,
+            latitude: stat.latSum / stat.count,
+            longitude: stat.lngSum / stat.count,
+            count: stat.count,
+            mosques: stat.mosques
+         });
        }
-       
-       const cluster = {
-          commune,
-          latitude: stat.centerLat,
-          longitude: stat.centerLng,
-          count: stat.count,
-          mosques: stat.mosques,
-          polygon: null as any
-       };
-       result.push(cluster);
-
-       points.push(turf.point([stat.centerLng, stat.centerLat], { commune }));
     });
-
-    // Compute Voronoi
-    try {
-      // bbox: [minLng, minLat, maxLng, maxLat] for Driouch region
-      const bbox = [-4.0, 34.6, -2.9, 35.3] as turf.BBox;
-      const voronoiPolygons = turf.voronoi(turf.featureCollection(points), { bbox });
-      
-      if (voronoiPolygons && voronoiPolygons.features) {
-        voronoiPolygons.features.forEach(feature => {
-          if (!feature) return;
-          // turf voronoi preserves point order, wait... actually according to turf v6, features might not be in the exact order if some points were merged.
-          // In some turf versions, we have to match the polygons back to points.
-        });
-        // A safer way is to assume index alignment if features array matches points array length.
-        for(let i = 0; i < points.length; i++) {
-          if (voronoiPolygons.features[i]) {
-            result[i].polygon = turf.feature(voronoiPolygons.features[i].geometry, { commune: result[i].commune, count: result[i].count });
-          }
-        }
-      }
-    } catch(e) {
-      console.warn("Voronoi error:", e);
-    }
 
     return result;
   }, [clusterByCommune, mosques]);
 
   const communeClusterIcon = (count: number) => L.divIcon({
-    html: `<div class="bg-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold border-4 border-white shadow-xl">
+    html: `<div class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold border-2 border-white shadow-md text-sm">
              ${count}
            </div>`,
     className: 'custom-commune-cluster',
-    iconSize: [48, 48],
-    iconAnchor: [24, 24]
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
   });
 
   return (
@@ -711,43 +667,28 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         {clusterByCommune && !routingToMosque ? (
           communeClusters.map((cluster) => (
-            <Fragment key={cluster.commune}>
-              {cluster.polygon && (
-                <GeoJSON
-                  key={`${cluster.commune}-${darkMode}`}
-                  data={cluster.polygon}
-                  style={() => ({
-                    color: darkMode ? '#9333ea' : '#7e22ce',
-                    fillColor: darkMode ? '#9333ea' : '#7e22ce',
-                    fillOpacity: 0.1,
-                    weight: 2,
-                    dashArray: '5, 5'
-                  })}
-                />
-              )}
-              <Marker
-                position={[cluster.latitude, cluster.longitude]}
-                icon={communeClusterIcon(cluster.count)}
-                eventHandlers={{
-                  click: () => {
-                     setSelectedCommune(cluster.commune);
-                     setClusterByCommune(false);
-                  }
-                }}
+            <Marker
+              key={cluster.commune}
+              position={[cluster.latitude, cluster.longitude]}
+              icon={communeClusterIcon(cluster.count)}
+              eventHandlers={{
+                click: () => {
+                   setSelectedCommune(cluster.commune);
+                   setClusterByCommune(false);
+                }
+              }}
+            >
+              <Tooltip
+                direction="top"
+                offset={[0, -16]}
+                className={cn(
+                  "border-none shadow-md rounded px-2 py-1 font-bold text-xs bg-opacity-90 transition-colors pointer-events-none",
+                  darkMode ? "!bg-gray-900 !text-purple-300" : "!bg-white !text-purple-800"
+                )}
               >
-                <Tooltip
-                  direction="top"
-                  offset={[0, -20]}
-                  permanent
-                  className={cn(
-                    "border-none shadow-lg rounded-md px-3 py-1 font-bold text-sm bg-opacity-90 transition-colors pointer-events-none",
-                    darkMode ? "!bg-gray-900 !text-purple-300" : "!bg-white !text-purple-800"
-                  )}
-                >
-                  {cluster.commune}
-                </Tooltip>
-              </Marker>
-            </Fragment>
+                {cluster.commune}
+              </Tooltip>
+            </Marker>
           ))
         ) : (
           <MarkerClusterGroup
