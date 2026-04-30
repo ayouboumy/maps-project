@@ -6,7 +6,7 @@ import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EquipmentScreen from './screens/EquipmentScreen';
-import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette } from 'lucide-react';
+import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2 } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
@@ -14,6 +14,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
+import html2canvas from 'html2canvas';
 
 export default function App() {
   const { 
@@ -27,6 +28,32 @@ export default function App() {
   const [showNearest, setShowNearest] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
   const [isMapToolsOpen, setIsMapToolsOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportMap = async () => {
+    setIsExporting(true);
+    try {
+      const element = document.getElementById('map-export-container');
+      if (!element) throw new Error("Map container not found");
+      
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `mosque-map-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error("Error exporting map:", error);
+      alert(t("Failed to export map image. Please try again.", language));
+    } finally {
+      setIsExporting(false);
+      setIsMapToolsOpen(false);
+    }
+  };
 
   const requestLocation = () => {
     setIsLocating(true);
@@ -192,6 +219,14 @@ export default function App() {
                           title={t("Map Legend", language)}
                         >
                           <HelpCircle size={20} />
+                        </button>
+                        <button 
+                          onClick={handleExportMap}
+                          disabled={isExporting}
+                          className="p-3 bg-white dark:bg-gray-900 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors disabled:opacity-50"
+                          title={t("Export Map Image", language)}
+                        >
+                          {isExporting ? <Loader2 size={20} className="animate-spin text-green-500" /> : <Camera size={20} />}
                         </button>
                       </motion.div>
                     )}

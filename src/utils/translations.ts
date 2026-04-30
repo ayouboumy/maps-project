@@ -1,7 +1,10 @@
 import { Language, useAppStore } from '../store/useAppStore';
 
 const dictionary: Record<string, Record<Language, string>> = {
-  // UI Elements
+  // Export functionality
+  'Export Map Image': { en: 'Export Map Image', fr: 'Exporter la carte (Image)', ar: 'تصدير صورة الخريطة' },
+  'Failed to export map image. Please try again.': { en: 'Failed to export map image. Please try again.', fr: 'Échec de l\'exportation de la carte. Veuillez réessayer.', ar: 'فشل تصدير صورة الخريطة. يرجى المحاولة مرة أخرى.' },
+  
   'Settings': { en: 'Settings', fr: 'Paramètres', ar: 'الإعدادات' },
   'Display Settings': { en: 'Display Settings', fr: 'Paramètres d\'affichage', ar: 'إعدادات العرض' },
   'Dark Mode': { en: 'Dark Mode', fr: 'Mode sombre', ar: 'الوضع الداكن' },

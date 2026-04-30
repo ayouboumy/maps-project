@@ -597,7 +597,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   });
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full" id="map-export-container">
       <MapContainer 
         center={center} 
         zoom={12} 
