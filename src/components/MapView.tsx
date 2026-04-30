@@ -182,8 +182,8 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
       }
     } else if (selectedCommune && filteredByCommune.length > 0) {
       const validCommuneMosques = filteredByCommune.filter(m => 
-        typeof m.latitude === 'number' && !isNaN(m.latitude) &&
-        typeof m.longitude === 'number' && !isNaN(m.longitude)
+        typeof m.latitude === 'number' && !isNaN(m.latitude) && m.latitude !== 0 &&
+        typeof m.longitude === 'number' && !isNaN(m.longitude) && m.longitude !== 0
       );
       if (validCommuneMosques.length > 0) {
         const bounds = L.latLngBounds(validCommuneMosques.map(m => [m.latitude, m.longitude] as [number, number]));
@@ -191,8 +191,8 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
       }
     } else if (showNearest && isUserLocationValid && nearestMosques.length > 0) {
       const validNearest = nearestMosques.filter(m => 
-        typeof m.latitude === 'number' && !isNaN(m.latitude) &&
-        typeof m.longitude === 'number' && !isNaN(m.longitude)
+        typeof m.latitude === 'number' && !isNaN(m.latitude) && m.latitude !== 0 &&
+        typeof m.longitude === 'number' && !isNaN(m.longitude) && m.longitude !== 0
       );
       if (validNearest.length > 0) {
         const bounds = L.latLngBounds([
@@ -536,37 +536,51 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     fetchRoadDistances();
   }, [userLocation, filteredByCommune, routeProfile]);
 
-  const displayedMosques = showNearest && isUserLocationValid ? nearestMosques : filteredByCommune;
+  const displayedMosques = useMemo(() => {
+    const mosquesToList = showNearest && isUserLocationValid ? nearestMosques : filteredByCommune;
+    return mosquesToList.filter(m => !isNaN(m.latitude) && !isNaN(m.longitude) && m.latitude !== 0 && m.longitude !== 0);
+  }, [showNearest, isUserLocationValid, nearestMosques, filteredByCommune]);
 
   const communeClusters = useMemo(() => {
     if (!clusterByCommune) return [];
-    const map = new Map<string, { latSum: number, lngSum: number, count: number, mosques: any[] }>();
+    const map = new Map<string, { latSum: number, lngSum: number, validCount: number, count: number, mosques: any[] }>();
     
     mosques.forEach(m => {
        const lat = Number(m.latitude);
        const lng = Number(m.longitude);
-       if (isNaN(lat) || isNaN(lng) || !m.commune) return;
+       if (!m.commune) return;
        const cName = m.commune.trim();
        if (!map.has(cName)) {
-         map.set(cName, { latSum: 0, lngSum: 0, count: 0, mosques: [] });
+         map.set(cName, { latSum: 0, lngSum: 0, validCount: 0, count: 0, mosques: [] });
        }
        const stat = map.get(cName)!;
-       stat.latSum += lat;
-       stat.lngSum += lng;
+       
+       if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+         stat.latSum += lat;
+         stat.lngSum += lng;
+         stat.validCount++;
+       }
+       
        stat.count++;
        stat.mosques.push(m);
     });
 
     const result: any[] = [];
     map.forEach((stat, commune) => {
-       if (stat.count > 0) {
+       if (stat.count > 0 && stat.validCount > 0) {
          result.push({
             commune,
-            latitude: stat.latSum / stat.count,
-            longitude: stat.lngSum / stat.count,
+            latitude: stat.latSum / stat.validCount,
+            longitude: stat.lngSum / stat.validCount,
             count: stat.count,
             mosques: stat.mosques
          });
+       } else if (stat.count > 0 && stat.validCount === 0) {
+         // Fallback if all mosques in the commune have invalid coordinates
+         // Default to Driouch center approximately, or we skip creating a marker?
+         // It's probably better to skip the map marker if we have literally 0 valid coords
+         // so it doesn't render at 0,0.
+         // Or we could put them at a fallback coordinate. Let's just skip them.
        }
     });
 
