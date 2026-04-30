@@ -14,7 +14,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
-import domtoimage from 'dom-to-image-more';
+import html2canvas from 'html2canvas';
 
 export default function App() {
   const { 
@@ -36,39 +36,28 @@ export default function App() {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // Wait a tiny bit for the map to stabilize
+      // Wait for any animations to settle
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const dataUrl = await domtoimage.toPng(element, {
-        bgcolor: darkMode ? '#030712' : '#ffffff',
-        cacheBust: true,
-        filter: (node: any) => {
-          // Hide buttons and map tools during export
-          if (node.tagName === 'BUTTON') return false;
-          // Hide specific z-index containers that hold UI controls
-          if (node.classList && (node.classList.contains('z-[1000]') || node.classList.contains('top-safe-4'))) {
-             // Exception: allow markers and tooltips if they are in the map
-             // Leaflet usually puts markers in .leaflet-marker-pane, which is inside MapContainer
-             // but my custom overlays are z-[1000]
-             return false;
-          }
-          return true;
-        },
-        quality: 1,
-        // Increase resolution by scaling the capture
-        width: element.clientWidth * 2,
-        height: element.clientHeight * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left',
-          width: element.clientWidth + 'px',
-          height: element.clientHeight + 'px'
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: darkMode ? '#030712' : '#ffffff',
+        scale: 3, // High quality scale
+        logging: false,
+        ignoreElements: (node) => {
+          // Hide buttons, zoom controls, and specific UI overlays
+          const el = node as HTMLElement;
+          const isButton = el.tagName === 'BUTTON';
+          const isMapControl = el.classList?.contains('leaflet-control-container');
+          const isSearchPanel = el.classList?.contains('top-safe-4');
+          return isButton || isMapControl || isSearchPanel;
         }
       });
       
       const link = document.createElement('a');
-      link.download = `mosque-map-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
+      link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);

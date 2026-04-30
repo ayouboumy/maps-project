@@ -23,13 +23,23 @@ function HeatmapLayer({ mosques }: { mosques: any[] }) {
 
     // @ts-ignore
     const heat = L.heatLayer(points, {
-      radius: 35,
-      blur: 25,
-      maxZoom: 14,
-      max: 1.0,
+      radius: 40,
+      blur: 30,
+      maxZoom: 10,
+      max: 0.8,
       gradient: darkMode 
-        ? { 0.2: '#004d40', 0.4: '#00695c', 0.6: '#00897b', 0.9: '#00796b', 1: '#004d40' } // Greenish for dark
-        : { 0.2: '#e8f5e9', 0.4: '#81c784', 0.6: '#4caf50', 0.9: '#2e7d32', 1: '#1b5e20' }  // Emerald for light
+        ? { 
+            0.4: '#1e3a8a', // Deep Blue
+            0.6: '#3b82f6', // Bright Blue
+            0.8: '#60a5fa', // Light Blue
+            1.0: '#93c5fd'  // Very Light Blue
+          }
+        : { 
+            0.4: '#064e3b', // Deep Emerald
+            0.6: '#10b981', // Emerald
+            0.8: '#34d399', // Bright Green
+            1.0: '#6ee7b7'  // Mint
+          }
     }).addTo(map);
 
     return () => {
