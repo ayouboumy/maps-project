@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, GeoJSON } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
+import * as turf from '@turf/turf';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -8,6 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
+import { DRIOUCH_COMMUNES } from '../data/communes';
 import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -540,46 +542,78 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
   const communeClusters = useMemo(() => {
     if (!clusterByCommune) return [];
-    const map = new Map<string, { latSum: number, lngSum: number, count: number, mosques: any[] }>();
+    const map = new Map<string, { latSum: number, lngSum: number, count: number, mosques: any[], centerLat: number, centerLng: number }>();
     
-    // Use the currently available data points (either all or filtered by search/commune... wait, if clusterByCommune is ON, usually we show ALL communes or just the ones in current dataset)
-    // We will just use 'mosques' to show all communes, unless we want to cluster just the currently visible stuff.
+    // First step: Group existing mosques
     mosques.forEach(m => {
        if (typeof m.latitude !== 'number' || typeof m.longitude !== 'number' || !m.commune) return;
-       // Skip if selectedCommune is active and it doesn't match? Or keep all. Let's keep all if clusterByCommune is active.
-       if (!map.has(m.commune)) {
-         map.set(m.commune, { latSum: 0, lngSum: 0, count: 0, mosques: [] });
+       const cName = m.commune.trim();
+       if (!map.has(cName)) {
+         map.set(cName, { latSum: 0, lngSum: 0, count: 0, mosques: [], centerLat: 0, centerLng: 0 });
        }
-       const stat = map.get(m.commune)!;
+       const stat = map.get(cName)!;
        stat.latSum += m.latitude;
        stat.lngSum += m.longitude;
        stat.count++;
        stat.mosques.push(m);
     });
 
+    // Second step: Ensure all 23 Driouch Communes exist
+    DRIOUCH_COMMUNES.forEach(c => {
+       const existingK = Array.from(map.keys()).find(k => k.toLowerCase() === c.name.toLowerCase());
+       if (!existingK) {
+         if (c.lat && c.lng) {
+           map.set(c.name, { latSum: c.lat, lngSum: c.lng, count: 0, mosques: [], centerLat: c.lat, centerLng: c.lng });
+         }
+       }
+    });
+
     const result: any[] = [];
+    const points: turf.Feature<turf.Point>[] = [];
+
     map.forEach((stat, commune) => {
-       const centerLat = stat.latSum / stat.count;
-       const centerLng = stat.lngSum / stat.count;
-
-       // Calculate max distance to any mosque in this commune from the centroid to use as radius
-       let maxRadius = 0;
-       stat.mosques.forEach(m => {
-         const latDiff = (m.latitude - centerLat) * 111320; // rough meters
-         const lngDiff = (m.longitude - centerLng) * 111320 * Math.cos(centerLat * (Math.PI / 180));
-         const dist = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-         if (dist > maxRadius) maxRadius = dist;
-       });
-
-       result.push({
+       // Only update center if we have sum
+       if (stat.count > 0) {
+         stat.centerLat = stat.latSum / stat.count;
+         stat.centerLng = stat.lngSum / stat.count;
+       }
+       
+       const cluster = {
           commune,
-          latitude: centerLat,
-          longitude: centerLng,
+          latitude: stat.centerLat,
+          longitude: stat.centerLng,
           count: stat.count,
           mosques: stat.mosques,
-          radius: maxRadius > 500 ? maxRadius : 500 // minimum 500m radius
-       });
+          polygon: null as any
+       };
+       result.push(cluster);
+
+       points.push(turf.point([stat.centerLng, stat.centerLat], { commune }));
     });
+
+    // Compute Voronoi
+    try {
+      // bbox: [minLng, minLat, maxLng, maxLat] for Driouch region
+      const bbox = [-4.0, 34.6, -2.9, 35.3] as turf.BBox;
+      const voronoiPolygons = turf.voronoi(turf.featureCollection(points), { bbox });
+      
+      if (voronoiPolygons && voronoiPolygons.features) {
+        voronoiPolygons.features.forEach(feature => {
+          if (!feature) return;
+          // turf voronoi preserves point order, wait... actually according to turf v6, features might not be in the exact order if some points were merged.
+          // In some turf versions, we have to match the polygons back to points.
+        });
+        // A safer way is to assume index alignment if features array matches points array length.
+        for(let i = 0; i < points.length; i++) {
+          if (voronoiPolygons.features[i]) {
+            result[i].polygon = turf.feature(voronoiPolygons.features[i].geometry, { commune: result[i].commune, count: result[i].count });
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("Voronoi error:", e);
+    }
+
     return result;
   }, [clusterByCommune, mosques]);
 
@@ -678,17 +712,19 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         {clusterByCommune && !routingToMosque ? (
           communeClusters.map((cluster) => (
             <Fragment key={cluster.commune}>
-              <Circle
-                center={[cluster.latitude, cluster.longitude]}
-                radius={cluster.radius}
-                pathOptions={{
-                  color: darkMode ? '#9333ea' : '#7e22ce',
-                  fillColor: darkMode ? '#9333ea' : '#7e22ce',
-                  fillOpacity: 0.1,
-                  weight: 2,
-                  dashArray: '5, 5'
-                }}
-              />
+              {cluster.polygon && (
+                <GeoJSON
+                  key={`${cluster.commune}-${darkMode}`}
+                  data={cluster.polygon}
+                  style={() => ({
+                    color: darkMode ? '#9333ea' : '#7e22ce',
+                    fillColor: darkMode ? '#9333ea' : '#7e22ce',
+                    fillOpacity: 0.1,
+                    weight: 2,
+                    dashArray: '5, 5'
+                  })}
+                />
+              )}
               <Marker
                 position={[cluster.latitude, cluster.longitude]}
                 icon={communeClusterIcon(cluster.count)}
@@ -704,7 +740,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   offset={[0, -20]}
                   permanent
                   className={cn(
-                    "border-none shadow-lg rounded-md px-3 py-1 font-bold text-sm bg-opacity-90 transition-colors",
+                    "border-none shadow-lg rounded-md px-3 py-1 font-bold text-sm bg-opacity-90 transition-colors pointer-events-none",
                     darkMode ? "!bg-gray-900 !text-purple-300" : "!bg-white !text-purple-800"
                   )}
                 >
