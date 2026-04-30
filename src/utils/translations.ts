@@ -5,7 +5,6 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Export Map Image': { en: 'Export Map Image', fr: 'Exporter la carte (Image)', ar: 'تصدير صورة الخريطة' },
   'Failed to export map image. Please try again.': { en: 'Failed to export map image. Please try again.', fr: 'Échec de l\'exportation de la carte. Veuillez réessayer.', ar: 'فشل تصدير صورة الخريطة. يرجى المحاولة مرة أخرى.' },
   
-  'Commune Heatmap': { en: 'Commune Heatmap', fr: 'Carte thermique des communes', ar: 'الخريطة الحرارية للجماعات' },
   'Edit Mosque Data': { en: 'Edit Mosque Data', fr: 'Modifier les données de la mosquée', ar: 'تعديل بيانات المسجد' },
   'Save Changes': { en: 'Save Changes', fr: 'Enregistrer les modifications', ar: 'حفظ التغييرات' },
   'Add Custom Field': { en: 'Add Custom Field', fr: 'Ajouter un champ personnalisé', ar: 'إضافة حقل مخصص' },

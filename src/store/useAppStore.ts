@@ -42,7 +42,6 @@ interface AppState {
   optimizedRouteIds: number[] | null;
   clusterByCommune: boolean;
   colorByPrayerType: boolean;
-  showHeatmap: boolean;
   
   toggleFavorite: (id: number) => void;
   updateMosque: (id: number, data: Partial<Mosque>) => void;
@@ -73,7 +72,6 @@ interface AppState {
   setOptimizedRouteIds: (ids: number[] | null) => void;
   setClusterByCommune: (enabled: boolean) => void;
   setColorByPrayerType: (enabled: boolean) => void;
-  setShowHeatmap: (enabled: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -108,7 +106,6 @@ export const useAppStore = create<AppState>()(
       optimizedRouteIds: null,
       clusterByCommune: false,
       colorByPrayerType: false,
-      showHeatmap: false,
 
       toggleFavorite: (id) =>
         set((state) => ({

@@ -5,50 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import 'leaflet.heat';
 import { useAppStore } from '../store/useAppStore';
-
-function HeatmapLayer({ mosques }: { mosques: any[] }) {
-  const map = useMap();
-  const { darkMode } = useAppStore();
-
-  useEffect(() => {
-    if (!mosques.length) return;
-
-    const points: [number, number, number][] = mosques.map(m => [
-      m.latitude,
-      m.longitude,
-      1 // intensity
-    ]);
-
-    // @ts-ignore
-    const heat = L.heatLayer(points, {
-      radius: 40,
-      blur: 30,
-      maxZoom: 10,
-      max: 0.8,
-      gradient: darkMode 
-        ? { 
-            0.4: '#1e3a8a', // Deep Blue
-            0.6: '#3b82f6', // Bright Blue
-            0.8: '#60a5fa', // Light Blue
-            1.0: '#93c5fd'  // Very Light Blue
-          }
-        : { 
-            0.4: '#064e3b', // Deep Emerald
-            0.6: '#10b981', // Emerald
-            0.8: '#34d399', // Bright Green
-            1.0: '#6ee7b7'  // Mint
-          }
-    }).addTo(map);
-
-    return () => {
-      map.removeLayer(heat);
-    };
-  }, [map, mosques, darkMode]);
-
-  return null;
-}
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
 import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw } from 'lucide-react';
@@ -399,7 +356,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     mosques, userLocation, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
-    setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType, showHeatmap
+    setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
@@ -649,8 +606,6 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         preferCanvas={true}
       >
         <ZoomListener onZoomChange={setZoom} />
-        
-        {showHeatmap && <HeatmapLayer mosques={filteredByCommune} />}
         
         {mapStyle === 'street' && (
           <TileLayer

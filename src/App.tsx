@@ -6,7 +6,7 @@ import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EquipmentScreen from './screens/EquipmentScreen';
-import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2, Flame } from 'lucide-react';
+import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2 } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
@@ -14,14 +14,14 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 
 export default function App() {
   const { 
     activeTab, setUserLocation, language, routingToMosque, 
     refreshLocation, mosques, mapStyle, setMapStyle, 
     isEquipmentOpen, darkMode, clusterByCommune, setClusterByCommune,
-    colorByPrayerType, setColorByPrayerType, showHeatmap, setShowHeatmap
+    colorByPrayerType, setColorByPrayerType
   } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -36,28 +36,28 @@ export default function App() {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // Wait for any animations to settle
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for map to settle
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: darkMode ? '#030712' : '#ffffff',
-        scale: 3, // High quality scale
-        logging: false,
-        ignoreElements: (node) => {
-          // Hide buttons, zoom controls, and specific UI overlays
-          const el = node as HTMLElement;
-          const isButton = el.tagName === 'BUTTON';
-          const isMapControl = el.classList?.contains('leaflet-control-container');
-          const isSearchPanel = el.classList?.contains('top-safe-4');
-          return isButton || isMapControl || isSearchPanel;
-        }
+      const dataUrl = await domtoimage.toPng(element, {
+        bgcolor: darkMode ? '#030712' : '#ffffff',
+        cacheBust: true,
+        filter: (node: any) => {
+          // Hide UI elements that shouldn't be in the snapshot
+          if (node.tagName === 'BUTTON') return false;
+          if (node.classList && (node.classList.contains('z-[1000]') || node.classList.contains('top-safe-4'))) {
+            return false;
+          }
+          return true;
+        },
+        quality: 1,
+        // Leaflet tiles sometimes show gaps if captured at odd scales
+        // We'll capture at natural size first
       });
       
       const link = document.createElement('a');
       link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);
@@ -208,18 +208,6 @@ export default function App() {
                           title={t("Cluster by Commune", language)}
                         >
                           <Network size={20} />
-                        </button>
-                        <button 
-                          onClick={() => setShowHeatmap(!showHeatmap)}
-                          className={cn(
-                            "p-3 rounded-full shadow-md transition-colors",
-                            showHeatmap 
-                              ? 'bg-red-600 text-white animate-pulse' 
-                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'
-                          )}
-                          title={t("Commune Heatmap", language)}
-                        >
-                          <Flame size={20} />
                         </button>
                         <button 
                           onClick={() => setColorByPrayerType(!colorByPrayerType)}
