@@ -14,7 +14,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 
 export default function App() {
   const { 
@@ -36,51 +36,37 @@ export default function App() {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // Wait for map to settle completely
+      // Wait for map to settle
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: darkMode ? '#030712' : '#ffffff',
-        scale: 2, // High resolution
-        imageTimeout: 15000,
-        logging: false,
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.getElementById('map-export-container');
-          if (clonedElement) {
-            // 1. Hide UI elements that shouldn't be in the snapshot
-            const buttons = clonedElement.querySelectorAll('button');
-            buttons.forEach(b => (b.style.display = 'none'));
-            
-            const controls = clonedElement.querySelectorAll('.leaflet-control-container');
-            controls.forEach(c => ((c as HTMLElement).style.display = 'none'));
-            
-            const searchPanel = clonedElement.querySelector('.top-safe-4');
-            if (searchPanel) (searchPanel as HTMLElement).style.display = 'none';
-
-            // 2. Fix tile gaps ("squares" issue)
-            // This is caused by CSS transforms and sub-pixel alignment
-            const tiles = clonedElement.querySelectorAll('.leaflet-tile');
-            tiles.forEach(t => {
-              const tile = t as HTMLElement;
-              tile.style.outline = '1px solid transparent'; // Bleed edge
-              tile.style.boxShadow = '0 0 0 1px transparent';
-              tile.style.willChange = 'auto';
-            });
-
-            // 3. Fix map pane containers
-            const mapPane = clonedElement.querySelector('.leaflet-map-pane');
-            if (mapPane) {
-              (mapPane as HTMLElement).style.transform = 'none';
-            }
+      const dataUrl = await domtoimage.toPng(element, {
+        bgcolor: darkMode ? '#030712' : '#ffffff',
+        cacheBust: true,
+        filter: (node: any) => {
+          // Hide UI elements in the snapshot
+          if (node.tagName === 'BUTTON') return false;
+          if (node.classList && (
+            node.classList.contains('z-[1000]') || 
+            node.classList.contains('top-safe-4') ||
+            node.classList.contains('leaflet-control-container')
+          )) {
+            return false;
           }
+          return true;
+        },
+        height: element.offsetHeight * 2,
+        width: element.offsetWidth * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+          width: element.offsetWidth + 'px',
+          height: element.offsetHeight + 'px'
         }
       });
       
       const link = document.createElement('a');
       link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);
