@@ -5,6 +5,14 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Export Map Image': { en: 'Export Map Image', fr: 'Exporter la carte (Image)', ar: 'تصدير صورة الخريطة' },
   'Failed to export map image. Please try again.': { en: 'Failed to export map image. Please try again.', fr: 'Échec de l\'exportation de la carte. Veuillez réessayer.', ar: 'فشل تصدير صورة الخريطة. يرجى المحاولة مرة أخرى.' },
   
+  'Commune Heatmap': { en: 'Commune Heatmap', fr: 'Carte thermique des communes', ar: 'الخريطة الحرارية للجماعات' },
+  'Edit Mosque Data': { en: 'Edit Mosque Data', fr: 'Modifier les données de la mosquée', ar: 'تعديل بيانات المسجد' },
+  'Save Changes': { en: 'Save Changes', fr: 'Enregistrer les modifications', ar: 'حفظ التغييرات' },
+  'Add Custom Field': { en: 'Add Custom Field', fr: 'Ajouter un champ personnalisé', ar: 'إضافة حقل مخصص' },
+  'Field Name (e.g., Imam Name)': { en: 'Field Name (e.g., Imam Name)', fr: 'Nom du champ (ex: Nom de l\'Imam)', ar: 'اسم الحقل (مثال: اسم الإمام)' },
+  'Field Value': { en: 'Field Value', fr: 'Valeur du champ', ar: 'قيمة الحقل' },
+  'Add': { en: 'Add', fr: 'Ajouter', ar: 'إضافة' },
+  
   'Settings': { en: 'Settings', fr: 'Paramètres', ar: 'الإعدادات' },
   'Display Settings': { en: 'Display Settings', fr: 'Paramètres d\'affichage', ar: 'إعدادات العرض' },
   'Dark Mode': { en: 'Dark Mode', fr: 'Mode sombre', ar: 'الوضع الداكن' },
@@ -299,7 +307,6 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Equipment': { en: 'Equipment', fr: 'Équipement', ar: 'التجهيزات' },
   'Search equipment...': { en: 'Search equipment...', fr: 'Rechercher un équipement...', ar: 'بحث عن التجهيزات...' },
   'Add new equipment...': { en: 'Add new equipment...', fr: 'Ajouter un nouvel équipement...', ar: 'إضافة تجهيزات جديدة...' },
-  'Add': { en: 'Add', fr: 'Ajouter', ar: 'إضافة' },
   'Items': { en: 'Items', fr: 'Éléments', ar: 'عناصر' },
   'No equipment found': { en: 'No equipment found', fr: 'Aucun équipement trouvé', ar: 'لم يتم العثور على تجهيزات' },
   'Try a different search term': { en: 'Try a different search term', fr: 'Essayez un autre terme de recherche', ar: 'حاول استخدام مصطلح بحث آخر' },

@@ -42,8 +42,10 @@ interface AppState {
   optimizedRouteIds: number[] | null;
   clusterByCommune: boolean;
   colorByPrayerType: boolean;
+  showHeatmap: boolean;
   
   toggleFavorite: (id: number) => void;
+  updateMosque: (id: number, data: Partial<Mosque>) => void;
   setActiveTab: (tab: TabType) => void;
   setSelectedMosque: (mosque: Mosque | null) => void;
   setRoutingToMosque: (mosque: Mosque | null) => void;
@@ -71,6 +73,7 @@ interface AppState {
   setOptimizedRouteIds: (ids: number[] | null) => void;
   setClusterByCommune: (enabled: boolean) => void;
   setColorByPrayerType: (enabled: boolean) => void;
+  setShowHeatmap: (enabled: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -105,6 +108,7 @@ export const useAppStore = create<AppState>()(
       optimizedRouteIds: null,
       clusterByCommune: false,
       colorByPrayerType: false,
+      showHeatmap: false,
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -192,6 +196,7 @@ export const useAppStore = create<AppState>()(
       setOptimizedRouteIds: (ids) => set({ optimizedRouteIds: ids }),
       setClusterByCommune: (enabled) => set({ clusterByCommune: enabled }),
       setColorByPrayerType: (enabled) => set({ colorByPrayerType: enabled }),
+      setShowHeatmap: (enabled) => set({ showHeatmap: enabled }),
     }),
     {
       name: 'mosque-finder-storage',
@@ -208,7 +213,8 @@ export const useAppStore = create<AppState>()(
         aiInsights: state.aiInsights,
         lastTrainingDate: state.lastTrainingDate,
         clusterByCommune: state.clusterByCommune,
-        colorByPrayerType: state.colorByPrayerType
+        colorByPrayerType: state.colorByPrayerType,
+        showHeatmap: state.showHeatmap
       }),
     }
   )

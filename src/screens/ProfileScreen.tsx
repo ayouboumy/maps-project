@@ -5,13 +5,13 @@ import {
   Home, Droplets, Info, Activity, Clock, ShieldCheck,
   Package, Map, Zap, Layout, DollarSign, Waves, Globe, 
   Thermometer, Ruler, Layers, ShoppingBag, School, BookOpen,
-  Dna, Sparkles
+  Dna, Sparkles, Edit3, Save, Plus, Trash2, X
 } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { t, getLocalizedName } from '../utils/translations';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 interface ProfileScreenProps {
   mosque: Mosque;
@@ -19,10 +19,51 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
-  const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen, darkMode } = useAppStore();
+  const { favorites, toggleFavorite, language, routeProfile, userLocation, setIsEquipmentOpen, darkMode, updateMosque } = useAppStore();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'land' | 'construction' | 'services' | 'components' | 'revenue' | 'other'>('general');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Record<string, any>>({});
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldValue, setNewFieldValue] = useState('');
   const isFavorite = favorites.includes(mosque.id);
+
+  useEffect(() => {
+    if (isEditing) {
+      setEditData({
+        name: mosque.name,
+        address: mosque.address,
+        ...(mosque.extraData || {})
+      });
+    }
+  }, [isEditing, mosque]);
+
+  const handleSave = () => {
+    const { name, address, ...extraData } = editData;
+    updateMosque(mosque.id, {
+      name,
+      address,
+      extraData
+    });
+    setIsEditing(false);
+  };
+
+  const handleAddField = () => {
+    if (newFieldName && newFieldValue) {
+      setEditData(prev => ({
+        ...prev,
+        [newFieldName]: newFieldValue
+      }));
+      setNewFieldName('');
+      setNewFieldValue('');
+    }
+  };
+
+  const removeField = (key: string) => {
+    const newData = { ...editData };
+    delete newData[key];
+    setEditData(newData);
+  };
 
   const handleCopyPosition = () => {
     const coords = `${mosque.latitude}, ${mosque.longitude}`;
@@ -225,6 +266,17 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
         <div className="flex gap-2">
           <button 
+            onClick={() => setIsEditing(!isEditing)}
+            className={cn(
+              "p-2.5 rounded-xl border shadow-lg active:scale-90 transition-all",
+              isEditing 
+                ? "bg-blue-600 text-white border-blue-600" 
+                : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-100 dark:border-gray-800"
+            )}
+          >
+            {isEditing ? <Save size={20} onClick={(e) => { e.stopPropagation(); handleSave(); }} /> : <Edit3 size={20} />}
+          </button>
+          <button 
             onClick={handleShare}
             className="p-2.5 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-800 shadow-lg active:scale-90 transition-all"
           >
@@ -315,8 +367,81 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
           {/* Document Content */}
           <div className="pb-20 pt-4">
-            <AnimatePresence mode="wait">
-              {tabs.map((tab) => {
+            {isEditing ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-gray-900 rounded-[32px] border border-gray-100 dark:border-gray-800 p-6 shadow-xl space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">{t('Edit Mosque Data', language)}</h3>
+                  <button onClick={() => setIsEditing(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.entries(editData).map(([key, value]) => (
+                    <div key={key} className="flex items-end gap-3 group">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest px-1">
+                          {key}
+                        </label>
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => setEditData(prev => ({ ...prev, [key]: e.target.value }))}
+                          className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                        />
+                      </div>
+                      {key !== 'name' && key !== 'address' && (
+                        <button 
+                          onClick={() => removeField(key)}
+                          className="p-3 text-gray-300 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+                  <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-4 px-1">{t('Add Custom Field', language)}</h4>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      placeholder={t('Field Name (e.g., Imam Name)', language)}
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      className="flex-1 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none ring-1 ring-gray-100 dark:ring-gray-800 focus:ring-2 focus:ring-emerald-500 transition-all"
+                    />
+                    <input
+                      placeholder={t('Field Value', language)}
+                      value={newFieldValue}
+                      onChange={(e) => setNewFieldValue(e.target.value)}
+                      className="flex-1 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none ring-1 ring-gray-100 dark:ring-gray-800 focus:ring-2 focus:ring-emerald-500 transition-all"
+                    />
+                    <button
+                      onClick={handleAddField}
+                      className="bg-emerald-600 text-white p-3 rounded-2xl shadow-lg hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <Plus size={20} />
+                      <span className="sm:hidden font-bold">{t('Add', language)}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSave}
+                  className="w-full bg-blue-600 text-white p-4 rounded-3xl font-black text-lg shadow-xl hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3"
+                >
+                  <Save size={24} />
+                  {t('Save Changes', language)}
+                </button>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="wait">
+                {tabs.map((tab) => {
                 if (tab.id !== activeTab) return null;
                 
                 const items = categories.sections[tab.id as keyof typeof categories.sections];
@@ -375,7 +500,8 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                 );
               })}
             </AnimatePresence>
-          </div>
+          )}
+        </div>
 
           {/* Technical Inventory Footer Link */}
           <div className="pt-6">
