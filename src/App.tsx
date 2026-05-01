@@ -14,7 +14,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 
 export default function App() {
   const { 
@@ -36,72 +36,43 @@ export default function App() {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // 1. Force map to recalculate its dimensions
+      // 1. Force map to recalculate its dimensions and center
       if (mapInstance) {
         mapInstance.invalidateSize();
       }
 
-      // 2. Wait for tiles to settle. Leaflet tiles load asynchronously.
-      // We wait for a bit to ensure rendering is complete. 
-      // User requested 1000ms+ or listening to events.
+      // 2. Wait for tiles to settle completely
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        allowTaint: false,
-        scale: 3, // High resolution
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        backgroundColor: darkMode ? '#030712' : '#ffffff',
-        onclone: (clonedDoc) => {
-          const clonedMap = clonedDoc.getElementById('map-export-container');
-          if (clonedMap) {
-            // 1. Scrub oklch colors - html2canvas crashes on them
-            // We traverse the clone and replace any oklch color values with safe defaults
-            const allElements = clonedMap.querySelectorAll('*');
-            allElements.forEach(el => {
-              const htmlEl = el as HTMLElement;
-              // We check for any style properties that might contain oklch
-              const stylesToFix = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke'];
-              stylesToFix.forEach(prop => {
-                // @ts-ignore
-                const val = htmlEl.style[prop];
-                if (val && val.includes('oklch')) {
-                  // @ts-ignore
-                  htmlEl.style[prop] = prop === 'backgroundColor' ? (darkMode ? '#030712' : '#ffffff') : '#666';
-                }
-              });
-            });
-
-            // 2. Hide UI elements
-            const toHide = clonedMap.querySelectorAll('button, .leaflet-control-container, .top-safe-4');
-            toHide.forEach(el => ((el as HTMLElement).style.display = 'none'));
-
-            // 3. Fix map rendering
-            const mapPane = clonedMap.querySelector('.leaflet-map-pane') as HTMLElement;
-            if (mapPane) {
-              mapPane.style.transition = 'none';
-              mapPane.style.animation = 'none';
-            }
-            
-            const animatedElements = clonedMap.querySelectorAll('.leaflet-zoom-animated, .marker-cluster, .animate-bounce-subtle');
-            animatedElements.forEach(el => {
-              (el as HTMLElement).style.transition = 'none';
-              (el as HTMLElement).style.animation = 'none';
-            });
-            
-            const images = clonedMap.querySelectorAll('img');
-            images.forEach(img => {
-              img.setAttribute('crossOrigin', 'anonymous');
-            });
+      const dataUrl = await domtoimage.toPng(element, {
+        bgcolor: darkMode ? '#030712' : '#ffffff',
+        cacheBust: true,
+        filter: (node: any) => {
+          // Hide UI elements in the snapshot
+          if (node.tagName === 'BUTTON') return false;
+          // Hide map controls and specific panels
+          if (node.classList && (
+            node.classList.contains('z-[1000]') || 
+            node.classList.contains('top-safe-4') ||
+            node.classList.contains('leaflet-control-container')
+          )) {
+            return false;
           }
+          return true;
+        },
+        height: element.offsetHeight * 2,
+        width: element.offsetWidth * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+          width: element.offsetWidth + 'px',
+          height: element.offsetHeight + 'px'
         }
       });
       
       const link = document.createElement('a');
       link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);

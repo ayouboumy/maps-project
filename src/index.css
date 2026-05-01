@@ -10,14 +10,22 @@
 .leaflet-tile {
   outline: 1px solid transparent;
   box-shadow: 0 0 0 1px transparent;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .leaflet-tile-container {
   will-change: auto !important;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .leaflet-pane {
   z-index: 1 !important;
+}
+
+/* Ensure cross-origin images are handled correctly for export */
+.leaflet-tile-pane img {
+  pointer-events: none;
 }
 
 @variant dark (&:where(.dark, .dark *));
