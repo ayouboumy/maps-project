@@ -43,6 +43,7 @@ interface AppState {
   clusterByCommune: boolean;
   colorByPrayerType: boolean;
   mapInstance: any | null;
+  isExporting: boolean;
   
   toggleFavorite: (id: number) => void;
   updateMosque: (id: number, data: Partial<Mosque>) => void;
@@ -74,6 +75,7 @@ interface AppState {
   setClusterByCommune: (enabled: boolean) => void;
   setColorByPrayerType: (enabled: boolean) => void;
   setMapInstance: (map: any | null) => void;
+  setIsExporting: (isExporting: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -109,6 +111,7 @@ export const useAppStore = create<AppState>()(
       clusterByCommune: false,
       colorByPrayerType: false,
       mapInstance: null,
+      isExporting: false,
 
       toggleFavorite: (id) =>
         set((state) => ({
@@ -204,6 +207,7 @@ export const useAppStore = create<AppState>()(
       setClusterByCommune: (enabled) => set({ clusterByCommune: enabled }),
       setColorByPrayerType: (enabled) => set({ colorByPrayerType: enabled }),
       setMapInstance: (map) => set({ mapInstance: map }),
+      setIsExporting: (isExporting) => set({ isExporting }),
     }),
     {
       name: 'mosque-finder-storage',

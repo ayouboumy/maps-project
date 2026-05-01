@@ -3,6 +3,13 @@ import { Language, useAppStore } from '../store/useAppStore';
 const dictionary: Record<string, Record<Language, string>> = {
   // Export functionality
   'Export Map Image': { en: 'Export Map Image', fr: 'Exporter la carte (Image)', ar: 'تصدير صورة الخريطة' },
+  'Capturing Map': { en: 'Capturing Map', fr: 'Capture de la carte', ar: 'جاري التقاط الخريطة' },
+  'Rendering high-resolution analysis. Please wait...': { en: 'Rendering high-resolution analysis. Please wait...', fr: 'Génération de l\'analyse haute résolution. Veuillez patienter...', ar: 'جاري إنشاء تحليل عالي الدقة. يرجى الانتظار...' },
+  'Failed to export map image. Image contains unsupported styles (oklch) or server blocked tiles.': { 
+    en: 'Failed to export map image. Image contains unsupported styles (oklch) or server blocked tiles.', 
+    fr: 'Échec de l\'exportation. L\'image contient des styles non supportés (oklch) ou les tuiles ont été bloquées.', 
+    ar: 'فشل التصدير. تحتوي الصورة على أنماط غير مدعومة أو تم حظر البلاطات.' 
+  },
   'Failed to export map image. Please try again.': { en: 'Failed to export map image. Please try again.', fr: 'Échec de l\'exportation de la carte. Veuillez réessayer.', ar: 'فشل تصدير صورة الخريطة. يرجى المحاولة مرة أخرى.' },
   
   'Edit Mosque Data': { en: 'Edit Mosque Data', fr: 'Modifier les données de la mosquée', ar: 'تعديل بيانات المسجد' },

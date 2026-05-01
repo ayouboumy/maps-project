@@ -21,62 +21,111 @@ export default function App() {
     activeTab, setUserLocation, language, routingToMosque, 
     refreshLocation, mosques, mapStyle, setMapStyle, 
     isEquipmentOpen, darkMode, clusterByCommune, setClusterByCommune,
-    colorByPrayerType, setColorByPrayerType, mapInstance
+    colorByPrayerType, setColorByPrayerType, mapInstance, isExporting, setIsExporting
   } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
   const [isMapToolsOpen, setIsMapToolsOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
 
   const handleExportMap = async () => {
+    if (isExporting) return;
     setIsExporting(true);
+    
     try {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // 1. Force map to recalculate its dimensions and center
+      // 1. Force map to recalculate its dimensions and ensure current view is correct
       if (mapInstance) {
         mapInstance.invalidateSize();
       }
 
-      // 2. Wait for tiles to settle completely
+      // 2. Wait for tiles to settle completely. 
+      // Leaflet tiles load asynchronously and can have slight rendering delays.
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const dataUrl = await domtoimage.toPng(element, {
-        bgcolor: darkMode ? '#030712' : '#ffffff',
-        cacheBust: true,
-        filter: (node: any) => {
-          // Hide UI elements in the snapshot
-          if (node.tagName === 'BUTTON') return false;
-          // Hide map controls and specific panels
-          if (node.classList && (
-            node.classList.contains('z-[1000]') || 
-            node.classList.contains('top-safe-4') ||
-            node.classList.contains('leaflet-control-container')
-          )) {
-            return false;
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: false,
+        scale: 3, // Ultra-high resolution
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: darkMode ? '#030712' : '#ffffff',
+        onclone: (clonedDoc) => {
+          const clonedMap = clonedDoc.getElementById('map-export-container');
+          if (clonedMap) {
+            // A. Hide ALL non-map UI elements in the snapshot
+            const toHide = clonedMap.querySelectorAll('button, .leaflet-control-container, .top-safe-4, .z-[1000]');
+            toHide.forEach(el => ((el as HTMLElement).style.display = 'none'));
+
+            // B. Fix "oklch" colors - html2canvas crashes on modern CSS color functions
+            // Search all elements for styles containing oklch
+            const allElements = clonedMap.querySelectorAll('*');
+            allElements.forEach(el => {
+              const htmlEl = el as HTMLElement;
+              const computedStyle = window.getComputedStyle(el);
+              
+              // Properties that might have oklch
+              const colorProps = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke'];
+              colorProps.forEach(prop => {
+                const val = (htmlEl.style as any)[prop] || computedStyle.getPropertyValue(prop);
+                if (val && val.includes('oklch')) {
+                  // Fallback to safe colors based on property
+                  if (prop === 'backgroundColor') {
+                    (htmlEl.style as any)[prop] = darkMode ? '#030712' : '#ffffff';
+                  } else {
+                    (htmlEl.style as any)[prop] = '#666';
+                  }
+                }
+              });
+            });
+
+            // C. Neutralize Leaflet transforms that cause tile seams/grid artifacts
+            // This is the most critical part for removal of "squares"
+            const mapPane = clonedMap.querySelector('.leaflet-map-pane') as HTMLElement;
+            if (mapPane) {
+              mapPane.style.transform = 'none';
+              mapPane.style.transition = 'none';
+            }
+
+            // Also ensure all tiles are absolutely positioned without transforms in the clone
+            const tiles = clonedMap.querySelectorAll('.leaflet-tile');
+            tiles.forEach(t => {
+              const tile = t as HTMLElement;
+              tile.style.outline = '1px solid transparent'; // Bleed edge slightly
+              tile.style.boxShadow = '0 0 0 1px transparent';
+              tile.style.willChange = 'auto';
+              
+              // html2canvas handles images with crossOrigin="anonymous" best
+              if (tile.tagName === 'IMG') {
+                tile.setAttribute('crossOrigin', 'anonymous');
+              }
+            });
+
+            // Handle markers and clusters
+            const markerPane = clonedMap.querySelector('.leaflet-marker-pane') as HTMLElement;
+            if (markerPane) {
+              // Ensure markers are not animated
+              const markers = markerPane.querySelectorAll('.leaflet-marker-icon');
+              markers.forEach(m => {
+                (m as HTMLElement).style.animation = 'none';
+                (m as HTMLElement).style.transition = 'none';
+              });
+            }
           }
-          return true;
-        },
-        height: element.offsetHeight * 2,
-        width: element.offsetWidth * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left',
-          width: element.offsetWidth + 'px',
-          height: element.offsetHeight + 'px'
         }
       });
       
       const link = document.createElement('a');
       link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);
-      alert(t("Failed to export map image. Please try again.", language));
+      alert(t("Failed to export map image. Image contains unsupported styles (oklch) or server blocked tiles.", language));
     } finally {
       setIsExporting(false);
       setIsMapToolsOpen(false);
@@ -138,6 +187,27 @@ export default function App() {
         
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden">
+          {/* Exporting Indicator Overlay */}
+          <AnimatePresence>
+            {isExporting && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[5000] bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center"
+              >
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4" />
+                  <Camera className="absolute inset-0 m-auto text-blue-600 animate-pulse" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t("Capturing Map", language)}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[200px]">
+                  {t("Rendering high-resolution analysis. Please wait...", language)}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {activeTab === 'map' && (
             <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
