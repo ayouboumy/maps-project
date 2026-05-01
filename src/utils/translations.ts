@@ -6,6 +6,9 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Capturing Map': { en: 'Capturing Map', fr: 'Capture de la carte', ar: 'جاري التقاط الخريطة' },
   'Hide Names': { en: 'Hide Names', fr: 'Masquer les noms', ar: 'إخفاء الأسماء' },
   'Show Names': { en: 'Show Names', fr: 'Afficher les noms', ar: 'إظهار الأسماء' },
+  'Labels On': { en: 'Labels On', fr: 'Noms activés', ar: 'الأسماء مفعلة' },
+  'Labels Off': { en: 'Labels Off', fr: 'Noms désactivés', ar: 'الأسماء معطلة' },
+  'Change Photo': { en: 'Change Photo', fr: 'Changer la photo', ar: 'تغيير الصورة' },
   'Rendering high-resolution analysis. Please wait...': { en: 'Rendering high-resolution analysis. Please wait...', fr: 'Génération de l\'analyse haute résolution. Veuillez patienter...', ar: 'جاري إنشاء تحليل عالي الدقة. يرجى الانتظار...' },
   'Failed to export map image. Image contains unsupported styles (oklch) or server blocked tiles.': { 
     en: 'Failed to export map image. Image contains unsupported styles (oklch) or server blocked tiles.', 

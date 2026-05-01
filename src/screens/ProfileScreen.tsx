@@ -5,7 +5,7 @@ import {
   Home, Droplets, Info, Activity, Clock, ShieldCheck,
   Package, Map, Zap, Layout, DollarSign, Waves, Globe, 
   Thermometer, Ruler, Layers, ShoppingBag, School, BookOpen,
-  Dna, Sparkles, Edit3, Save, Plus, Trash2, X
+  Dna, Sparkles, Edit3, Save, Plus, Trash2, X, Camera
 } from 'lucide-react';
 import { Mosque } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -33,19 +33,35 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       setEditData({
         name: mosque.name,
         address: mosque.address,
+        image: mosque.image,
         ...(mosque.extraData || {})
       });
     }
   }, [isEditing, mosque]);
 
   const handleSave = () => {
-    const { name, address, ...extraData } = editData;
+    const { name, address, image, ...extraData } = editData;
     updateMosque(mosque.id, {
       name,
       address,
+      image,
       extraData
     });
     setIsEditing(false);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditData(prev => ({
+          ...prev,
+          image: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAddField = () => {
@@ -301,11 +317,30 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         {/* Compact Hero Banner */}
         <div className="relative h-[38vh] min-h-[300px]">
           <img 
-            src={mosque.image} 
+            src={isEditing ? editData.image || mosque.image : mosque.image} 
             alt={mosque.name}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/20 to-transparent" />
+          
+          {isEditing && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+              <label className="flex flex-col items-center gap-2 cursor-pointer group">
+                <div className="w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-white/50 transition-all group-active:scale-90 shadow-2xl">
+                  <Camera size={32} className="text-white" />
+                </div>
+                <span className="text-white font-black text-xs uppercase tracking-widest drop-shadow-md">
+                  {t('Change Photo', language)}
+                </span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleImageUpload}
+                />
+              </label>
+            </div>
+          )}
           
           <div className="absolute bottom-6 left-6 right-6">
             <div className="flex items-center gap-2 mb-2">
@@ -383,24 +418,28 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                 <div className="space-y-4">
                   {Object.entries(editData).map(([key, value]) => (
                     <div key={key} className="flex items-end gap-3 group">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest px-1">
-                          {key}
-                        </label>
-                        <input
-                          type="text"
-                          value={value}
-                          onChange={(e) => setEditData(prev => ({ ...prev, [key]: e.target.value }))}
-                          className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                        />
-                      </div>
-                      {key !== 'name' && key !== 'address' && (
-                        <button 
-                          onClick={() => removeField(key)}
-                          className="p-3 text-gray-300 hover:text-red-500 transition-all"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                      {key !== 'image' && (
+                        <>
+                          <div className="flex-1 space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest px-1">
+                              {key}
+                            </label>
+                            <input
+                              type="text"
+                              value={value}
+                              onChange={(e) => setEditData(prev => ({ ...prev, [key]: e.target.value }))}
+                              className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                            />
+                          </div>
+                          {key !== 'name' && key !== 'address' && (
+                            <button 
+                              onClick={() => removeField(key)}
+                              className="p-3 text-gray-300 hover:text-red-500 transition-all"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   ))}

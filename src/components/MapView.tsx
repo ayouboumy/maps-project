@@ -35,6 +35,16 @@ function MultiStopRoute({ stops, routeProfile = 'foot' }: { stops: [number, numb
             : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
           
           const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const contentType = response.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Received non-JSON response from routing server");
+          }
+
           const data = await response.json();
           
           if (isMounted && data.routes && data.routes.length > 0) {
@@ -266,6 +276,16 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
           : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
         
         const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Received non-JSON response from routing server");
+        }
+
         const data = await response.json();
         if (isMounted && data.routes && data.routes.length > 0) {
           // Find the route with the absolute shortest distance among all alternatives
@@ -519,7 +539,16 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
             
             const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
-            if (!response.ok) return null;
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("Received non-JSON response from routing server");
+            }
+            
             const data = await response.json();
             if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
               // Find the route with the shortest distance among all alternatives
@@ -559,7 +588,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   }, [showNearest, isUserLocationValid, nearestMosques, filteredByCommune]);
 
   const communeClusters = useMemo(() => {
-    if (!clusterByCommune) return [];
+    if (!clusterByCommune) return { clusters: [], minCount: 0, maxCount: 0 };
     const map = new Map<string, { latSum: number, lngSum: number, validCount: number, count: number, mosques: any[] }>();
     
     mosques.forEach(m => {
@@ -596,86 +625,189 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     });
 
     // Sort by count descending to prioritize larger clusters in collision detection
-    return result.sort((a, b) => b.count - a.count);
+    const sorted = result.sort((a, b) => b.count - a.count);
+    
+    // Calculate min/max for gradient
+    const counts = sorted.map(c => c.count);
+    const minCount = counts.length > 0 ? Math.min(...counts) : 0;
+    const maxCount = counts.length > 0 ? Math.max(...counts) : 1;
+
+    return { clusters: sorted, minCount, maxCount };
   }, [clusterByCommune, mosques]);
 
   const { mapInstance } = useAppStore();
   
-  // Collision Detection Logic
-  const visibleCommuneNames = useMemo(() => {
-    if (!mapInstance || !showCommuneNames || zoom < 10 || communeClusters.length === 0) {
-      return new Set<string>();
+  // Collision Detection and Dynamic Placement Logic
+  const labelPlacements = useMemo(() => {
+    if (!showCommuneNames || zoom < 10 || communeClusters.clusters.length === 0) {
+      return new Map<string, { position: string, scale: number }>();
+    }
+
+    // If mapInstance is not ready, we can't do collision detection accurately yet
+    // Fallback to simple bottom placement
+    if (!mapInstance) {
+      const fallback = new Map<string, { position: string, scale: number }>();
+      communeClusters.clusters.forEach(c => fallback.set(c.commune, { position: 'bottom', scale: 1 }));
+      return fallback;
     }
 
     const tree = new RBush<{ minX: number, minY: number, maxX: number, maxY: number }>();
-    const visibleSet = new Set<string>();
+    const placements = new Map<string, { position: string, scale: number }>();
     
-    // Circle size (approximate)
     const circleRadius = 18; 
-    const padding = 4;
+    const padding = 2;
 
-    // First pass: add all circles to the tree to prevent labels from overlapping them
-    communeClusters.forEach(cluster => {
-      const point = mapInstance.latLngToLayerPoint([cluster.latitude, cluster.longitude]);
-      tree.insert({
-        minX: point.x - circleRadius - padding,
-        minY: point.y - circleRadius - padding,
-        maxX: point.x + circleRadius + padding,
-        maxY: point.y + circleRadius + padding
-      });
+    // First pass: block out clusters
+    communeClusters.clusters.forEach(cluster => {
+      try {
+        const point = mapInstance.latLngToLayerPoint([cluster.latitude, cluster.longitude]);
+        tree.insert({
+          minX: point.x - circleRadius - padding,
+          minY: point.y - circleRadius - padding,
+          maxX: point.x + circleRadius + padding,
+          maxY: point.y + circleRadius + padding
+        });
+      } catch (e) {}
     });
 
-    // Second pass: try to place labels
-    communeClusters.forEach(cluster => {
-      const point = mapInstance.latLngToLayerPoint([cluster.latitude, cluster.longitude]);
-      
-      // Approximate label dimensions (8px per char + some padding)
-      const labelHeight = 16;
-      const labelWidth = cluster.commune.length * 7 + 12;
-      
-      // Label is centered below the circle (offset by circle radius + small gap)
-      const labelMinX = point.x - labelWidth / 2;
-      const labelMinY = point.y + circleRadius + 2; 
-      const labelMaxX = labelMinX + labelWidth;
-      const labelMaxY = labelMinY + labelHeight;
+    // Expanded positions: bottom, top, right, left, and diagonals
+    const positions = [
+      { name: 'bottom', dx: 0, dy: circleRadius + 2 },
+      { name: 'top', dx: 0, dy: -(circleRadius + 18) }, // Corrected for height
+      { name: 'right', dx: circleRadius + 4, dy: -8 },
+      { name: 'left', dx: -(circleRadius + 4), dy: -8 },
+      { name: 'bottom-right', dx: circleRadius, dy: circleRadius },
+      { name: 'bottom-left', dx: -circleRadius, dy: circleRadius },
+      { name: 'top-right', dx: circleRadius, dy: -circleRadius - 10 },
+      { name: 'top-left', dx: -circleRadius, dy: -circleRadius - 10 }
+    ];
 
-      const labelBox = {
-        minX: labelMinX - padding,
-        minY: labelMinY - padding,
-        maxX: labelMaxX + padding,
-        maxY: labelMaxY + padding
-      };
+    communeClusters.clusters.forEach(cluster => {
+      try {
+        const point = mapInstance.latLngToLayerPoint([cluster.latitude, cluster.longitude]);
+        const labelWidthBase = cluster.commune.length * 6 + 10;
+        const labelHeightBase = 14;
 
-      // Check for collision
-      const collisions = tree.search(labelBox);
-      if (collisions.length === 0) {
-        visibleSet.add(cluster.commune);
-        tree.insert(labelBox);
+        let bestPos: { position: string, scale: number } | null = null;
+        let found = false;
+
+        // Try multiple scales
+        for (const scale of [1, 0.85, 0.7]) {
+          if (found) break;
+
+          const labelWidth = labelWidthBase * scale;
+          const labelHeight = labelHeightBase * scale;
+
+          for (const pos of positions) {
+            let lx = point.x + pos.dx;
+            let ly = point.y + pos.dy;
+
+            // Anchor adjustments
+            if (pos.name.includes('bottom') || pos.name.includes('top')) {
+              lx -= labelWidth / 2;
+            } else if (pos.name === 'left') {
+              lx -= labelWidth;
+            }
+
+            const labelBox = {
+              minX: lx - padding,
+              minY: ly - padding,
+              maxX: lx + labelWidth + padding,
+              maxY: ly + labelHeight + padding
+            };
+
+            if (tree.search(labelBox).length === 0) {
+              bestPos = { position: pos.name, scale };
+              tree.insert(labelBox);
+              found = true;
+              break;
+            }
+          }
+        }
+
+        // If no non-colliding spot found, just use bottom but small scale
+        if (!found) {
+          bestPos = { position: 'bottom', scale: 0.7 };
+        }
+
+        if (bestPos) {
+          placements.set(cluster.commune, bestPos);
+        }
+      } catch (e) {
+        // Fallback for individual points failing
+        placements.set(cluster.commune, { position: 'bottom', scale: 0.85 });
       }
     });
 
-    return visibleSet;
+    return placements;
   }, [mapInstance, showCommuneNames, zoom, communeClusters]);
 
-  const communeClusterIcon = (count: number, commune: string, isVisible: boolean, isDark: boolean) => L.divIcon({
-    html: `
-      <div class="relative flex flex-col items-center">
-        <div class="bg-purple-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white shadow-[0_4px_10px_rgba(147,51,234,0.5)] text-sm transition-transform active:scale-95 z-10">
-          ${count}
-        </div>
-        ${isVisible ? `
-          <div class="mt-0.5 px-1.5 py-0.5 rounded border shadow-md ${isDark ? 'bg-gray-900 border-purple-800 text-purple-200' : 'bg-white border-purple-100 text-purple-900'} whitespace-nowrap animate-in fade-in slide-in-from-top-1 duration-300">
-            <span class="tracking-wide font-bold uppercase text-[8px] sm:text-[9px]">
-              ${commune}
-            </span>
+  const communeClusterIcon = (count: number, commune: string, placement: { position: string, scale: number } | undefined, isDark: boolean, minCount: number, maxCount: number) => {
+    const isVisible = !!placement;
+    let posClass = 'top-full mt-1';
+    
+    if (placement) {
+      switch(placement.position) {
+        case 'top': posClass = 'bottom-full mb-1'; break;
+        case 'right': posClass = 'left-full ml-1'; break;
+        case 'left': posClass = 'right-full mr-1'; break;
+        case 'bottom-right': posClass = 'top-full left-full -ml-3'; break;
+        case 'bottom-left': posClass = 'top-full right-full -mr-3'; break;
+        case 'top-right': posClass = 'bottom-full left-full -ml-3 mb-1'; break;
+        case 'top-left': posClass = 'bottom-full right-full -mr-3 mb-1'; break;
+        default: posClass = 'top-full mt-1';
+      }
+    }
+    
+    const scaleStyle = placement ? `transform: scale(${placement.scale}); transform-origin: center;` : '';
+
+    // Heatmap-style gradient based on count (Green -> Yellow -> Orange -> Red)
+    const ratio = (maxCount === minCount) ? 0.5 : (count - minCount) / (maxCount - minCount);
+    
+    // Gradient logic: 
+    // 0% (Min): HSL(130, 70%, 45%) - Deep Green
+    // 50%     : HSL(50, 90%, 50%)  - Gold/Yellow
+    // 100% (Max): HSL(0, 90%, 45%)  - Vibrant Red
+    
+    let hue, lightness, saturation;
+    if (ratio < 0.5) {
+      // Interpolate Green to Yellow (130 to 50)
+      const subRatio = ratio * 2;
+      hue = 130 - (subRatio * 80);
+      lightness = 45 + (subRatio * 5);
+      saturation = 70 + (subRatio * 20);
+    } else {
+      // Interpolate Yellow to Red (50 to 0)
+      const subRatio = (ratio - 0.5) * 2;
+      hue = 50 - (subRatio * 50);
+      lightness = 50 - (subRatio * 5);
+      saturation = 90;
+    }
+    
+    const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    const shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.6)`;
+
+    return L.divIcon({
+      html: `
+        <div class="relative flex items-center justify-center !overflow-visible">
+          <div class="text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white text-sm transition-transform active:scale-95 z-10" 
+               style="background-color: ${bgColor}; box-shadow: 0 4px 12px ${shadowColor};">
+            ${count}
           </div>
-        ` : ''}
-      </div>
-    `,
-    className: 'custom-commune-cluster',
-    iconSize: [36, 50],
-    iconAnchor: [18, 18]
-  });
+          ${isVisible ? `
+            <div class="absolute ${posClass} px-1.5 py-0.5 rounded border shadow-md ${isDark ? 'bg-gray-900 border-gray-800 text-gray-200' : 'bg-white border-gray-100 text-gray-900'} whitespace-nowrap animate-in fade-in zoom-in-95 duration-300" style="${scaleStyle} z-20">
+              <span class="tracking-wide font-black uppercase text-[8px] sm:text-[9px]">
+                ${commune}
+              </span>
+            </div>
+          ` : ''}
+        </div>
+      `,
+      className: 'custom-commune-cluster',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+  };
 
   return (
     <div className="w-full h-full" id="map-export-container">
@@ -770,15 +902,15 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         })}
 
         {clusterByCommune && !routingToMosque ? (
-          communeClusters.map((cluster) => {
-            // Check if label should be visible based on collision detection
-            const isLabelVisible = visibleCommuneNames.has(cluster.commune);
+          communeClusters.clusters.map((cluster) => {
+            // Get the placement info for this cluster's label
+            const placement = labelPlacements.get(cluster.commune);
             
             return (
               <Marker
                 key={cluster.commune}
                 position={[cluster.latitude, cluster.longitude]}
-                icon={communeClusterIcon(cluster.count, cluster.commune, isLabelVisible, darkMode)}
+                icon={communeClusterIcon(cluster.count, cluster.commune, placement, darkMode, communeClusters.minCount, communeClusters.maxCount)}
                 eventHandlers={{
                   click: () => {
                      setSelectedCommune(cluster.commune);
@@ -929,33 +1061,28 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
       <AnimatePresence>
         {clusterByCommune && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.8, x: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: 20 }}
-            className="absolute top-24 right-4 z-[1000] flex flex-col gap-3"
+            initial={{ opacity: 0, scale: 0.8, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -20 }}
+            className="absolute top-2 left-1/2 -translate-x-1/2 z-[1100]"
           >
             <button
               onClick={() => setShowCommuneNames(!showCommuneNames)}
               className={cn(
-                "p-3 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 backdrop-blur-md border",
+                "px-2.5 py-1 rounded-full shadow-md flex items-center gap-1.5 transition-all duration-300 backdrop-blur-md border",
                 showCommuneNames 
-                  ? "bg-purple-600 text-white border-purple-400 rotate-0" 
-                  : "bg-white dark:bg-gray-900 text-purple-600 border-purple-100 dark:border-purple-900 rotate-0"
+                  ? "bg-purple-600 text-white border-purple-400" 
+                  : "bg-white/80 dark:bg-gray-800/80 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
               )}
               title={showCommuneNames ? t('Hide Names', language) : t('Show Names', language)}
             >
               <div className="relative">
-                {showCommuneNames ? <Eye size={24} /> : <EyeOff size={24} />}
-                <motion.div 
-                  initial={false}
-                  animate={{ scale: showCommuneNames ? 1 : 0 }}
-                  className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-900" 
-                />
+                {showCommuneNames ? <Eye size={12} /> : <EyeOff size={12} />}
               </div>
+              <span className="text-[9px] font-black uppercase tracking-wider">
+                {showCommuneNames ? t('Labels On', language) : t('Labels Off', language)}
+              </span>
             </button>
-            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-purple-100 dark:border-purple-900 shadow-lg">
-              <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">Labels</span>
-            </div>
           </motion.div>
         )}
 

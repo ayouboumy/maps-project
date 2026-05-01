@@ -36,6 +36,16 @@ export default function BottomSheet() {
           : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
         
         const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Received non-JSON response from routing server");
+        }
+
         const data = await response.json();
         if (isMounted && data.code === 'Ok' && data.routes && data.routes.length > 0) {
           // Find the route with the shortest distance among all alternatives
