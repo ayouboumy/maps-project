@@ -603,20 +603,12 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return result;
   }, [clusterByCommune, mosques]);
 
-  const communeClusterIcon = (count: number, commune: string, showName: boolean) => L.divIcon({
+  const communeClusterIcon = (count: number) => L.divIcon({
     html: `
       <div class="relative group">
         <div class="bg-purple-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white shadow-[0_4px_10px_rgba(147,51,234,0.5)] text-sm transition-transform group-hover:scale-110 active:scale-95">
           ${count}
         </div>
-        ${showName ? `
-          <div class="absolute top-1/2 left-full ml-3 -translate-y-1/2 pointer-events-none">
-            <div class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-900/50 shadow-xl flex items-center gap-2 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
-              <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-              <span class="text-xs font-bold ${darkMode ? 'text-purple-300' : 'text-purple-900'}">${commune}</span>
-            </div>
-          </div>
-        ` : ''}
       </div>
     `,
     className: 'custom-commune-cluster',
@@ -717,19 +709,52 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         })}
 
         {clusterByCommune && !routingToMosque ? (
-          communeClusters.map((cluster) => (
-            <Marker
-              key={cluster.commune}
-              position={[cluster.latitude, cluster.longitude]}
-              icon={communeClusterIcon(cluster.count, cluster.commune, showCommuneNames)}
-              eventHandlers={{
-                click: () => {
-                   setSelectedCommune(cluster.commune);
-                   setClusterByCommune(false);
-                }
-              }}
-            />
-          ))
+          communeClusters.map((cluster) => {
+            // Progressive Disclosure Logic:
+            // - Under zoom 10: No permanent labels (clean map)
+            // - Zoom 10-12: Permanent labels for major clusters (or all if we want density)
+            // - Above 12: Always permanent when toggled
+            const isLabelPermanent = showCommuneNames && zoom >= 10;
+            
+            return (
+              <Marker
+                key={cluster.commune}
+                position={[cluster.latitude, cluster.longitude]}
+                icon={communeClusterIcon(cluster.count)}
+                eventHandlers={{
+                  click: () => {
+                     setSelectedCommune(cluster.commune);
+                     setClusterByCommune(false);
+                  }
+                }}
+              >
+                <Tooltip
+                  permanent={isLabelPermanent}
+                  direction="right"
+                  offset={[15, 0]}
+                  opacity={0.9}
+                  className={cn(
+                    "border-none shadow-none bg-transparent !bg-transparent !shadow-none !border-none pointer-events-none transition-all duration-700",
+                    isLabelPermanent ? "animate-in fade-in zoom-in-95 duration-500" : "opacity-0"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_5px_rgba(168,85,247,0.8)] transition-all",
+                      zoom > 12 ? "scale-100" : "scale-75"
+                    )} />
+                    <span className={cn(
+                      "tracking-tight drop-shadow-sm transition-all duration-300",
+                      zoom > 12 ? "text-[11px] sm:text-xs" : "text-[9px]",
+                      darkMode ? "text-purple-300/90 font-medium" : "text-purple-900/90 font-bold"
+                    )}>
+                      {cluster.commune}
+                    </span>
+                  </div>
+                </Tooltip>
+              </Marker>
+            );
+          })
         ) : (
           <MarkerClusterGroup
             chunkedLoading
@@ -748,6 +773,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   currentIcon = isSelected ? selectedIconsCache[color] : iconsCache[color];
                 }
 
+                const isLabelPermanent = (zoom >= 14 && showCommuneNames) || showNearest;
+                
                 return (
                 <Marker
                   key={mosque.id}
@@ -760,36 +787,38 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                     },
                   }}
                 >
-                  {(zoom >= 14 || showNearest) && (
+                  {(zoom >= 13 || showNearest) && (
                     <Tooltip 
                       direction="top" 
                       offset={[0, -10]} 
                       opacity={0.9} 
-                      permanent 
+                      permanent={isLabelPermanent}
                       className={cn(
-                        "border-none shadow-md rounded px-2 py-1 transition-colors duration-300",
-                        darkMode ? "!bg-gray-900 !text-white" : "!bg-white/90 !text-gray-800"
+                        "border-none shadow-none !bg-transparent !border-none !shadow-none transition-all duration-300",
+                        !isLabelPermanent && "opacity-0 group-hover:opacity-100"
                       )}
                     >
                       <div className="flex flex-col items-center">
                         <div 
                           className={cn(
-                            "max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center transition-colors",
-                            darkMode ? "text-white !text-white" : "text-gray-800"
+                            "max-w-[100px] sm:max-w-[150px] truncate font-bold text-center tracking-tight drop-shadow-sm",
+                            zoom > 15 ? "text-xs" : "text-[10px]",
+                            darkMode ? "text-gray-100" : "text-gray-900"
                           )}
-                          title={getLocalizedName(mosque, language)}
+                          style={{
+                            textShadow: darkMode 
+                              ? '0 1px 3px rgba(0,0,0,1)' 
+                              : '0 1px 3px rgba(255,255,255,1)'
+                          }}
                         >
                           {getLocalizedName(mosque, language)}
                         </div>
                         {showNearest && roadDistances[mosque.id] !== undefined && (
                           <div className={cn(
-                            "text-[10px] font-semibold mt-0.5 px-1.5 rounded flex items-center gap-1",
-                            darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-50 text-blue-600"
+                            "text-[8px] font-black mt-0.5 px-1.5 py-0 rounded-full border shadow-sm",
+                            darkMode ? "bg-blue-900/60 border-blue-800 text-blue-300" : "bg-blue-50/80 border-blue-100 text-blue-800"
                           )}>
-                            {roadDurations[mosque.id] !== undefined && (
-                              <span>{formatDuration(roadDurations[mosque.id])} • </span>
-                            )}
-                            <span>{(roadDistances[mosque.id] / 1000).toFixed(1)} km</span>
+                            {(roadDistances[mosque.id] / 1000).toFixed(1)} km
                           </div>
                         )}
                       </div>
