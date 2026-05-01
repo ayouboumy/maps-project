@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, ZoomControl } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -8,7 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
-import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw } from 'lucide-react';
+import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw, Eye, EyeOff, Tag } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -371,7 +371,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     mosques, userLocation, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
-    setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType
+    setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType,
+    showCommuneNames, setShowCommuneNames
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
@@ -602,13 +603,25 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return result;
   }, [clusterByCommune, mosques]);
 
-  const communeClusterIcon = (count: number) => L.divIcon({
-    html: `<div class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold border-2 border-white shadow-md text-sm">
-             ${count}
-           </div>`,
+  const communeClusterIcon = (count: number, commune: string, showName: boolean) => L.divIcon({
+    html: `
+      <div class="relative group">
+        <div class="bg-purple-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white shadow-[0_4px_10px_rgba(147,51,234,0.5)] text-sm transition-transform group-hover:scale-110 active:scale-95">
+          ${count}
+        </div>
+        ${showName ? `
+          <div class="absolute top-1/2 left-full ml-3 -translate-y-1/2 pointer-events-none">
+            <div class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-900/50 shadow-xl flex items-center gap-2 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
+              <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+              <span class="text-xs font-bold ${darkMode ? 'text-purple-300' : 'text-purple-900'}">${commune}</span>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `,
     className: 'custom-commune-cluster',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16]
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
   });
 
   return (
@@ -616,10 +629,14 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
       <MapContainer 
         center={center} 
         zoom={12} 
-        className="w-full h-full"
-        zoomControl={false}
         preferCanvas={true}
+        zoomControl={false}
+        scrollWheelZoom={true}
+        doubleClickZoom={true}
+        touchZoom={true}
+        className="w-full h-full"
       >
+        <ZoomControl position="bottomright" />
         <MapEffect />
         <ZoomListener onZoomChange={setZoom} />
         
@@ -704,25 +721,14 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             <Marker
               key={cluster.commune}
               position={[cluster.latitude, cluster.longitude]}
-              icon={communeClusterIcon(cluster.count)}
+              icon={communeClusterIcon(cluster.count, cluster.commune, showCommuneNames)}
               eventHandlers={{
                 click: () => {
                    setSelectedCommune(cluster.commune);
                    setClusterByCommune(false);
                 }
               }}
-            >
-              <Tooltip
-                direction="top"
-                offset={[0, -16]}
-                className={cn(
-                  "border-none shadow-md rounded px-2 py-1 font-bold text-xs bg-opacity-90 transition-colors pointer-events-none",
-                  darkMode ? "!bg-gray-900 !text-purple-300" : "!bg-white !text-purple-800"
-                )}
-              >
-                {cluster.commune}
-              </Tooltip>
-            </Marker>
+            />
           ))
         ) : (
           <MarkerClusterGroup
@@ -859,6 +865,38 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
       {/* Map Overlays for Multi-stop Routing */}
       <AnimatePresence>
+        {clusterByCommune && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: 20 }}
+            className="absolute top-24 right-4 z-[1000] flex flex-col gap-3"
+          >
+            <button
+              onClick={() => setShowCommuneNames(!showCommuneNames)}
+              className={cn(
+                "p-3 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 backdrop-blur-md border",
+                showCommuneNames 
+                  ? "bg-purple-600 text-white border-purple-400 rotate-0" 
+                  : "bg-white dark:bg-gray-900 text-purple-600 border-purple-100 dark:border-purple-900 rotate-0"
+              )}
+              title={showCommuneNames ? t('Hide Names', language) : t('Show Names', language)}
+            >
+              <div className="relative">
+                {showCommuneNames ? <Eye size={24} /> : <EyeOff size={24} />}
+                <motion.div 
+                  initial={false}
+                  animate={{ scale: showCommuneNames ? 1 : 0 }}
+                  className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-900" 
+                />
+              </div>
+            </button>
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-purple-100 dark:border-purple-900 shadow-lg">
+              <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">Labels</span>
+            </div>
+          </motion.div>
+        )}
+
         {(showNearest && !routingToMosque && nearestMosques.length > 1 && !optimizedRouteIds) && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}

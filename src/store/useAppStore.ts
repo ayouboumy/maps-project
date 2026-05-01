@@ -41,6 +41,7 @@ interface AppState {
   isAiSearching: boolean;
   optimizedRouteIds: number[] | null;
   clusterByCommune: boolean;
+  showCommuneNames: boolean;
   colorByPrayerType: boolean;
   mapInstance: any | null;
   isExporting: boolean;
@@ -73,6 +74,7 @@ interface AppState {
   setIsAiSearching: (isSearching: boolean) => void;
   setOptimizedRouteIds: (ids: number[] | null) => void;
   setClusterByCommune: (enabled: boolean) => void;
+  setShowCommuneNames: (enabled: boolean) => void;
   setColorByPrayerType: (enabled: boolean) => void;
   setMapInstance: (map: any | null) => void;
   setIsExporting: (isExporting: boolean) => void;
@@ -109,6 +111,7 @@ export const useAppStore = create<AppState>()(
       isAiSearching: false,
       optimizedRouteIds: null,
       clusterByCommune: false,
+      showCommuneNames: true,
       colorByPrayerType: false,
       mapInstance: null,
       isExporting: false,
@@ -205,6 +208,7 @@ export const useAppStore = create<AppState>()(
       setIsAiSearching: (isSearching) => set({ isAiSearching: isSearching }),
       setOptimizedRouteIds: (ids) => set({ optimizedRouteIds: ids }),
       setClusterByCommune: (enabled) => set({ clusterByCommune: enabled }),
+      setShowCommuneNames: (enabled) => set({ showCommuneNames: enabled }),
       setColorByPrayerType: (enabled) => set({ colorByPrayerType: enabled }),
       setMapInstance: (map) => set({ mapInstance: map }),
       setIsExporting: (isExporting) => set({ isExporting }),
