@@ -603,16 +603,23 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return result;
   }, [clusterByCommune, mosques]);
 
-  const communeClusterIcon = (count: number) => L.divIcon({
+  const communeClusterIcon = (count: number, commune: string, showName: boolean, isDark: boolean) => L.divIcon({
     html: `
-      <div class="relative group">
-        <div class="bg-purple-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white shadow-[0_4px_10px_rgba(147,51,234,0.5)] text-sm transition-transform group-hover:scale-110 active:scale-95">
+      <div class="relative flex flex-col items-center">
+        <div class="bg-purple-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white shadow-[0_4px_10px_rgba(147,51,234,0.5)] text-sm transition-transform active:scale-95 z-10">
           ${count}
         </div>
+        ${showName ? `
+          <div class="mt-0.5 px-1.5 py-0.5 rounded border shadow-md ${isDark ? 'bg-gray-900 border-purple-800 text-purple-200' : 'bg-white border-purple-100 text-purple-900'} whitespace-nowrap animate-in fade-in slide-in-from-top-1 duration-300">
+            <span class="tracking-wide font-bold uppercase text-[8px] sm:text-[9px]">
+              ${commune}
+            </span>
+          </div>
+        ` : ''}
       </div>
     `,
     className: 'custom-commune-cluster',
-    iconSize: [36, 36],
+    iconSize: [36, 50],
     iconAnchor: [18, 18]
   });
 
@@ -710,48 +717,21 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         {clusterByCommune && !routingToMosque ? (
           communeClusters.map((cluster) => {
-            // Progressive Disclosure Logic:
-            // - Under zoom 10: No permanent labels (clean map)
-            // - Zoom 10-12: Permanent labels for major clusters (or all if we want density)
-            // - Above 12: Always permanent when toggled
-            const isLabelPermanent = showCommuneNames && zoom >= 10;
+            // Progressive Disclosure Logic
+            const isLabelVisible = showCommuneNames && zoom >= 10;
             
             return (
               <Marker
                 key={cluster.commune}
                 position={[cluster.latitude, cluster.longitude]}
-                icon={communeClusterIcon(cluster.count)}
+                icon={communeClusterIcon(cluster.count, cluster.commune, isLabelVisible, darkMode)}
                 eventHandlers={{
                   click: () => {
                      setSelectedCommune(cluster.commune);
                      setClusterByCommune(false);
                   }
                 }}
-              >
-                <Tooltip
-                  permanent={isLabelPermanent}
-                  direction="bottom"
-                  offset={[0, 2]}
-                  opacity={1}
-                  className={cn(
-                    "border-none shadow-none bg-transparent !bg-transparent !shadow-none !border-none pointer-events-none transition-all duration-700",
-                    isLabelPermanent ? "animate-in fade-in zoom-in-95 duration-500" : "opacity-0"
-                  )}
-                >
-                  <div className={cn(
-                    "px-1.5 py-0.5 rounded-md border shadow-lg transition-all duration-300",
-                    darkMode 
-                      ? "bg-gray-900 border-purple-800 text-purple-200" 
-                      : "bg-white border-purple-100 text-purple-900"
-                  )}>
-                    <span className={cn(
-                      "tracking-wide font-bold uppercase text-[8px] sm:text-[9px]",
-                    )}>
-                      {cluster.commune}
-                    </span>
-                  </div>
-                </Tooltip>
-              </Marker>
+              />
             );
           })
         ) : (
@@ -789,7 +769,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   {(zoom >= 13 || showNearest) && (
                     <Tooltip 
                       direction="top" 
-                      offset={[0, -12]} 
+                      offset={[0, -5]} 
                       opacity={1} 
                       permanent={isLabelPermanent}
                       className={cn(
