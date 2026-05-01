@@ -49,7 +49,7 @@ export default function App() {
       const canvas = await html2canvas(element, {
         useCORS: true,
         allowTaint: false,
-        scale: window.devicePixelRatio || 2,
+        scale: 3, // High resolution
         logging: false,
         scrollX: 0,
         scrollY: 0,
@@ -57,27 +57,40 @@ export default function App() {
         onclone: (clonedDoc) => {
           const clonedMap = clonedDoc.getElementById('map-export-container');
           if (clonedMap) {
-            // Hide UI elements in the clone so they don't appear in the screenshot
+            // 1. Scrub oklch colors - html2canvas crashes on them
+            // We traverse the clone and replace any oklch color values with safe defaults
+            const allElements = clonedMap.querySelectorAll('*');
+            allElements.forEach(el => {
+              const htmlEl = el as HTMLElement;
+              // We check for any style properties that might contain oklch
+              const stylesToFix = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke'];
+              stylesToFix.forEach(prop => {
+                // @ts-ignore
+                const val = htmlEl.style[prop];
+                if (val && val.includes('oklch')) {
+                  // @ts-ignore
+                  htmlEl.style[prop] = prop === 'backgroundColor' ? (darkMode ? '#030712' : '#ffffff') : '#666';
+                }
+              });
+            });
+
+            // 2. Hide UI elements
             const toHide = clonedMap.querySelectorAll('button, .leaflet-control-container, .top-safe-4');
             toHide.forEach(el => ((el as HTMLElement).style.display = 'none'));
 
-            // Fix for Leaflet tile seams and marker positioning in screenshots
-            // We need to find the leaflet panes and markers and neutralize the transform
+            // 3. Fix map rendering
             const mapPane = clonedMap.querySelector('.leaflet-map-pane') as HTMLElement;
             if (mapPane) {
-              // Neutralize transitions in the clone
               mapPane.style.transition = 'none';
               mapPane.style.animation = 'none';
             }
             
-            // Disable animations on any animated markers or clusters in the clone
             const animatedElements = clonedMap.querySelectorAll('.leaflet-zoom-animated, .marker-cluster, .animate-bounce-subtle');
             animatedElements.forEach(el => {
               (el as HTMLElement).style.transition = 'none';
               (el as HTMLElement).style.animation = 'none';
             });
             
-            // Ensure all images in the clone have crossOrigin set to anonymous
             const images = clonedMap.querySelectorAll('img');
             images.forEach(img => {
               img.setAttribute('crossOrigin', 'anonymous');

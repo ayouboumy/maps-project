@@ -108,6 +108,7 @@ export const useAppStore = create<AppState>()(
       optimizedRouteIds: null,
       clusterByCommune: false,
       colorByPrayerType: false,
+      mapInstance: null,
 
       toggleFavorite: (id) =>
         set((state) => ({
