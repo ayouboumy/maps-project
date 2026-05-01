@@ -731,7 +731,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                 <Tooltip
                   permanent={isLabelPermanent}
                   direction="bottom"
-                  offset={[0, 15]}
+                  offset={[0, 2]}
                   opacity={1}
                   className={cn(
                     "border-none shadow-none bg-transparent !bg-transparent !shadow-none !border-none pointer-events-none transition-all duration-700",
@@ -739,13 +739,13 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   )}
                 >
                   <div className={cn(
-                    "px-2 py-0.5 rounded-lg border shadow-lg transition-all duration-300",
+                    "px-1.5 py-0.5 rounded-md border shadow-lg transition-all duration-300",
                     darkMode 
                       ? "bg-gray-900 border-purple-800 text-purple-200" 
                       : "bg-white border-purple-100 text-purple-900"
                   )}>
                     <span className={cn(
-                      "tracking-wide font-bold uppercase text-[9px] sm:text-[10px]",
+                      "tracking-wide font-bold uppercase text-[8px] sm:text-[9px]",
                     )}>
                       {cluster.commune}
                     </span>
@@ -789,7 +789,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   {(zoom >= 13 || showNearest) && (
                     <Tooltip 
                       direction="top" 
-                      offset={[0, -20]} 
+                      offset={[0, -12]} 
                       opacity={1} 
                       permanent={isLabelPermanent}
                       className={cn(
@@ -798,10 +798,10 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                       )}
                     >
                       <div className={cn(
-                        "flex flex-col items-center px-1.5 py-0.5 rounded border shadow-md transition-all duration-300",
+                        "flex flex-col items-center px-1.5 py-0.5 rounded-md border shadow-sm transition-all duration-300",
                         darkMode 
                           ? "bg-gray-950 border-gray-800" 
-                          : "bg-white border-gray-200"
+                          : "bg-white border-gray-100"
                       )}>
                         <div 
                           className={cn(
