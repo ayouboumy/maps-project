@@ -111,7 +111,7 @@ export const useAppStore = create<AppState>()(
       isAiSearching: false,
       optimizedRouteIds: null,
       clusterByCommune: false,
-      showCommuneNames: true,
+      showCommuneNames: false,
       colorByPrayerType: false,
       mapInstance: null,
       isExporting: false,

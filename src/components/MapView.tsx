@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, Fragment } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, ZoomControl } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
+import RBush from 'rbush';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -591,25 +592,78 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             count: stat.count,
             mosques: stat.mosques
          });
-       } else if (stat.count > 0 && stat.validCount === 0) {
-         // Fallback if all mosques in the commune have invalid coordinates
-         // Default to Driouch center approximately, or we skip creating a marker?
-         // It's probably better to skip the map marker if we have literally 0 valid coords
-         // so it doesn't render at 0,0.
-         // Or we could put them at a fallback coordinate. Let's just skip them.
        }
     });
 
-    return result;
+    // Sort by count descending to prioritize larger clusters in collision detection
+    return result.sort((a, b) => b.count - a.count);
   }, [clusterByCommune, mosques]);
 
-  const communeClusterIcon = (count: number, commune: string, showName: boolean, isDark: boolean) => L.divIcon({
+  const { mapInstance } = useAppStore();
+  
+  // Collision Detection Logic
+  const visibleCommuneNames = useMemo(() => {
+    if (!mapInstance || !showCommuneNames || zoom < 10 || communeClusters.length === 0) {
+      return new Set<string>();
+    }
+
+    const tree = new RBush<{ minX: number, minY: number, maxX: number, maxY: number }>();
+    const visibleSet = new Set<string>();
+    
+    // Circle size (approximate)
+    const circleRadius = 18; 
+    const padding = 4;
+
+    // First pass: add all circles to the tree to prevent labels from overlapping them
+    communeClusters.forEach(cluster => {
+      const point = mapInstance.latLngToLayerPoint([cluster.latitude, cluster.longitude]);
+      tree.insert({
+        minX: point.x - circleRadius - padding,
+        minY: point.y - circleRadius - padding,
+        maxX: point.x + circleRadius + padding,
+        maxY: point.y + circleRadius + padding
+      });
+    });
+
+    // Second pass: try to place labels
+    communeClusters.forEach(cluster => {
+      const point = mapInstance.latLngToLayerPoint([cluster.latitude, cluster.longitude]);
+      
+      // Approximate label dimensions (8px per char + some padding)
+      const labelHeight = 16;
+      const labelWidth = cluster.commune.length * 7 + 12;
+      
+      // Label is centered below the circle (offset by circle radius + small gap)
+      const labelMinX = point.x - labelWidth / 2;
+      const labelMinY = point.y + circleRadius + 2; 
+      const labelMaxX = labelMinX + labelWidth;
+      const labelMaxY = labelMinY + labelHeight;
+
+      const labelBox = {
+        minX: labelMinX - padding,
+        minY: labelMinY - padding,
+        maxX: labelMaxX + padding,
+        maxY: labelMaxY + padding
+      };
+
+      // Check for collision
+      const collisions = tree.search(labelBox);
+      if (collisions.length === 0) {
+        visibleSet.add(cluster.commune);
+        tree.insert(labelBox);
+      }
+    });
+
+    return visibleSet;
+  }, [mapInstance, showCommuneNames, zoom, communeClusters]);
+
+  const communeClusterIcon = (count: number, commune: string, isVisible: boolean, isDark: boolean) => L.divIcon({
     html: `
       <div class="relative flex flex-col items-center">
         <div class="bg-purple-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white shadow-[0_4px_10px_rgba(147,51,234,0.5)] text-sm transition-transform active:scale-95 z-10">
           ${count}
         </div>
-        ${showName ? `
+        ${isVisible ? `
           <div class="mt-0.5 px-1.5 py-0.5 rounded border shadow-md ${isDark ? 'bg-gray-900 border-purple-800 text-purple-200' : 'bg-white border-purple-100 text-purple-900'} whitespace-nowrap animate-in fade-in slide-in-from-top-1 duration-300">
             <span class="tracking-wide font-bold uppercase text-[8px] sm:text-[9px]">
               ${commune}
@@ -717,8 +771,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         {clusterByCommune && !routingToMosque ? (
           communeClusters.map((cluster) => {
-            // Progressive Disclosure Logic
-            const isLabelVisible = showCommuneNames && zoom >= 10;
+            // Check if label should be visible based on collision detection
+            const isLabelVisible = visibleCommuneNames.has(cluster.commune);
             
             return (
               <Marker
