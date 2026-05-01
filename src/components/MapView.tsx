@@ -151,6 +151,18 @@ const userIcon = L.divIcon({
   iconAnchor: [9, 9]
 });
 
+function MapEffect() {
+  const map = useMap();
+  const { setMapInstance } = useAppStore();
+
+  useEffect(() => {
+    setMapInstance(map);
+    return () => setMapInstance(null);
+  }, [map, setMapInstance]);
+
+  return null;
+}
+
 function MapController({ showNearest, nearestMosques, routingToMosque, selectedMosque, selectedCommune, filteredByCommune }: { showNearest?: boolean, nearestMosques: any[], routingToMosque: any, selectedMosque: any, selectedCommune: string | null, filteredByCommune: any[] }) {
   const { userLocation } = useAppStore();
   const map = useMap();
@@ -605,6 +617,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         zoomControl={false}
         preferCanvas={true}
       >
+        <MapEffect />
         <ZoomListener onZoomChange={setZoom} />
         
         {mapStyle === 'street' && (

@@ -10,8 +10,6 @@
 .leaflet-tile {
   outline: 1px solid transparent;
   box-shadow: 0 0 0 1px transparent;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
 }
 
 .leaflet-tile-container {

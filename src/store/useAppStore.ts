@@ -42,6 +42,7 @@ interface AppState {
   optimizedRouteIds: number[] | null;
   clusterByCommune: boolean;
   colorByPrayerType: boolean;
+  mapInstance: any | null;
   
   toggleFavorite: (id: number) => void;
   updateMosque: (id: number, data: Partial<Mosque>) => void;
@@ -72,6 +73,7 @@ interface AppState {
   setOptimizedRouteIds: (ids: number[] | null) => void;
   setClusterByCommune: (enabled: boolean) => void;
   setColorByPrayerType: (enabled: boolean) => void;
+  setMapInstance: (map: any | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -200,6 +202,7 @@ export const useAppStore = create<AppState>()(
       setOptimizedRouteIds: (ids) => set({ optimizedRouteIds: ids }),
       setClusterByCommune: (enabled) => set({ clusterByCommune: enabled }),
       setColorByPrayerType: (enabled) => set({ colorByPrayerType: enabled }),
+      setMapInstance: (map) => set({ mapInstance: map }),
     }),
     {
       name: 'mosque-finder-storage',

@@ -14,14 +14,14 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
-import domtoimage from 'dom-to-image-more';
+import html2canvas from 'html2canvas';
 
 export default function App() {
   const { 
     activeTab, setUserLocation, language, routingToMosque, 
     refreshLocation, mosques, mapStyle, setMapStyle, 
     isEquipmentOpen, darkMode, clusterByCommune, setClusterByCommune,
-    colorByPrayerType, setColorByPrayerType
+    colorByPrayerType, setColorByPrayerType, mapInstance
   } = useAppStore();
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -36,37 +36,59 @@ export default function App() {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // Wait for map to settle
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 1. Force map to recalculate its dimensions
+      if (mapInstance) {
+        mapInstance.invalidateSize();
+      }
+
+      // 2. Wait for tiles to settle. Leaflet tiles load asynchronously.
+      // We wait for a bit to ensure rendering is complete. 
+      // User requested 1000ms+ or listening to events.
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const dataUrl = await domtoimage.toPng(element, {
-        bgcolor: darkMode ? '#030712' : '#ffffff',
-        cacheBust: true,
-        filter: (node: any) => {
-          // Hide UI elements in the snapshot
-          if (node.tagName === 'BUTTON') return false;
-          if (node.classList && (
-            node.classList.contains('z-[1000]') || 
-            node.classList.contains('top-safe-4') ||
-            node.classList.contains('leaflet-control-container')
-          )) {
-            return false;
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: false,
+        scale: window.devicePixelRatio || 2,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: darkMode ? '#030712' : '#ffffff',
+        onclone: (clonedDoc) => {
+          const clonedMap = clonedDoc.getElementById('map-export-container');
+          if (clonedMap) {
+            // Hide UI elements in the clone so they don't appear in the screenshot
+            const toHide = clonedMap.querySelectorAll('button, .leaflet-control-container, .top-safe-4');
+            toHide.forEach(el => ((el as HTMLElement).style.display = 'none'));
+
+            // Fix for Leaflet tile seams and marker positioning in screenshots
+            // We need to find the leaflet panes and markers and neutralize the transform
+            const mapPane = clonedMap.querySelector('.leaflet-map-pane') as HTMLElement;
+            if (mapPane) {
+              // Neutralize transitions in the clone
+              mapPane.style.transition = 'none';
+              mapPane.style.animation = 'none';
+            }
+            
+            // Disable animations on any animated markers or clusters in the clone
+            const animatedElements = clonedMap.querySelectorAll('.leaflet-zoom-animated, .marker-cluster, .animate-bounce-subtle');
+            animatedElements.forEach(el => {
+              (el as HTMLElement).style.transition = 'none';
+              (el as HTMLElement).style.animation = 'none';
+            });
+            
+            // Ensure all images in the clone have crossOrigin set to anonymous
+            const images = clonedMap.querySelectorAll('img');
+            images.forEach(img => {
+              img.setAttribute('crossOrigin', 'anonymous');
+            });
           }
-          return true;
-        },
-        height: element.offsetHeight * 2,
-        width: element.offsetWidth * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left',
-          width: element.offsetWidth + 'px',
-          height: element.offsetHeight + 'px'
         }
       });
       
       const link = document.createElement('a');
       link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);
