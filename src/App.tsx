@@ -6,7 +6,7 @@ import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EquipmentScreen from './screens/EquipmentScreen';
-import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2 } from 'lucide-react';
+import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2, Share2, Download } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
 import DirectionsPanel from './components/DirectionsPanel';
@@ -14,7 +14,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import AiSmartOverlay from './components/AiSmartOverlay';
-import domtoimage from 'dom-to-image-more';
+import * as htmlToImage from 'html-to-image';
 
 export default function App() {
   const { 
@@ -37,95 +37,49 @@ export default function App() {
       const element = document.getElementById('map-export-container');
       if (!element) throw new Error("Map container not found");
       
-      // 1. Force map to recalculate its dimensions and ensure current view is correct
+      // 1. Force map to recalculate its dimensions
       if (mapInstance) {
         mapInstance.invalidateSize();
       }
 
-      // 2. Wait for tiles to settle completely. 
-      // Leaflet tiles load asynchronously and can have slight rendering delays.
+      // 2. Wait for tiles to settle completely
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        allowTaint: false,
-        scale: 3, // Ultra-high resolution
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
+      // 3. Generate high resolution image
+      // We use html-to-image because it handles modern CSS functions (oklch) better than html2canvas
+      const dataUrl = await htmlToImage.toPng(element, {
         backgroundColor: darkMode ? '#030712' : '#ffffff',
-        onclone: (clonedDoc) => {
-          const clonedMap = clonedDoc.getElementById('map-export-container');
-          if (clonedMap) {
-            // A. Hide ALL non-map UI elements in the snapshot
-            const toHide = clonedMap.querySelectorAll('button, .leaflet-control-container, .top-safe-4, .z-[1000]');
-            toHide.forEach(el => ((el as HTMLElement).style.display = 'none'));
-
-            // B. Fix "oklch" colors - html2canvas crashes on modern CSS color functions
-            // Search all elements for styles containing oklch
-            const allElements = clonedMap.querySelectorAll('*');
-            allElements.forEach(el => {
-              const htmlEl = el as HTMLElement;
-              const computedStyle = window.getComputedStyle(el);
-              
-              // Properties that might have oklch
-              const colorProps = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke'];
-              colorProps.forEach(prop => {
-                const val = (htmlEl.style as any)[prop] || computedStyle.getPropertyValue(prop);
-                if (val && val.includes('oklch')) {
-                  // Fallback to safe colors based on property
-                  if (prop === 'backgroundColor') {
-                    (htmlEl.style as any)[prop] = darkMode ? '#030712' : '#ffffff';
-                  } else {
-                    (htmlEl.style as any)[prop] = '#666';
-                  }
-                }
-              });
-            });
-
-            // C. Neutralize Leaflet transforms that cause tile seams/grid artifacts
-            // This is the most critical part for removal of "squares"
-            const mapPane = clonedMap.querySelector('.leaflet-map-pane') as HTMLElement;
-            if (mapPane) {
-              mapPane.style.transform = 'none';
-              mapPane.style.transition = 'none';
-            }
-
-            // Also ensure all tiles are absolutely positioned without transforms in the clone
-            const tiles = clonedMap.querySelectorAll('.leaflet-tile');
-            tiles.forEach(t => {
-              const tile = t as HTMLElement;
-              tile.style.outline = '1px solid transparent'; // Bleed edge slightly
-              tile.style.boxShadow = '0 0 0 1px transparent';
-              tile.style.willChange = 'auto';
-              
-              // html2canvas handles images with crossOrigin="anonymous" best
-              if (tile.tagName === 'IMG') {
-                tile.setAttribute('crossOrigin', 'anonymous');
-              }
-            });
-
-            // Handle markers and clusters
-            const markerPane = clonedMap.querySelector('.leaflet-marker-pane') as HTMLElement;
-            if (markerPane) {
-              // Ensure markers are not animated
-              const markers = markerPane.querySelectorAll('.leaflet-marker-icon');
-              markers.forEach(m => {
-                (m as HTMLElement).style.animation = 'none';
-                (m as HTMLElement).style.transition = 'none';
-              });
-            }
+        pixelRatio: 3, // High quality
+        skipAutoScale: true,
+        cacheBust: true,
+        filter: (node: any) => {
+          // Hide UI elements in the snapshot
+          if (node.tagName === 'BUTTON') return false;
+          // Hide specific map controls and UI overlays
+          if (node.classList && (
+            node.classList.contains('z-[1000]') || 
+            node.classList.contains('top-safe-4') ||
+            node.classList.contains('leaflet-control-container') ||
+            node.classList.contains('z-[5000]') // Loading overlay
+          )) {
+            return false;
           }
+          return true;
+        },
+        style: {
+          // Sometimes Leaflet adds some styles that clash with the export
+          // Neutralize some of them
+          borderRadius: '0px'
         }
       });
       
       const link = document.createElement('a');
       link.download = `mosque-analysis-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error("Error exporting map:", error);
-      alert(t("Failed to export map image. Image contains unsupported styles (oklch) or server blocked tiles.", language));
+      alert(t("Failed to export map image. Image contains unsupported styles or server blocked tiles.", language));
     } finally {
       setIsExporting(false);
       setIsMapToolsOpen(false);
