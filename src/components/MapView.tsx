@@ -730,23 +730,22 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               >
                 <Tooltip
                   permanent={isLabelPermanent}
-                  direction="right"
-                  offset={[15, 0]}
-                  opacity={0.9}
+                  direction="bottom"
+                  offset={[0, 15]}
+                  opacity={1}
                   className={cn(
                     "border-none shadow-none bg-transparent !bg-transparent !shadow-none !border-none pointer-events-none transition-all duration-700",
                     isLabelPermanent ? "animate-in fade-in zoom-in-95 duration-500" : "opacity-0"
                   )}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <div className={cn(
-                      "w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_5px_rgba(168,85,247,0.8)] transition-all",
-                      zoom > 12 ? "scale-100" : "scale-75"
-                    )} />
+                  <div className={cn(
+                    "px-2 py-0.5 rounded-lg border shadow-lg transition-all duration-300",
+                    darkMode 
+                      ? "bg-gray-900 border-purple-800 text-purple-200" 
+                      : "bg-white border-purple-100 text-purple-900"
+                  )}>
                     <span className={cn(
-                      "tracking-tight drop-shadow-sm transition-all duration-300",
-                      zoom > 12 ? "text-[11px] sm:text-xs" : "text-[9px]",
-                      darkMode ? "text-purple-300/90 font-medium" : "text-purple-900/90 font-bold"
+                      "tracking-wide font-bold uppercase text-[9px] sm:text-[10px]",
                     )}>
                       {cluster.commune}
                     </span>
@@ -790,33 +789,33 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   {(zoom >= 13 || showNearest) && (
                     <Tooltip 
                       direction="top" 
-                      offset={[0, -10]} 
-                      opacity={0.9} 
+                      offset={[0, -20]} 
+                      opacity={1} 
                       permanent={isLabelPermanent}
                       className={cn(
                         "border-none shadow-none !bg-transparent !border-none !shadow-none transition-all duration-300",
                         !isLabelPermanent && "opacity-0 group-hover:opacity-100"
                       )}
                     >
-                      <div className="flex flex-col items-center">
+                      <div className={cn(
+                        "flex flex-col items-center px-1.5 py-0.5 rounded border shadow-md transition-all duration-300",
+                        darkMode 
+                          ? "bg-gray-950 border-gray-800" 
+                          : "bg-white border-gray-200"
+                      )}>
                         <div 
                           className={cn(
-                            "max-w-[100px] sm:max-w-[150px] truncate font-bold text-center tracking-tight drop-shadow-sm",
-                            zoom > 15 ? "text-xs" : "text-[10px]",
+                            "max-w-[100px] sm:max-w-[150px] truncate font-bold text-center tracking-tight",
+                            zoom > 15 ? "text-xs" : "text-[9px]",
                             darkMode ? "text-gray-100" : "text-gray-900"
                           )}
-                          style={{
-                            textShadow: darkMode 
-                              ? '0 1px 3px rgba(0,0,0,1)' 
-                              : '0 1px 3px rgba(255,255,255,1)'
-                          }}
                         >
                           {getLocalizedName(mosque, language)}
                         </div>
                         {showNearest && roadDistances[mosque.id] !== undefined && (
                           <div className={cn(
                             "text-[8px] font-black mt-0.5 px-1.5 py-0 rounded-full border shadow-sm",
-                            darkMode ? "bg-blue-900/60 border-blue-800 text-blue-300" : "bg-blue-50/80 border-blue-100 text-blue-800"
+                            darkMode ? "bg-blue-900 text-blue-300" : "bg-blue-50 text-blue-800"
                           )}>
                             {(roadDistances[mosque.id] / 1000).toFixed(1)} km
                           </div>
