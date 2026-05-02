@@ -13,7 +13,6 @@ import DirectionsPanel from './components/DirectionsPanel';
 import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
-import AiSmartOverlay from './components/AiSmartOverlay';
 import * as htmlToImage from 'html-to-image';
 
 export default function App() {
@@ -165,7 +164,6 @@ export default function App() {
           {activeTab === 'map' && (
             <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
-              <AiSmartOverlay />
               
               {/* Floating Location & Tools Buttons */}
               {!routingToMosque && (

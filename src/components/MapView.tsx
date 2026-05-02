@@ -200,11 +200,37 @@ function MapController({ showNearest, nearestMosques, routingToMosque, selectedM
           [userLocation.latitude, userLocation.longitude],
           [routingToMosque.latitude, routingToMosque.longitude]
         ]);
-        map.fitBounds(bounds, { padding: [50, 50] });
+        
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          // Adjust for top bar (~150px) and bottom sheet (~200px)
+          map.fitBounds(bounds, { 
+            paddingTopLeft: [40, 160], 
+            paddingBottomRight: [40, 220] 
+          });
+        } else {
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
       }
     } else if (selectedMosque) {
       if (typeof selectedMosque.latitude === 'number' && typeof selectedMosque.longitude === 'number') {
-        map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          // On mobile, the bottom sheet covers ~40-50% of the screen.
+          // We use fitBounds with padding to ensure the mosque is centered in the visible top area.
+          const bounds = L.latLngBounds([
+            [selectedMosque.latitude, selectedMosque.longitude],
+            [selectedMosque.latitude, selectedMosque.longitude]
+          ]);
+          map.fitBounds(bounds, { 
+            paddingBottomRight: [0, window.innerHeight * 0.45], // Offset by 45% of screen height
+            maxZoom: 15,
+            animate: true,
+            duration: 1.5
+          });
+        } else {
+          map.flyTo([selectedMosque.latitude, selectedMosque.longitude], 15, { duration: 1.5 });
+        }
       }
     } else if (selectedCommune && filteredByCommune.length > 0) {
       const validCommuneMosques = filteredByCommune.filter(m => 
