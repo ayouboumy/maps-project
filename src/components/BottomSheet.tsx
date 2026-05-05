@@ -160,12 +160,14 @@ export default function BottomSheet() {
             <div className="px-5 pb-6 pt-2 max-h-[80vh] overflow-y-auto scrollbar-hide">
               {/* Header */}
               <div className="flex justify-between items-start mb-3">
-                <div className="pr-4">
+                <div className="pr-4 flex flex-col">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{selectedMosque.name}</h3>
                   {selectedMosque.code && (
-                    <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md mt-1 inline-block border border-emerald-100 dark:border-emerald-800">
-                      {selectedMosque.code}
-                    </span>
+                    <div className="mt-1">
+                      <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md inline-block border border-emerald-100 dark:border-emerald-800">
+                        {selectedMosque.code}
+                      </span>
+                    </div>
                   )}
                   <div className="flex items-center gap-2 mt-1.5 text-sm">
                     <span className="text-emerald-600 dark:text-emerald-400 font-medium">{t(selectedMosque.type, language)}</span>
@@ -316,6 +318,13 @@ export default function BottomSheet() {
                     </div>
                     <div>
                       <h5 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{mosque.name}</h5>
+                      {mosque.code && (
+                        <div className="mt-0.5">
+                          <span className="text-[8px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block">
+                            {mosque.code}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 font-medium">
                         <MapPin size={10} className="shrink-0" />
                         <span>{mosque.commune}</span>

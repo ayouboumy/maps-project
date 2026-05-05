@@ -115,10 +115,9 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const categories = useMemo(() => {
     const exactStructure = {
       general: [
-        "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
+        "رمز المسجد", "code", "رمز", "اسم المسجد", "عنوان المسجد", "address", "عنوان", "الجماعة", "جهة الإنفاق", 
         "type", "nature", "تاريخ البناء", "حالة البناية", "statut", "etat", "province", "ville", "commune",
-        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture",
-        "code", "address", "رمز", "عنوان"
+        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture"
       ],
       land: [
         "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة", 
@@ -292,13 +291,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   }, [mosque]);
 
   const tabs = [
-    { id: 'general', label: 'General Information', icon: Info },
-    { id: 'land', label: 'Land Information', icon: Map },
-    { id: 'construction', label: 'Construction Information', icon: Building2 },
-    { id: 'services', label: 'Services Information', icon: Zap },
-    { id: 'items', label: 'Mosque Components', icon: Layout },
-    { id: 'revenue', label: 'Revenue Assets', icon: DollarSign },
-    { id: 'other', label: 'Additional Information', icon: Clipboard }
+    { id: 'general', label: 'معلومات عامة', icon: Info },
+    { id: 'land', label: 'معلومات القطعة الأرضية', icon: Map },
+    { id: 'construction', label: 'معلومات البناء', icon: Building2 },
+    { id: 'services', label: 'معلومات الخدمات', icon: Zap },
+    { id: 'items', label: 'مكونات المسجد', icon: Layout },
+    { id: 'revenue', label: 'معلومات الأملاك ذات العائد', icon: DollarSign },
+    { id: 'other', label: 'معلومات إضافية', icon: Clipboard }
   ] as const;
 
 
@@ -387,6 +386,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             <h1 className="text-3xl font-serif font-black text-gray-900 dark:text-white leading-tight mb-1 drop-shadow-sm">
               {getLocalizedName(mosque, language)}
             </h1>
+            {mosque.code && (
+              <div className="mb-2">
+                <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md inline-block border border-emerald-100 dark:border-emerald-800 shadow-sm">
+                  {mosque.code}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-sm font-medium">
               <MapPin size={14} className="shrink-0" />
               <span className="line-clamp-1">{t(mosque.address, language)}</span>

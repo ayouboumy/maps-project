@@ -326,17 +326,21 @@ export default function SearchScreen() {
                   <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">{t(mosque.type, language)}</div>
                   <div className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded transition-colors">{mosque.commune}</div>
                 </div>
-                <h3 className="font-bold text-gray-900 dark:text-white leading-tight mb-1 flex items-center gap-1.5 flex-wrap">
-                  <span className="line-clamp-1">{mosque.name}</span>
+                <div className="flex flex-col mb-1">
+                  <h3 className="font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-1.5">
+                    <span className="line-clamp-1">{getLocalizedName(mosque, language)}</span>
+                    {favorites.includes(mosque.id) && (
+                      <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
+                    )}
+                  </h3>
                   {mosque.code && (
-                    <span className="text-[8px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-800">
-                      {mosque.code}
-                    </span>
+                    <div className="mt-0.5">
+                      <span className="text-[9px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block shadow-sm">
+                        {mosque.code}
+                      </span>
+                    </div>
                   )}
-                  {favorites.includes(mosque.id) && (
-                    <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
-                  )}
-                </h3>
+                </div>
                 <div className="flex items-center text-gray-500 dark:text-gray-400 text-xs">
                   <MapPin size={12} className={`${language === 'ar' ? 'ml-1' : 'mr-1'} mt-0.5 shrink-0`} />
                   <span className="line-clamp-1">{t(mosque.address, language)}</span>
