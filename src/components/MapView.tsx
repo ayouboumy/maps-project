@@ -526,6 +526,10 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
     const fetchRoadDistances = async () => {
       try {
+        // Wait 800ms before starting to allow location to settle (debounce)
+        await new Promise(resolve => setTimeout(resolve, 800));
+        if (!isSubscribed) return;
+
         // Get top 15 by straight line
         const top15 = [...filteredByCommune]
           .map(m => {
@@ -586,8 +590,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               durations[m.id] = bestRoute.duration;
             }
             
-            // Add a small delay between requests to be gentle on the public API
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Add a larger delay between requests to be gentle on the public API (600ms)
+            await new Promise(resolve => setTimeout(resolve, 600));
           } catch (e) {
             console.warn(`Could not fetch route for mosque ${m.id}, relying on straight-line distance.`);
           }
@@ -607,7 +611,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return () => {
       isSubscribed = false;
     };
-  }, [userLocation, filteredByCommune, routeProfile]);
+  }, [userLocation.latitude, userLocation.longitude, filteredByCommune.length, routeProfile]);
 
   const displayedMosques = useMemo(() => {
     const mosquesToList = showNearest && isUserLocationValid ? nearestMosques : filteredByCommune;

@@ -138,7 +138,7 @@ export default function SettingsScreen() {
             const rawCommune = getVal(['commune', 'municipality', 'district', 'commune_ar', 'commune_fr', 'ville', 'city', 'الجماعة', 'المقاطعة', 'العمالة']);
             const commune = rawCommune ? String(rawCommune).trim() : (address !== 'Unknown Address' ? (address.split(',')[0] || 'Unknown').trim() : 'Unknown');
             const type = getVal(['type', 'category', 'catégorie', 'genre', 'النوع', 'الصنف']) || 'Mosque';
-            const servicesRaw = getVal(['services', 'facilities', 'équipements', 'equipements', 'الخدمات', 'المرافق']);
+            const servicesRaw = getVal(['services', 'facilities', 'équipements', 'equipements', 'installations', 'الخدمات', 'المرافق', 'التجهيزات']);
             const itemsRaw = getVal(['items', 'amenities', 'features', 'articles', 'composants', 'العناصر', 'المكونات']);
             const image = getVal(['image', 'photo', 'picture', 'image_url', 'url_image', 'الصورة']) || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1000';
 
@@ -149,6 +149,9 @@ export default function SettingsScreen() {
               return [];
             };
 
+            const services = parseArray(servicesRaw);
+            const items = parseArray(itemsRaw);
+
             // Collect all columns into extraData
             const extraData: Record<string, any> = {};
             
@@ -158,10 +161,29 @@ export default function SettingsScreen() {
               // Ignore missing values, "N", and "لا"
               if (val === null || val === undefined || val === '') return;
               const valStr = String(val).trim().toUpperCase();
-              if (valStr === 'N' || valStr === 'لا') return;
+              if (valStr === 'N' || valStr === 'لا' || valStr === 'NON') return;
 
-              // Pass the raw column key to extraData exactly as it was in the Excel definition.
-              extraData[key.trim()] = val;
+              const cleanKey = key.trim();
+              
+              // If it's a positive boolean-like value, and not already in services/items, maybe it belongs there?
+              // But we should be careful not to pollute. 
+              // Instead, we'll just store in extraData and let ProfileScreen handle the categorization.
+              extraData[cleanKey] = val;
+
+              // Heuristic: if it's a known service/equipment header and value is "OUI" or "نعم"
+              const lowerKey = cleanKey.toLowerCase();
+              const isPositive = valStr === 'OUI' || valStr === 'نعم' || valStr === 'YES' || valStr === 'O' || valStr === 'Y';
+              
+              if (isPositive) {
+                const serviceKeywords = ['eau', 'electricite', 'assainissement', 'solaire', 'puits', 'reseau', 'route', 'piste', 'ماء', 'كهرباء', 'صرف', 'شمسية', 'طريق', 'مسلك', 'اتصال', 'انترنت', 'internet', 'connexion'];
+                const itemKeywords = ['toilette', 'wc', 'minaret', 'logement', 'ecole', 'msid', 'biblio', 'مرحاض', 'صومعة', 'سكن', 'مدرسة', 'كتاب', 'مكتبة', 'منبر', 'محراب', 'قبة', 'minbar', 'mihrab', 'coupole'];
+                
+                if (serviceKeywords.some(k => lowerKey.includes(k))) {
+                  if (!services.includes(cleanKey)) services.push(cleanKey);
+                } else if (itemKeywords.some(k => lowerKey.includes(k))) {
+                  if (!items.includes(cleanKey)) items.push(cleanKey);
+                }
+              }
             });
 
             return {
@@ -175,8 +197,8 @@ export default function SettingsScreen() {
               address,
               commune,
               type,
-              services: parseArray(servicesRaw),
-              items: parseArray(itemsRaw),
+              services,
+              items,
               image,
               extraData
             };

@@ -249,6 +249,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Surface': { en: 'Surface', fr: 'Surface', ar: 'المساحة' },
   'Condition': { en: 'Condition', fr: 'État', ar: 'الحالة' },
   'Built Year': { en: 'Built Year', fr: 'Construit en', ar: 'سنة البناء' },
+  'Built In': { en: 'Built In', fr: 'Construit en', ar: 'بني في' },
   'Map Settings': { en: 'Map Settings', fr: 'Paramètres de la carte', ar: 'إعدادات الخريطة' },
   'Filter by Commune': { en: 'Filter by Commune', fr: 'Filtrer par commune', ar: 'تصفية حسب الجماعة' },
   'Select Commune': { en: 'Select Commune', fr: 'Sélectionner une commune', ar: 'اختر الجماعة' },

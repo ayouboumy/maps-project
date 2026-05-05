@@ -247,8 +247,24 @@ export default function BottomSheet() {
                     </div>
                   </div>
                   
+                  {/* Quick Highlights Grid */}
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    {selectedMosque.extraData?.['مساحة القطعة الأرضية'] && (
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-wider">{t('Surface', language)}</span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{selectedMosque.extraData['مساحة القطعة الأرضية']} m²</span>
+                      </div>
+                    )}
+                    {selectedMosque.extraData?.['تاريخ البناء'] && (
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-wider">{t('Built In', language)}</span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{selectedMosque.extraData['تاريخ البناء']}</span>
+                      </div>
+                    )}
+                  </div>
+                  
                   {/* Quick Services Preview */}
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 pt-1">
                     {selectedMosque.services.slice(0, 3).map(service => (
                       <span key={service} className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-medium rounded-md border border-emerald-100/50 dark:border-emerald-800/50">
                         {t(service, language)}

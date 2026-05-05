@@ -116,26 +116,28 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     const exactStructure = {
       general: [
         "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
-        "type", "nature", "تاريخ البناء", "حالة البناية", 
+        "type", "nature", "تاريخ البناء", "حالة البناية", "statut", "etat", "province", "ville", "commune",
         "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture"
       ],
       land: [
         "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة", 
-        "غير المبنية: المساحة غير المهيأة", "x", "y", "longitude", "latitude", 
-        "topogaphique", "existance de talus", "existance de rigoles d'eau", "ravin", 
-        "ter_gmp_autre", "zone_thermique"
+        "غير المبنية: المساحة غير المهيأة", "x", "y", "longitude", "latitude", "superficie", "surface terrain", "surface batie",
+        "topographique", "topogaphique", "existance de talus", "existance de rigoles d'eau", "ravin", 
+        "ter_gmp_autre", "zone_thermique", "titre foncier", "foncier"
       ],
       construction: [
         "نوع اليناء", "béton_armé", "construction_en_terre_adobe", "construction_en_terre_pisé", 
-        "msq_mat_pierre", "brique_traditionnel", "tôle_en_bois", "tôle_métallique"
+        "msq_mat_pierre", "brique_traditionnel", "tôle_en_bois", "tôle_métallique",
+        "beton arme", "pierre", "construction", "mur", "plafond", "toiture", "charpente"
       ],
       services: [
         "nombre_d_accès_à_la_mosquée", "réseau_routier", "piste_carossable", "piste_non_carossable", 
         "accessibilité_handicapé", "branché_au_réseau_d_eau_potable", "puits", "sources", 
         "branché_au_réseau_d_électricité", "photovoltaïque", "traditionnel", 
-        "branché_au_réseau_d_assainissement", "fosse_septique_puits_perdu", "aucun"
+        "branché_au_réseau_d_assainissement", "fosse_septique_puits_perdu", "aucun",
+        "eau", "electricite", "assainissement", "piste", "route", "solaire", "photovoltaique"
       ],
-      components: [
+      items: [
         "مساحة المقصورة", "عدد قاعة الصلاة للرجال", "مساحة قاعة الصلاة للرجال", "عدد قاعة الصلاة للنساء",
         "مساحة قاعة الصلاة للنساء", "عدد مراحيض الرجال", "مساحة مراحيض الرجال", "عدد مراحيض للنساء",
         "مساحة مراحيض للنساء", "ارتفاع الصومعة", "عدد طبقات الصومعة", "قاعدة الصومعة", "عدد سكن الامام",
@@ -144,11 +146,14 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         "عدد المدرسة", "مساحة المدرسة", "عدد قاعة الاجتماعات", "مساحة قاعة الاجتماعات",
         "عدد الصحن", "مساحة الصحن", "عدد الأروقة", "مساحة الأروقة", "عدد غرفة الامام", "مساحة غرفة الامام",
         "عدد غرفة المؤذن", "مساحة غرفة المؤذن", "عدد غرفة المؤقت", "مساحة غرفة المؤقت",
-        "عدد غرفة الموتى", "مساحة غرفة الموتى"
+        "عدد غرفة الموتى", "مساحة غرفة الموتى",
+        "salle de priere", "toilettes", "wc", "minaret", "logement", "ecole", "msid", "sahn", "arwaqa"
       ],
       revenue: [
-        "عدد محلات تجارية", "مساحة محلات تجارية", "عدد سكن", "مساحة سكن"
-      ]
+        "عدد محلات تجارية", "مساحة محلات تجارية", "عدد سكن", "مساحة سكن",
+        "shops", "boutiques", "magasins", "loyer", "revenu", "wakf", "habous"
+      ],
+      other: []
     };
 
     const sections = {
@@ -156,7 +161,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       land: [] as {key: string, value: any}[],
       construction: [] as {key: string, value: any}[],
       services: [] as {key: string, value: any}[],
-      components: [] as {key: string, value: any}[],
+      items: [] as {key: string, value: any}[],
       revenue: [] as {key: string, value: any}[],
       other: [] as {key: string, value: any}[]
     };
@@ -171,6 +176,12 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         .replace(/[أإآا]/g, 'ا')
         .replace(/[ةه]/g, 'ه')
         .replace(/[يى]/g, 'ي')
+        .replace(/[éèêë]/g, 'e')
+        .replace(/[àâä]/g, 'a')
+        .replace(/[îï]/g, 'i')
+        .replace(/[ôö]/g, 'o')
+        .replace(/[ûü]/g, 'u')
+        .replace(/[ç]/g, 'c')
         .replace(/[\(\)\[\]\.،:]/g, '') // remove common punctuation from Excel headers
         .trim();
     };
@@ -185,6 +196,26 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       "type": mosque.type,
       ...mosque.extraData
     };
+
+    // Add explicit services and items if they weren't in extraData pool
+    if (mosque.services && mosque.services.length > 0) {
+      mosque.services.forEach((s: string) => {
+        const normS = normalize(s);
+        const alreadyIn = Object.keys(dataSource).some(k => normalize(k) === normS);
+        if (!alreadyIn) {
+          sections.services.push({ key: s, value: "OUI" });
+        }
+      });
+    }
+    if (mosque.items && mosque.items.length > 0) {
+      mosque.items.forEach((i: string) => {
+        const normI = normalize(i);
+        const alreadyIn = Object.keys(dataSource).some(k => normalize(k) === normI);
+        if (!alreadyIn) {
+          sections.items.push({ key: i, value: "OUI" });
+        }
+      });
+    }
 
     // Map according to exact user-defined structure
     Object.entries(exactStructure).forEach(([sectionId, keys]) => {
@@ -227,18 +258,21 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
           if (val !== undefined && val !== null && val !== '') {
             const nData = normalize(key);
             // Auto-categorize based on keywords if they were missed by exact structure
-            if (nData.includes('مساحه') || nData.includes('مساحات') || nData.includes('عدد')) {
-               if (nData.includes('سكن') || nData.includes('محل') || nData.includes('تجار')) {
+            const nDataLc = nData.toLowerCase();
+            if (nData.includes('مساحه') || nData.includes('مساحات') || nData.includes('عدد') || nDataLc.includes('surface') || nDataLc.includes('superficie') || nDataLc.includes('nombre') || nDataLc.includes('nb ')) {
+               if (nData.includes('سكن') || nData.includes('محل') || nData.includes('تجار') || nDataLc.includes('boutique') || nDataLc.includes('magasin') || nDataLc.includes('commerce') || nDataLc.includes('loyer')) {
                  sections.revenue.push({ key, value: val });
-               } else if (nData.includes('ارض') || nData.includes('قطعه') || nData.includes('مبنيه')) {
+               } else if (nData.includes('ارض') || nData.includes('قطعه') || nData.includes('مبنيه') || nDataLc.includes('terrain') || nDataLc.includes('parcelle') || nDataLc.includes('foncier')) {
                  sections.land.push({ key, value: val });
                } else {
-                 sections.components.push({ key, value: val });
+                 sections.items.push({ key, value: val });
                }
-            } else if (nData.includes('شبكه') || nData.includes('ماء') || nData.includes('كهرباء') || nData.includes('صرف') || nData.includes('طريق')) {
+            } else if (nData.includes('شبكه') || nData.includes('ماء') || nData.includes('كهرباء') || nData.includes('صرف') || nData.includes('طريق') || nDataLc.includes('reseau') || nDataLc.includes('eau') || nDataLc.includes('electricite') || nDataLc.includes('assainissement') || nDataLc.includes('route') || nDataLc.includes('piste') || nDataLc.includes('solaire') || nDataLc.includes('photovoltaique')) {
                sections.services.push({ key, value: val });
-            } else if (nData.includes('بناء') || nData.includes('تراب') || nData.includes('حجر') || nData.includes('اسمنت') || nData.includes('خرسانه')) {
+            } else if (nData.includes('بناء') || nData.includes('تراب') || nData.includes('حجر') || nData.includes('اسمنت') || nData.includes('خرسانه') || nDataLc.includes('construction') || nDataLc.includes('pierre') || nDataLc.includes('beton') || nDataLc.includes('brique') || nDataLc.includes('mur') || nDataLc.includes('toiture')) {
                sections.construction.push({ key, value: val });
+            } else if (nData.includes('جماعه') || nData.includes('اقليم') || nData.includes('عنوان') || nDataLc.includes('commune') || nDataLc.includes('address') || nDataLc.includes('ville') || nDataLc.includes('province') || nDataLc.includes('statut') || nDataLc.includes('etat')) {
+               sections.general.push({ key, value: val });
             } else {
                sections.other.push({ key, value: val });
             }
@@ -254,13 +288,13 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   }, [mosque]);
 
   const tabs = [
-    { id: 'general', label: 'معلومات عامة', icon: Info },
-    { id: 'land', label: 'معلومات القطعة الأرضية', icon: Map },
-    { id: 'construction', label: 'معلومات البناء', icon: Building2 },
-    { id: 'services', label: 'معلومات الخدمات', icon: Zap },
-    { id: 'components', label: 'مكونات المسجد', icon: Layout },
-    { id: 'revenue', label: 'معلومات الأملاك ذات العائد', icon: DollarSign },
-    { id: 'other', label: 'معلومات إضافية', icon: Clipboard }
+    { id: 'general', label: 'General Information', icon: Info },
+    { id: 'land', label: 'Land Information', icon: Map },
+    { id: 'construction', label: 'Construction Information', icon: Building2 },
+    { id: 'services', label: 'Services Information', icon: Zap },
+    { id: 'items', label: 'Mosque Components', icon: Layout },
+    { id: 'revenue', label: 'Revenue Assets', icon: DollarSign },
+    { id: 'other', label: 'Additional Information', icon: Clipboard }
   ] as const;
 
 
