@@ -30,10 +30,8 @@ export default function BottomSheet() {
     let isMounted = true;
     const fetchDistance = async () => {
       try {
-        const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
-        const baseUrl = profile === 'foot' 
-          ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
-          : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+        const profile = (routeProfile || 'foot') === 'foot' ? 'walking' : 'driving';
+        const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         
         const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${selectedMosque.longitude},${selectedMosque.latitude}?overview=false&alternatives=true`);
         
@@ -55,7 +53,7 @@ export default function BottomSheet() {
           setRoadDistance(bestRoute.distance);
         }
       } catch (error) {
-        console.error("Error fetching road distance for bottom sheet:", error);
+        console.warn("Could not fetch road distance for bottom sheet, relying on straight-line fallback.");
       }
     };
 

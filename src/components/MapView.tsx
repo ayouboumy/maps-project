@@ -29,10 +29,8 @@ function MultiStopRoute({ stops, routeProfile = 'foot' }: { stops: [number, numb
         const end = stops[i+1];
         
         try {
-          const profile = routeProfile === 'foot' ? 'foot' : 'driving';
-          const baseUrl = profile === 'foot' 
-            ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
-            : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+          const profile = routeProfile === 'foot' ? 'walking' : 'driving';
+          const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
           
           const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`);
           
@@ -296,10 +294,8 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     let isMounted = true;
     const fetchRoute = async () => {
       try {
-        const profile = routeProfile === 'foot' ? 'foot' : 'driving';
-        const baseUrl = profile === 'foot' 
-          ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
-          : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+        const profile = routeProfile === 'foot' ? 'walking' : 'driving';
+        const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         
         const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
         
@@ -334,7 +330,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
           }
         }
       } catch (error) {
-        console.error("Error fetching route:", error);
+        console.warn("Could not fetch route, relying on straight-line fallback.");
       }
     };
     fetchRoute();
@@ -526,6 +522,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   useEffect(() => {
     if (!isUserLocationValid || filteredByCommune.length === 0) return;
 
+    let isSubscribed = true;
+
     const fetchRoadDistances = async () => {
       try {
         // Get top 15 by straight line
@@ -552,20 +550,23 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         // We only need to check the top 5 to find the true top 3 nearest
         const top5 = top15.slice(0, 5);
+        // Fetch sequentially and yield slightly to avoid rate limit (429)
         const distances: Record<number, number> = {};
         const durations: Record<number, number> = {};
 
-        // Fetch individual routes for the top 5 candidates to get accurate distances for the selected profile
-        // This is better than the table API because the public table API only supports driving
-        const promises = top5.map(async (m) => {
+        for (const m of top5) {
+          if (!isSubscribed) break;
           try {
-            const profile = (routeProfile || 'foot') === 'foot' ? 'foot' : 'driving';
-            const baseUrl = profile === 'foot' 
-              ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
-              : 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
+            const profile = (routeProfile || 'foot') === 'foot' ? 'walking' : 'driving';
+            const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
             
             const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
             
+            if (response.status === 429) {
+              console.warn("OSRM API rate limit reached, falling back to straight-line distance.");
+              break; // Stop fetching further if rate limited
+            }
+
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -581,31 +582,31 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               const bestRoute = data.routes.reduce((prev: any, current: any) => 
                 (prev.distance < current.distance) ? prev : current
               );
-              return { id: m.id, distance: bestRoute.distance, duration: bestRoute.duration };
+              distances[m.id] = bestRoute.distance;
+              durations[m.id] = bestRoute.duration;
             }
+            
+            // Add a small delay between requests to be gentle on the public API
+            await new Promise(resolve => setTimeout(resolve, 300));
           } catch (e) {
-            console.error(`Error fetching route for mosque ${m.id}:`, e);
+            console.warn(`Could not fetch route for mosque ${m.id}, relying on straight-line distance.`);
           }
-          return null;
-        });
+        }
 
-        const results = await Promise.all(promises);
-        
-        results.forEach(res => {
-          if (res) {
-            distances[res.id] = res.distance;
-            durations[res.id] = res.duration;
-          }
-        });
-
-        setRoadDistances(distances);
-        setRoadDurations(durations);
+        if (isSubscribed) {
+          setRoadDistances(distances);
+          setRoadDurations(durations);
+        }
       } catch (error) {
-        console.error("Error fetching road distances:", error);
+        console.warn("Could not fetch road distances, relying on straight distances.");
       }
     };
 
     fetchRoadDistances();
+    
+    return () => {
+      isSubscribed = false;
+    };
   }, [userLocation, filteredByCommune, routeProfile]);
 
   const displayedMosques = useMemo(() => {

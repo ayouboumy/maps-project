@@ -172,44 +172,49 @@ export default function App() {
                   <button 
                     onClick={() => setIsMapToolsOpen(!isMapToolsOpen)}
                     className={cn(
-                      "p-3 rounded-full shadow-md transition-colors",
+                      "p-3 rounded-full shadow-lg border backdrop-blur-md transition-all duration-300",
                       isMapToolsOpen
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                        ? 'bg-blue-600 text-white border-blue-500 rotate-90'
+                        : 'bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:text-blue-600 dark:hover:text-blue-400'
                     )}
                     title={t("Map Tools", language)}
                   >
                     {isMapToolsOpen ? <X size={24} /> : <Settings2 size={24} />}
                   </button>
 
-                  {/* Expanded Tools Menu */}
+                  {/* Expanded Tools Menu Popover */}
                   <AnimatePresence>
                     {isMapToolsOpen && (
                       <motion.div 
-                        initial={{ opacity: 0, height: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                        exit={{ opacity: 0, height: 0, scale: 0.9 }}
-                        className="flex flex-col gap-3"
+                        initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                        style={{ transformOrigin: language === 'ar' ? 'top left' : 'top right' }}
+                        className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-2 w-56 flex flex-col gap-1 overflow-hidden"
                       >
                         <button 
-                          onClick={requestLocation}
-                          className="p-3 bg-white dark:bg-gray-900 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          title={t("My Location", language)}
+                          onClick={() => { requestLocation(); setIsMapToolsOpen(false); }}
+                          className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors text-sm font-bold active:scale-[0.98]"
                         >
-                          <LocateFixed size={20} className={isLocating ? "animate-pulse text-blue-500" : ""} />
+                          <LocateFixed size={18} className={isLocating ? "animate-pulse text-blue-500" : "text-gray-400 dark:text-gray-500"} />
+                          <span>{t("My Location", language)}</span>
                         </button>
+                        
                         <button 
-                          onClick={() => setShowNearest(!showNearest)}
+                          onClick={() => { setShowNearest(true); setTimeout(() => setShowNearest(false), 3000); setIsMapToolsOpen(false); }}
                           className={cn(
-                            "p-3 rounded-full shadow-md transition-colors",
+                            "flex items-center gap-3 w-full p-2.5 rounded-xl transition-colors text-sm font-bold active:scale-[0.98]",
                             showNearest 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" 
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200"
                           )}
-                          title={t("Nearest Mosques", language)}
                         >
-                          <MapPin size={20} />
+                          <MapPin size={18} className={showNearest ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"} />
+                          <span>{t("Nearest Mosques", language)}</span>
                         </button>
+
+                        <div className="h-px w-full bg-gray-100 dark:bg-gray-800 my-1" />
+
                         <button 
                           onClick={() => {
                             const nextStyle: Record<string, 'street' | 'satellite' | 'terrain'> = {
@@ -219,64 +224,67 @@ export default function App() {
                             };
                             setMapStyle(nextStyle[mapStyle]);
                           }}
-                          className={cn(
-                            "p-3 rounded-full shadow-md transition-all duration-300",
-                            mapStyle === 'street' ? "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400" :
-                            mapStyle === 'satellite' ? "bg-blue-600 text-white" :
-                            "bg-emerald-600 text-white"
-                          )}
-                          title={t(
-                            mapStyle === 'street' ? 'Street Mode' : 
-                            mapStyle === 'satellite' ? 'Satellite Mode' : 
-                            'Terrain Mode', 
-                            language
-                          )}
+                          className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors text-sm font-bold active:scale-[0.98]"
                         >
-                          <Layers size={20} />
+                          <Layers size={18} className="text-gray-400 dark:text-gray-500" />
+                          <span>
+                            {t(
+                              mapStyle === 'street' ? 'Switch to Satellite' : 
+                              mapStyle === 'satellite' ? 'Switch to Terrain' : 
+                              'Switch to Street', 
+                              language
+                            )}
+                          </span>
                         </button>
+                        
                         <button 
-                          onClick={() => { setClusterByCommune(!clusterByCommune); }}
+                          onClick={() => setClusterByCommune(!clusterByCommune)}
                           className={cn(
-                            "p-3 rounded-full shadow-md transition-colors",
+                            "flex items-center gap-3 w-full p-2.5 rounded-xl transition-colors text-sm font-bold active:scale-[0.98]",
                             clusterByCommune 
-                              ? 'bg-purple-600 text-white' 
-                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
+                              ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400" 
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200"
                           )}
-                          title={t("Cluster by Commune", language)}
                         >
-                          <Network size={20} />
+                          <Network size={18} className={clusterByCommune ? "text-purple-600 dark:text-purple-400" : "text-gray-400 dark:text-gray-500"} />
+                          <span>{t("Cluster by Commune", language)}</span>
                         </button>
+                        
                         <button 
                           onClick={() => setColorByPrayerType(!colorByPrayerType)}
                           className={cn(
-                            "p-3 rounded-full shadow-md transition-colors",
+                            "flex items-center gap-3 w-full p-2.5 rounded-xl transition-colors text-sm font-bold active:scale-[0.98]",
                             colorByPrayerType 
-                              ? 'bg-orange-500 text-white' 
-                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400'
+                              ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400" 
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200"
                           )}
-                          title={t("Color by Prayer Type", language)}
                         >
-                          <Palette size={20} />
+                          <Palette size={18} className={colorByPrayerType ? "text-orange-600 dark:text-orange-400" : "text-gray-400 dark:text-gray-500"} />
+                          <span>{t("Color by Prayer Type", language)}</span>
                         </button>
+
+                        <div className="h-px w-full bg-gray-100 dark:bg-gray-800 my-1" />
+
                         <button 
-                          onClick={() => setShowLegend(!showLegend)}
+                          onClick={() => { setShowLegend(!showLegend); setIsMapToolsOpen(false); }}
                           className={cn(
-                            "p-3 rounded-full shadow-md transition-colors",
+                            "flex items-center gap-3 w-full p-2.5 rounded-xl transition-colors text-sm font-bold active:scale-[0.98]",
                             showLegend 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" 
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200"
                           )}
-                          title={t("Map Legend", language)}
                         >
-                          <HelpCircle size={20} />
+                          <HelpCircle size={18} className={showLegend ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"} />
+                          <span>{t("Map Legend", language)}</span>
                         </button>
+                        
                         <button 
                           onClick={handleExportMap}
                           disabled={isExporting}
-                          className="p-3 bg-white dark:bg-gray-900 rounded-full shadow-md text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors disabled:opacity-50"
-                          title={t("Export Map Image", language)}
+                          className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 transition-colors text-sm font-bold disabled:opacity-50 active:scale-[0.98]"
                         >
-                          {isExporting ? <Loader2 size={20} className="animate-spin text-green-500" /> : <Camera size={20} />}
+                          {isExporting ? <Loader2 size={18} className="animate-spin text-green-500" /> : <Camera size={18} className="text-gray-400 dark:text-gray-500" />}
+                          <span>{t("Export Map Image", language)}</span>
                         </button>
                       </motion.div>
                     )}
