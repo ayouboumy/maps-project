@@ -328,15 +328,15 @@ export default function SearchScreen() {
                 </div>
                 <div className="flex flex-col mb-1">
                   <h3 className="font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-1.5">
-                    <span className="line-clamp-1">{getLocalizedName(mosque, language)}</span>
+                    <span className="line-clamp-1">{mosque.name}</span>
                     {favorites.includes(mosque.id) && (
                       <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
                     )}
                   </h3>
                   {mosque.code && (
                     <div className="mt-0.5">
-                      <span className="text-[9px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block shadow-sm">
-                        {mosque.code}
+                      <span className="text-[8px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block">
+                        رمز المسجد {mosque.code}
                       </span>
                     </div>
                   )}

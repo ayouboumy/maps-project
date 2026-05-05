@@ -117,8 +117,6 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Commune': { en: 'Commune', fr: 'Commune', ar: 'الجماعة' },
   'Location Details': { en: 'Location Details', fr: 'Détails de l\'emplacement', ar: 'تفاصيل الموقع' },
   'Address': { en: 'Address', fr: 'Adresse', ar: 'العنوان' },
-  'address': { en: 'Address', fr: 'Adresse', ar: 'العنوان' },
-  'code': { en: 'Code', fr: 'Code', ar: 'الرمز' },
   'Capacity & Space': { en: 'Capacity & Space', fr: 'Capacité et Espace', ar: 'السعة والمساحة' },
   'Prayer Areas': { en: 'Prayer Areas', fr: 'Espaces de Prière', ar: 'أماكن الصلاة' },
   'Sanitary Facilities': { en: 'Sanitary Facilities', fr: 'Installations Sanitaires', ar: 'المرافق الصحية' },

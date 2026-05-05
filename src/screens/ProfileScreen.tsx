@@ -115,9 +115,10 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const categories = useMemo(() => {
     const exactStructure = {
       general: [
-        "رمز المسجد", "code", "رمز", "اسم المسجد", "عنوان المسجد", "address", "عنوان", "الجماعة", "جهة الإنفاق", 
+        "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
         "type", "nature", "تاريخ البناء", "حالة البناية", "statut", "etat", "province", "ville", "commune",
-        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture"
+        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture",
+        "code", "address", "رمز", "عنوان"
       ],
       land: [
         "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة", 
@@ -389,7 +390,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             {mosque.code && (
               <div className="mb-2">
                 <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md inline-block border border-emerald-100 dark:border-emerald-800 shadow-sm">
-                  {mosque.code}
+                  رمز المسجد {mosque.code}
                 </span>
               </div>
             )}

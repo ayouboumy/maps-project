@@ -1009,14 +1009,6 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                         >
                           {getLocalizedName(mosque, language)}
                         </div>
-                        {mosque.code && (
-                          <div className={cn(
-                            "text-[8px] font-black mt-0.5 px-1.5 py-0 rounded border",
-                            darkMode ? "bg-emerald-900/40 text-emerald-400 border-emerald-800" : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                          )}>
-                            {mosque.code}
-                          </div>
-                        )}
                         {showNearest && roadDistances[mosque.id] !== undefined && (
                           <div className={cn(
                             "text-[8px] font-black mt-0.5 px-1.5 py-0 rounded-full border shadow-sm",
@@ -1061,14 +1053,6 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                 >
                   {getLocalizedName(routingToMosque, language)}
                 </div>
-                {routingToMosque.code && (
-                  <div className={cn(
-                    "text-[8px] font-black mt-0.5 px-1.5 py-0 rounded border",
-                    darkMode ? "bg-red-900/40 text-red-400 border-red-800" : "bg-red-50 text-red-700 border-red-100"
-                  )}>
-                    {routingToMosque.code}
-                  </div>
-                )}
                 {(routeInfo || roadDistances[routingToMosque.id] !== undefined) && (
                   <div className={cn(
                     "text-[10px] font-semibold mt-0.5 px-1.5 rounded flex items-center gap-1",

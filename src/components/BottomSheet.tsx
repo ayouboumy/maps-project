@@ -165,7 +165,7 @@ export default function BottomSheet() {
                   {selectedMosque.code && (
                     <div className="mt-1">
                       <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md inline-block border border-emerald-100 dark:border-emerald-800">
-                        {selectedMosque.code}
+                        رمز المسجد {selectedMosque.code}
                       </span>
                     </div>
                   )}
@@ -321,7 +321,7 @@ export default function BottomSheet() {
                       {mosque.code && (
                         <div className="mt-0.5">
                           <span className="text-[8px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block">
-                            {mosque.code}
+                            رمز المسجد {mosque.code}
                           </span>
                         </div>
                       )}
