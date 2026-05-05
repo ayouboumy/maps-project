@@ -27,6 +27,8 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldValue, setNewFieldValue] = useState('');
   const isFavorite = favorites.includes(mosque.id);
+  const displayCode = mosque.code || 
+    (mosque.extraData && Object.entries(mosque.extraData).find(([k]) => k.toLowerCase().includes('code') || k.includes('رمز'))?.[1]);
 
   useEffect(() => {
     if (isEditing) {
@@ -387,10 +389,10 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
             <h1 className="text-3xl font-serif font-black text-gray-900 dark:text-white leading-tight mb-1 drop-shadow-sm">
               {getLocalizedName(mosque, language)}
             </h1>
-            {mosque.code && (
+            {displayCode && (
               <div className="mb-2">
                 <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md inline-block border border-emerald-100 dark:border-emerald-800 shadow-sm">
-                  رمز المسجد {mosque.code}
+                  رمز المسجد {displayCode}
                 </span>
               </div>
             )}

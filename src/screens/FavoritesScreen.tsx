@@ -26,7 +26,10 @@ export default function FavoritesScreen() {
           <div className="p-4 pb-24">
             {favoriteMosques.length > 0 ? (
               <div className="space-y-3">
-                {favoriteMosques.map((mosque, i) => (
+                {favoriteMosques.map((mosque, i) => {
+                  const displayCode = mosque.code || 
+                    (mosque.extraData && Object.entries(mosque.extraData).find(([k]) => k.toLowerCase().includes('code') || k.includes('رمز'))?.[1]);
+                  return (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -50,10 +53,10 @@ export default function FavoritesScreen() {
                       <span className="line-clamp-1">{mosque.name}</span>
                       <Heart size={14} className="fill-red-500 text-red-500 shrink-0" />
                     </h3>
-                    {mosque.code && (
+                    {displayCode && (
                       <div className="mt-0.5">
                         <span className="text-[8px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block">
-                          رمز المسجد {mosque.code}
+                          رمز المسجد {displayCode}
                         </span>
                       </div>
                     )}
@@ -76,7 +79,7 @@ export default function FavoritesScreen() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+            );})}
           </div>
         ) : (
           <div className="text-center py-20">

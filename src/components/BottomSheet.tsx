@@ -110,6 +110,9 @@ export default function BottomSheet() {
   if (!selectedMosque) return null;
 
   const isFavorite = favorites.includes(selectedMosque.id);
+  
+  const displayCode = selectedMosque.code || 
+    (selectedMosque.extraData && Object.entries(selectedMosque.extraData).find(([k]) => k.toLowerCase().includes('code') || k.includes('رمز'))?.[1]);
 
   const handleCopyPosition = () => {
     const coords = `${selectedMosque.latitude}, ${selectedMosque.longitude}`;
@@ -162,10 +165,10 @@ export default function BottomSheet() {
               <div className="flex justify-between items-start mb-3">
                 <div className="pr-4 flex flex-col">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{selectedMosque.name}</h3>
-                  {selectedMosque.code && (
+                  {displayCode && (
                     <div className="mt-1">
                       <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md inline-block border border-emerald-100 dark:border-emerald-800">
-                        رمز المسجد {selectedMosque.code}
+                        رمز المسجد {displayCode}
                       </span>
                     </div>
                   )}
@@ -303,7 +306,11 @@ export default function BottomSheet() {
 
               {/* Nearby Mosques List */}
               <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5">
-                {nearbyMosques.map(mosque => (
+                {nearbyMosques.map(mosque => {
+                  const mosqueDisplayCode = mosque.code || 
+                    (mosque.extraData && Object.entries(mosque.extraData).find(([k]) => k.toLowerCase().includes('code') || k.includes('رمز'))?.[1]);
+                  
+                  return (
                   <button
                     key={mosque.id}
                     onClick={() => setSelectedMosque(mosque)}
@@ -318,10 +325,10 @@ export default function BottomSheet() {
                     </div>
                     <div>
                       <h5 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{mosque.name}</h5>
-                      {mosque.code && (
+                      {mosqueDisplayCode && (
                         <div className="mt-0.5">
                           <span className="text-[8px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded border border-emerald-100 dark:border-emerald-800 inline-block">
-                            رمز المسجد {mosque.code}
+                            رمز المسجد {mosqueDisplayCode}
                           </span>
                         </div>
                       )}
@@ -331,7 +338,7 @@ export default function BottomSheet() {
                       </div>
                     </div>
                   </button>
-                ))}
+                )})}
               </div>
             </div>
           </motion.div>
