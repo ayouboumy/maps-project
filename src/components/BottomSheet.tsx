@@ -162,6 +162,11 @@ export default function BottomSheet() {
               <div className="flex justify-between items-start mb-3">
                 <div className="pr-4">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{selectedMosque.name}</h3>
+                  {selectedMosque.code && (
+                    <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md mt-1 inline-block border border-emerald-100 dark:border-emerald-800">
+                      {selectedMosque.code}
+                    </span>
+                  )}
                   <div className="flex items-center gap-2 mt-1.5 text-sm">
                     <span className="text-emerald-600 dark:text-emerald-400 font-medium">{t(selectedMosque.type, language)}</span>
                     {distance && (

@@ -117,7 +117,8 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       general: [
         "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
         "type", "nature", "تاريخ البناء", "حالة البناية", "statut", "etat", "province", "ville", "commune",
-        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture"
+        "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture",
+        "code", "address", "رمز", "عنوان"
       ],
       land: [
         "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة", 
@@ -193,6 +194,9 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
       "longitude": mosque.longitude,
       "latitude": mosque.latitude,
       "عنوان المسجد": mosque.address,
+      "address": mosque.address,
+      "code": mosque.code,
+      "رمز المسجد": mosque.code,
       "type": mosque.type,
       ...mosque.extraData
     };
@@ -271,7 +275,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                sections.services.push({ key, value: val });
             } else if (nData.includes('بناء') || nData.includes('تراب') || nData.includes('حجر') || nData.includes('اسمنت') || nData.includes('خرسانه') || nDataLc.includes('construction') || nDataLc.includes('pierre') || nDataLc.includes('beton') || nDataLc.includes('brique') || nDataLc.includes('mur') || nDataLc.includes('toiture')) {
                sections.construction.push({ key, value: val });
-            } else if (nData.includes('جماعه') || nData.includes('اقليم') || nData.includes('عنوان') || nDataLc.includes('commune') || nDataLc.includes('address') || nDataLc.includes('ville') || nDataLc.includes('province') || nDataLc.includes('statut') || nDataLc.includes('etat')) {
+            } else if (nData.includes('جماعه') || nData.includes('اقليم') || nData.includes('عنوان') || nData.includes('رمز') || nDataLc.includes('commune') || nDataLc.includes('address') || nDataLc.includes('code') || nDataLc.includes('ville') || nDataLc.includes('province') || nDataLc.includes('statut') || nDataLc.includes('etat')) {
                sections.general.push({ key, value: val });
             } else {
                sections.other.push({ key, value: val });

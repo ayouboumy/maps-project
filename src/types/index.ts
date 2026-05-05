@@ -1,5 +1,6 @@
 export interface Mosque {
   id: number;
+  code?: string | number;
   name: string;
   name_ar?: string;
   name_fr?: string;

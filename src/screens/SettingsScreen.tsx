@@ -126,6 +126,7 @@ export default function SettingsScreen() {
             };
 
             const id = getVal(['id']) || index + 1;
+            const code = getVal(['code', 'رمز المسجد', 'رمز', 'mosque_code', 'mosque code']);
             const name_ar = getVal(['dénomination_en_arabe', 'denomination_en_arabe', 'dénomination en arabe', 'denomination en arabe', 'name_ar', 'name ar', 'اسم المسجد']);
             const name_fr = getVal(['dénomination_en_français', 'denomination_en_francais', 'dénomination en français', 'denomination en francais', 'name_fr', 'name fr']);
             const name_en = getVal(['dénomination_en_anglais', 'denomination_en_anglais', 'dénomination en anglais', 'denomination en anglais', 'name_en', 'name en']);
@@ -188,6 +189,7 @@ export default function SettingsScreen() {
 
             return {
               id,
+              code,
               name,
               name_ar,
               name_fr,
