@@ -201,7 +201,7 @@ export default function App() {
                         </button>
                         
                         <button 
-                          onClick={() => { setShowNearest(true); setTimeout(() => setShowNearest(false), 3000); setIsMapToolsOpen(false); }}
+                          onClick={() => { setShowNearest(!showNearest); setIsMapToolsOpen(false); }}
                           className={cn(
                             "flex items-center gap-3 w-full p-2.5 rounded-xl transition-colors text-sm font-bold active:scale-[0.98]",
                             showNearest 
