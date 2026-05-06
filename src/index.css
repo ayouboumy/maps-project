@@ -48,6 +48,17 @@
     @apply border-t-gray-900;
   }
   
+  .custom-label-tooltip.leaflet-tooltip {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .custom-label-tooltip.leaflet-tooltip::before,
+  .custom-label-tooltip.leaflet-tooltip::after {
+    display: none !important;
+  }
+  
   /* Marker Cluster Dark Mode */
   .dark .marker-cluster div {
     @apply bg-gray-800/80 text-white border border-gray-700;

@@ -130,7 +130,7 @@ const createMosqueIcon = (color: string, bounce = false) => {
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    tooltipAnchor: [1, -34],
+    tooltipAnchor: [0, -42],
     shadowSize: [41, 41],
     className: bounce ? 'animate-bounce-subtle' : undefined
   });
@@ -986,11 +986,11 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   {(zoom >= 13 || showNearest) && (
                     <Tooltip 
                       direction="top" 
-                      offset={[0, -5]} 
+                      offset={[0, -2]} 
                       opacity={1} 
                       permanent={isLabelPermanent}
                       className={cn(
-                        "border-none shadow-none !bg-transparent !border-none !shadow-none transition-all duration-300",
+                        "custom-label-tooltip transition-all duration-300",
                         !isLabelPermanent && "opacity-0 group-hover:opacity-100"
                       )}
                     >
@@ -1038,15 +1038,15 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           >
             <Tooltip 
               direction="top" 
-              offset={[0, -10]} 
+              offset={[0, -2]} 
               opacity={0.9} 
               permanent 
-              className={cn(
-                "border-none shadow-md rounded px-2 py-1 ring-2 ring-red-500 transition-colors duration-300",
-                darkMode ? "bg-gray-800" : "bg-white/90"
-              )}
+              className="custom-label-tooltip transition-all duration-300"
             >
-              <div className="flex flex-col items-center">
+              <div className={cn(
+                "flex flex-col items-center px-1.5 py-0.5 rounded-md border ring-2 ring-red-500 shadow-sm transition-all duration-300",
+                darkMode ? "bg-gray-800 border-gray-700" : "bg-white/90 border-gray-100"
+              )}>
                 <div 
                   className="max-w-[100px] sm:max-w-[150px] truncate text-xs font-bold text-center text-red-600"
                   title={getLocalizedName(routingToMosque, language)}
