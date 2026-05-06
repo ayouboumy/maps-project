@@ -120,7 +120,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
         "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
         "type", "nature", "تاريخ البناء", "حالة البناية", "statut", "etat", "province", "ville", "commune",
         "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture",
-        "code", "address", "رمز", "عنوان"
+        "code", "address", "adresse", "رمز", "عنوان", "عمالة", "إقليم"
       ],
       land: [
         "مساحة القطعة الأرضية", "المساحة المبنية", "غير المبنية: المساحة", "غير المبنية: المساحة المهيأة", 
@@ -277,7 +277,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                sections.services.push({ key, value: val });
             } else if (nData.includes('بناء') || nData.includes('تراب') || nData.includes('حجر') || nData.includes('اسمنت') || nData.includes('خرسانه') || nDataLc.includes('construction') || nDataLc.includes('pierre') || nDataLc.includes('beton') || nDataLc.includes('brique') || nDataLc.includes('mur') || nDataLc.includes('toiture')) {
                sections.construction.push({ key, value: val });
-            } else if (nData.includes('جماعه') || nData.includes('اقليم') || nData.includes('عنوان') || nData.includes('رمز') || nDataLc.includes('commune') || nDataLc.includes('address') || nDataLc.includes('code') || nDataLc.includes('ville') || nDataLc.includes('province') || nDataLc.includes('statut') || nDataLc.includes('etat')) {
+            } else if (nData.includes('جماعه') || nData.includes('عماله') || nData.includes('اقليم') || nData.includes('جهه') || nData.includes('عنوان') || nData.includes('رمز') || nData.includes('موقع') || nDataLc.includes('commune') || nDataLc.includes('address') || nDataLc.includes('adresse') || nDataLc.includes('code') || nDataLc.includes('ville') || nDataLc.includes('province') || nDataLc.includes('statut') || nDataLc.includes('etat') || nDataLc.includes('region')) {
                sections.general.push({ key, value: val });
             } else {
                sections.other.push({ key, value: val });
@@ -553,8 +553,14 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                     className="relative"
                   >
                     {/* Components Data Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {items.map((item, i) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      {items.map((item, i) => {
+                        const valString = String(item.value);
+                        const isBooleanYes = valString.toUpperCase() === 'OUI' || valString === 'نعم' || valString === 'صحيح' || valString === '1';
+                        const isBooleanNo = valString.toUpperCase() === 'NON' || valString === 'لا' || valString === 'خطأ' || valString === '0';
+                        const isNumber = !isNaN(Number(valString)) && valString.trim() !== '';
+
+                        return (
                         <motion.div 
                           key={i} 
                           initial={{ opacity: 0, y: 15 }}
@@ -562,25 +568,45 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                           viewport={{ once: true }}
                           transition={{ delay: i * 0.03 }}
                           className={cn(
-                            "group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-3xl hover:border-emerald-200 dark:hover:border-emerald-800 transition-all duration-300",
-                            items.length % 2 !== 0 && i === 0 ? "sm:col-span-2" : ""
+                            "group relative overflow-hidden bg-white dark:bg-gray-900 border p-5 rounded-3xl transition-all duration-300 hover:shadow-md",
+                            isBooleanYes ? "border-emerald-100 dark:border-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-700" :
+                            isBooleanNo ? "border-red-100 dark:border-red-900/40 hover:border-red-300 dark:hover:border-red-700" :
+                            "border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                           )}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center justify-between gap-4 relative z-10">
                             <div className="flex-1">
-                              <span className="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest block mb-1 group-hover:text-emerald-500 transition-colors">
+                              <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors">
                                 {t(item.key, language)}
                               </span>
-                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                                {t(String(item.value), language)}
+                              <span className={cn(
+                                "text-sm sm:text-base font-bold leading-tight block",
+                                isBooleanYes ? "text-emerald-700 dark:text-emerald-400" :
+                                isBooleanNo ? "text-red-700 dark:text-red-400" :
+                                isNumber ? "text-blue-700 dark:text-blue-400 font-mono tracking-tight" :
+                                "text-gray-900 dark:text-gray-100"
+                              )}>
+                                {isBooleanYes ? t('نعم', language) : isBooleanNo ? t('لا', language) : valString}
                               </span>
                             </div>
-                            <div className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30 group-hover:text-emerald-500 transition-all shrink-0">
-                              <CheckCircle2 size={14} />
+                            <div className={cn(
+                              "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
+                              isBooleanYes ? "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10" :
+                              isBooleanNo ? "bg-red-50 text-red-500 dark:bg-red-500/10" :
+                              isNumber ? "bg-blue-50 text-blue-500 dark:bg-blue-500/10" :
+                              "bg-gray-50 text-gray-400 dark:bg-gray-800 dark:text-gray-500 group-hover:bg-gray-100 dark:group-hover:bg-gray-700"
+                            )}>
+                              {isBooleanYes ? <CheckCircle2 size={18} /> :
+                               isBooleanNo ? <X size={18} /> :
+                               isNumber ? <Activity size={18} /> :
+                               <Clipboard size={18} />}
                             </div>
                           </div>
+                          {/* Decorative background gradient on hover */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/[0.02] dark:to-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </motion.div>
                 );
