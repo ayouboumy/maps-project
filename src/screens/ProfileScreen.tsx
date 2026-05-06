@@ -117,7 +117,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
   const categories = useMemo(() => {
     const exactStructure = {
       general: [
-        "اسم المسجد", "رمز المسجد", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
+        "اسم المسجد", "رمز المسجد", "العنوان", "عنوان المسجد", "الجماعة", "جهة الإنفاق", 
         "type", "nature", "تاريخ البناء", "حالة البناية", "statut", "etat", "province", "ville", "commune",
         "mhai", "association", "comité_de_quartier", "bienfaiteurs", "autre", "ouverture",
         "code", "address", "adresse", "رمز", "عنوان", "عمالة", "إقليم"
@@ -190,17 +190,35 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
     };
 
     // Include base properties as part of the data pool
+    const normalizedExtraData: Record<string, any> = { ...mosque.extraData };
+    
+    const findAndRemove = (matches: string[]) => {
+      let foundValue = null;
+      Object.keys(normalizedExtraData).forEach(k => {
+        const normK = k.toLowerCase().trim();
+        const normObjK = normalize(k);
+        if (matches.some(m => normK.includes(m.toLowerCase()) || normObjK.includes(normalize(m)))) {
+           if (!foundValue && normalizedExtraData[k] !== null && normalizedExtraData[k] !== undefined && normalizedExtraData[k] !== '') {
+             foundValue = normalizedExtraData[k];
+           }
+           delete normalizedExtraData[k];
+        }
+      });
+      return foundValue;
+    };
+
+    const cleanAddress = mosque.address || findAndRemove(['عنوان', 'address', 'adresse']);
+    const cleanCode = mosque.code || findAndRemove(['رمز', 'code']);
+    const cleanName = mosque.name || findAndRemove(['اسم', 'name', 'nom']);
+
     const dataSource = { 
-      // Base mappings that correspond to user properties if they uploaded standard fields
-      "اسم المسجد": mosque.name,
-      "longitude": mosque.longitude,
-      "latitude": mosque.latitude,
-      "عنوان المسجد": mosque.address,
-      "address": mosque.address,
-      "code": mosque.code,
-      "رمز المسجد": mosque.code,
-      "type": mosque.type,
-      ...mosque.extraData
+      ...normalizedExtraData,
+      ...(cleanName ? { "اسم المسجد": cleanName } : {}),
+      ...(cleanAddress ? { "العنوان": cleanAddress } : {}),
+      ...(cleanCode ? { "رمز المسجد": cleanCode } : {}),
+      ...(mosque.longitude ? { "longitude": mosque.longitude } : {}),
+      ...(mosque.latitude ? { "latitude": mosque.latitude } : {}),
+      ...(mosque.type ? { "type": mosque.type } : {})
     };
 
     // Add explicit services and items if they weren't in extraData pool
