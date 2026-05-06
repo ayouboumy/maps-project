@@ -9,7 +9,6 @@ import EquipmentScreen from './screens/EquipmentScreen';
 import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2, Share2, Download } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
-import DirectionsPanel from './components/DirectionsPanel';
 import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
@@ -369,7 +368,6 @@ export default function App() {
               )}
 
               <BottomSheet />
-              <DirectionsPanel />
             </PullToRefresh>
           )}
 

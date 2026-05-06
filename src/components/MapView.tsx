@@ -130,7 +130,7 @@ const createMosqueIcon = (color: string, bounce = false) => {
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    tooltipAnchor: [16, -28],
+    tooltipAnchor: [1, -34],
     shadowSize: [41, 41],
     className: bounce ? 'animate-bounce-subtle' : undefined
   });

@@ -195,16 +195,6 @@ export default function BottomSheet() {
               {/* Quick Actions (Horizontal Scroll) */}
               <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 scrollbar-hide -mx-5 px-5">
                 <button 
-                  onClick={() => {
-                    setRoutingToMosque(selectedMosque);
-                    setSelectedMosque(null);
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm shrink-0"
-                >
-                  <Navigation size={18} />
-                  {t('Directions', language)}
-                </button>
-                <button 
                   onClick={handleOpenGoogleMapsRoute}
                   className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 dark:bg-emerald-500 text-white rounded-full font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shadow-sm shrink-0"
                 >
