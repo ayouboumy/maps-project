@@ -570,61 +570,62 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
                     transition={{ duration: 0.2 }}
                     className="relative"
                   >
-                    {/* Components Data Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                      {items.map((item, i) => {
-                        const valString = String(item.value);
-                        const isBooleanYes = valString.toUpperCase() === 'OUI' || valString === 'نعم' || valString === 'صحيح' || valString === '1';
-                        const isBooleanNo = valString.toUpperCase() === 'NON' || valString === 'لا' || valString === 'خطأ' || valString === '0';
-                        const isNumber = !isNaN(Number(valString)) && valString.trim() !== '';
+                    {/* Components Data Grid -> Table */}
+                    <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+                      <table className="w-full text-left border-collapse" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        <tbody>
+                          {items.map((item, i) => {
+                            const valString = String(item.value);
+                            const isBooleanYes = valString.toUpperCase() === 'OUI' || valString === 'نعم' || valString === 'صحيح' || valString === '1';
+                            const isBooleanNo = valString.toUpperCase() === 'NON' || valString === 'لا' || valString === 'خطأ' || valString === '0';
+                            const isNumber = !isNaN(Number(valString)) && valString.trim() !== '';
 
-                        return (
-                        <motion.div 
-                          key={i} 
-                          initial={{ opacity: 0, y: 15 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: i * 0.03 }}
-                          className={cn(
-                            "group relative overflow-hidden bg-white dark:bg-gray-900 border p-5 rounded-3xl transition-all duration-300 hover:shadow-md",
-                            isBooleanYes ? "border-emerald-100 dark:border-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-700" :
-                            isBooleanNo ? "border-red-100 dark:border-red-900/40 hover:border-red-300 dark:hover:border-red-700" :
-                            "border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
-                          )}
-                        >
-                          <div className="flex items-center justify-between gap-4 relative z-10">
-                            <div className="flex-1">
-                              <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors">
-                                {t(item.key, language)}
-                              </span>
-                              <span className={cn(
-                                "text-sm sm:text-base font-bold leading-tight block",
-                                isBooleanYes ? "text-emerald-700 dark:text-emerald-400" :
-                                isBooleanNo ? "text-red-700 dark:text-red-400" :
-                                isNumber ? "text-blue-700 dark:text-blue-400 font-mono tracking-tight" :
-                                "text-gray-900 dark:text-gray-100"
-                              )}>
-                                {isBooleanYes ? t('نعم', language) : isBooleanNo ? t('لا', language) : valString}
-                              </span>
-                            </div>
-                            <div className={cn(
-                              "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
-                              isBooleanYes ? "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10" :
-                              isBooleanNo ? "bg-red-50 text-red-500 dark:bg-red-500/10" :
-                              isNumber ? "bg-blue-50 text-blue-500 dark:bg-blue-500/10" :
-                              "bg-gray-50 text-gray-400 dark:bg-gray-800 dark:text-gray-500 group-hover:bg-gray-100 dark:group-hover:bg-gray-700"
-                            )}>
-                              {isBooleanYes ? <CheckCircle2 size={18} /> :
-                               isBooleanNo ? <X size={18} /> :
-                               isNumber ? <Activity size={18} /> :
-                               <Clipboard size={18} />}
-                            </div>
-                          </div>
-                          {/* Decorative background gradient on hover */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/[0.02] dark:to-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </motion.div>
-                        );
-                      })}
+                            return (
+                              <tr 
+                                key={i} 
+                                className={cn(
+                                  "group relative transition-all duration-300",
+                                  i !== items.length - 1 && "border-b border-gray-100 dark:border-gray-800"
+                                )}
+                              >
+                                <td className="w-2/5 p-4 sm:p-5 bg-gray-50/50 dark:bg-gray-800/30 align-middle border-e border-gray-100 dark:border-gray-800">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 shrink-0 hidden sm:flex">
+                                      <Clipboard size={14} />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wide">
+                                      {t(item.key, language)}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="w-3/5 p-4 sm:p-5 align-middle group-hover:bg-gray-50/50 dark:group-hover:bg-gray-800/20 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    {isBooleanYes ? (
+                                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-black bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg text-xs sm:text-sm shadow-sm border border-emerald-100 dark:border-emerald-800/30">
+                                        <CheckCircle2 size={16} />
+                                        <span>{t('نعم', language)}</span>
+                                      </div>
+                                    ) : isBooleanNo ? (
+                                      <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-black bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-lg text-xs sm:text-sm shadow-sm border border-red-100 dark:border-red-800/30">
+                                        <X size={16} />
+                                        <span>{t('لا', language)}</span>
+                                      </div>
+                                    ) : isNumber ? (
+                                      <div className="text-blue-600 dark:text-blue-400 font-mono font-bold tracking-tight bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg text-sm sm:text-base shadow-sm border border-blue-100 dark:border-blue-800/30 inline-block">
+                                        {valString}
+                                      </div>
+                                    ) : (
+                                      <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100 leading-snug break-words">
+                                        {valString}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </motion.div>
                 );
