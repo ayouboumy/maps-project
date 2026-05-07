@@ -53,6 +53,7 @@
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
   .custom-label-tooltip.leaflet-tooltip::before,
   .custom-label-tooltip.leaflet-tooltip::after {

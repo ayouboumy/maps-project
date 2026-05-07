@@ -130,7 +130,7 @@ const createMosqueIcon = (color: string, bounce = false) => {
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    tooltipAnchor: [0, -42],
+    tooltipAnchor: [0, -41],
     shadowSize: [41, 41],
     className: bounce ? 'animate-bounce-subtle' : undefined
   });
@@ -986,7 +986,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                   {(zoom >= 13 || showNearest) && (
                     <Tooltip 
                       direction="top" 
-                      offset={[0, -2]} 
+                      offset={[0, -4]} 
                       opacity={1} 
                       permanent={isLabelPermanent}
                       className={cn(
@@ -1038,7 +1038,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           >
             <Tooltip 
               direction="top" 
-              offset={[0, -2]} 
+              offset={[0, -4]} 
               opacity={0.9} 
               permanent 
               className="custom-label-tooltip transition-all duration-300"
