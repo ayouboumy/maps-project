@@ -10,6 +10,7 @@ export type MapStyle = 'street' | 'satellite' | 'terrain';
 export interface RouteInfo {
   distance: number;
   duration: number;
+  alternativesCount?: number;
 }
 
 interface AppState {
@@ -20,6 +21,7 @@ interface AppState {
   routingToMosque: Mosque | null;
   routeInfo: RouteInfo | null;
   routeProfile: RouteProfile;
+  alternativeRouteIndex: number;
   userLocation: { latitude: number; longitude: number } | null;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
@@ -53,6 +55,7 @@ interface AppState {
   setRoutingToMosque: (mosque: Mosque | null) => void;
   setRouteInfo: (info: RouteInfo | null) => void;
   setRouteProfile: (profile: RouteProfile) => void;
+  setAlternativeRouteIndex: (index: number) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
@@ -90,6 +93,7 @@ export const useAppStore = create<AppState>()(
       routingToMosque: null,
       routeInfo: null,
       routeProfile: 'foot',
+      alternativeRouteIndex: 0,
       userLocation: { latitude: 34.9814488, longitude: -3.3934335 },
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
@@ -131,9 +135,10 @@ export const useAppStore = create<AppState>()(
         })),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
-      setRoutingToMosque: (mosque) => set({ routingToMosque: mosque }),
+      setRoutingToMosque: (mosque) => set({ routingToMosque: mosque, alternativeRouteIndex: 0 }),
       setRouteInfo: (info) => set({ routeInfo: info }),
-      setRouteProfile: (profile) => set({ routeProfile: profile }),
+      setRouteProfile: (profile) => set({ routeProfile: profile, alternativeRouteIndex: 0 }),
+      setAlternativeRouteIndex: (index) => set({ alternativeRouteIndex: index }),
       setUserLocation: (location) => set({ userLocation: location }),
       importMosques: (newMosques) => set({ mosques: newMosques }),
       setLanguage: (lang) => set({ language: lang }),

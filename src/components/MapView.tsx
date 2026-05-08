@@ -277,7 +277,7 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', key }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, key?: string }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
-  const { setRouteInfo, language, routeInfo } = useAppStore();
+  const { setRouteInfo, language, routeInfo, alternativeRouteIndex } = useAppStore();
 
   const formatDurationInner = (seconds: number) => {
     const minutes = Math.round(seconds / 60);
@@ -310,10 +310,10 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 
         const data = await response.json();
         if (isMounted && data.routes && data.routes.length > 0) {
-          // Find the route with the absolute shortest distance among all alternatives
-          const bestRoute = data.routes.reduce((prev: any, current: any) => 
-            (prev.distance < current.distance) ? prev : current
-          );
+          // Identify all routes. Sort them by distance first so index 0 is best
+          const sortedRoutes = [...data.routes].sort((a: any, b: any) => a.distance - b.distance);
+          const routeIndex = isMainRoute ? (alternativeRouteIndex % sortedRoutes.length) : 0;
+          const bestRoute = sortedRoutes[routeIndex];
 
           if (bestRoute.geometry) {
             const coords = bestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
@@ -323,7 +323,8 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
               if (isMainRoute) {
                 setRouteInfo({
                   distance: bestRoute.distance,
-                  duration: bestRoute.duration
+                  duration: bestRoute.duration,
+                  alternativesCount: sortedRoutes.length
                 });
               }
             }
@@ -335,7 +336,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     };
     fetchRoute();
     return () => { isMounted = false; };
-  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo, routeProfile]);
+  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo, routeProfile, alternativeRouteIndex]);
 
   // Clean up route info when unmounting if it's the main route
   useEffect(() => {
@@ -852,7 +853,6 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         touchZoom={true}
         className="w-full h-full"
       >
-        <ZoomControl position="bottomright" />
         <MapEffect />
         <ZoomListener onZoomChange={setZoom} />
         

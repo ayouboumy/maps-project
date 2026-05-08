@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Navigation, Heart, Info, Map, MapPin, Clipboard, Check, Share2, Compass } from 'lucide-react';
+import { X, Navigation, Heart, Info, Map, MapPin, Clipboard, Check, Share2, Compass, ThumbsDown, RefreshCcw, Car, Footprints } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { useState, useMemo, useEffect } from 'react';
@@ -11,7 +11,7 @@ export default function BottomSheet() {
   const { 
     mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, 
     language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile,
-    darkMode
+    darkMode, alternativeRouteIndex, setAlternativeRouteIndex, setRouteProfile
   } = useAppStore();
   
   const [showProfile, setShowProfile] = useState(false);
@@ -195,6 +195,24 @@ export default function BottomSheet() {
               {/* Quick Actions (Horizontal Scroll) */}
               <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 scrollbar-hide -mx-5 px-5">
                 <button 
+                  onClick={() => {
+                    if (isRoutingToThis) {
+                      setRoutingToMosque(null);
+                    } else {
+                      setRoutingToMosque(selectedMosque);
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-colors shadow-sm shrink-0",
+                    isRoutingToThis 
+                      ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900/40"
+                      : "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600"
+                  )}
+                >
+                  {isRoutingToThis ? <X size={18} /> : <Navigation size={18} />}
+                  {isRoutingToThis ? t('Cancel', language) : t('Directions', language)}
+                </button>
+                <button 
                   onClick={handleOpenGoogleMapsRoute}
                   className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 dark:bg-emerald-500 text-white rounded-full font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shadow-sm shrink-0"
                 >
@@ -228,6 +246,53 @@ export default function BottomSheet() {
                   {t('Share', language)}
                 </button>
               </div>
+
+              {/* Internal Route Status */}
+              {isRoutingToThis && routeInfo && (
+                <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-4 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-bold text-blue-900 dark:text-blue-100 text-sm mb-1">{t('Route Details', language)}</h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <button
+                          onClick={() => setRouteProfile('foot')}
+                          className={cn(
+                            "p-1.5 rounded-lg transition-colors border",
+                            routeProfile === 'foot' 
+                              ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
+                              : "bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                          )}
+                        >
+                          <Footprints size={16} />
+                        </button>
+                        <button
+                          onClick={() => setRouteProfile('driving')}
+                          className={cn(
+                            "p-1.5 rounded-lg transition-colors border",
+                            routeProfile === 'driving' 
+                              ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
+                              : "bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                          )}
+                        >
+                          <Car size={16} />
+                        </button>
+                      </div>
+                      <p className="text-blue-700 dark:text-blue-300 text-sm font-medium">
+                        {(routeInfo.distance / 1000).toFixed(1)} km • {Math.round(routeInfo.duration / 60)} min
+                      </p>
+                    </div>
+                    {routeInfo.alternativesCount && routeInfo.alternativesCount > 1 && (
+                      <button 
+                        onClick={() => setAlternativeRouteIndex(alternativeRouteIndex + 1)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg border border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                      >
+                        <RefreshCcw size={14} />
+                        {t('Bad Route?', language)}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Image & Info Grid */}
               <div className="mt-2 flex gap-4">
