@@ -21,7 +21,7 @@ interface AppState {
   routingToMosque: Mosque | null;
   routeInfo: RouteInfo | null;
   routeProfile: RouteProfile;
-  rejectedRoutes: Record<number, number>;
+  rejectedRoutes: Record<number, string[]>;
   userLocation: { latitude: number; longitude: number } | null;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
@@ -45,7 +45,7 @@ interface AppState {
   clusterByCommune: boolean;
   showCommuneNames: boolean;
   colorByPrayerType: boolean;
-  rejectedRoutes: Record<number, number>;
+  rejectedRoutes: Record<number, string[]>;
   mapInstance: any | null;
   isExporting: boolean;
   
@@ -56,7 +56,7 @@ interface AppState {
   setRoutingToMosque: (mosque: Mosque | null) => void;
   setRouteInfo: (info: RouteInfo | null) => void;
   setRouteProfile: (profile: RouteProfile) => void;
-  rejectRoute: (mosqueId: number) => void;
+  rejectRoute: (mosqueId: number, geometry: string) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
@@ -139,12 +139,16 @@ export const useAppStore = create<AppState>()(
       setRoutingToMosque: (mosque) => set({ routingToMosque: mosque }),
       setRouteInfo: (info) => set({ routeInfo: info }),
       setRouteProfile: (profile) => set({ routeProfile: profile }),
-      rejectRoute: (mosqueId) => set((state) => ({ 
-        rejectedRoutes: {
-          ...state.rejectedRoutes,
-          [mosqueId]: (state.rejectedRoutes[mosqueId] || 0) + 1
-        }
-      })),
+      rejectRoute: (mosqueId, geometry) => set((state) => {
+        const currentRejects = state.rejectedRoutes[mosqueId] || [];
+        if (currentRejects.includes(geometry)) return { rejectedRoutes: state.rejectedRoutes };
+        return {
+          rejectedRoutes: {
+            ...state.rejectedRoutes,
+            [mosqueId]: [...currentRejects, geometry]
+          }
+        };
+      }),
       setUserLocation: (location) => set({ userLocation: location }),
       importMosques: (newMosques) => set({ mosques: newMosques }),
       setLanguage: (lang) => set({ language: lang }),

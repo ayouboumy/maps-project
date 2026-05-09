@@ -277,10 +277,11 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', mosqueId }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, mosqueId?: number }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
+  const [currentGeometryString, setCurrentGeometryString] = useState<string>('');
   const { setRouteInfo, language, routeInfo, rejectedRoutes } = useAppStore();
   const map = useMap();
   
-  const altIndex = mosqueId !== undefined ? (rejectedRoutes[mosqueId] || 0) : 0;
+  const altIndex = mosqueId !== undefined ? (rejectedRoutes[mosqueId]?.length || 0) : 0;
 
   const formatDurationInner = (seconds: number) => {
     const minutes = Math.round(seconds / 60);
@@ -300,66 +301,75 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         const profile = routeProfile === 'foot' ? 'walking' : 'driving';
         const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         
-        let url = `${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
+        let basePath = `${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
         
-        let response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        let data = await response.json();
-        
-        // If native alternatives are not enough, inject a waypoint
-        if (data.routes && altIndex >= data.routes.length) {
-          // Calculate midpoint
-          const midLat = (start[0] + end[0]) / 2;
-          const midLng = (start[1] + end[1]) / 2;
-          
-          const dLat = end[0] - start[0];
-          const dLng = end[1] - start[1];
-          // We subtract data.routes.length to start multiplier from 1 instead of jumping
-          const offsetBase = altIndex - data.routes.length + 1;
-          const offsetMultiplier = 0.15 * offsetBase; 
-          
-          let offsetLat = midLat - dLng * offsetMultiplier;
-          let offsetLng = midLng + dLat * offsetMultiplier;
+        let attempts = 0;
+        let routeFound = null;
+        let currentUrl = basePath;
+        const rejectedStrings = mosqueId !== undefined ? (useAppStore.getState().rejectedRoutes[mosqueId] || []) : [];
+        let offsetBase = 1;
 
-          if (offsetBase % 2 === 0) {
-             offsetLat = midLat + dLng * offsetMultiplier;
-             offsetLng = midLng - dLat * offsetMultiplier;
-          }
-          
-          url = `${baseUrl}/${start[1]},${start[0]};${offsetLng},${offsetLat};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
-          
-          response = await fetch(url);
+        while (attempts < 5) {
+          const response = await fetch(currentUrl);
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          data = await response.json();
+          const data = await response.json();
+          
+          if (data.routes && data.routes.length > 0) {
+            const sortedRoutes = [...data.routes].sort((a: any, b: any) => a.distance - b.distance);
+            for (const route of sortedRoutes) {
+              if (route.geometry) {
+                const geomStr = JSON.stringify(route.geometry.coordinates);
+                if (!rejectedStrings.includes(geomStr)) {
+                  routeFound = route;
+                  break;
+                }
+              }
+            }
+            if (routeFound) break;
+            
+            // Inject a synthetic waypoint, slowly increasing the distance off the main route
+            const midLat = (start[0] + end[0]) / 2;
+            const midLng = (start[1] + end[1]) / 2;
+            const dLat = end[0] - start[0];
+            const dLng = end[1] - start[1];
+            // Use 0.05 scaling to keep detours extremely short
+            const offsetMultiplier = 0.05 * Math.ceil(offsetBase / 2); 
+            
+            let offsetLat = midLat - dLng * offsetMultiplier;
+            let offsetLng = midLng + dLat * offsetMultiplier;
+            if (offsetBase % 2 === 0) {
+              offsetLat = midLat + dLng * offsetMultiplier;
+              offsetLng = midLng - dLat * offsetMultiplier;
+            }
+            
+            currentUrl = `${baseUrl}/${start[1]},${start[0]};${offsetLng},${offsetLat};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
+            offsetBase++;
+          }
+          attempts++;
         }
 
-        if (isMounted && data.routes && data.routes.length > 0) {
-          // Sort natively returned routes by distance
-          const sortedRoutes = [...data.routes].sort((a: any, b: any) => a.distance - b.distance);
-          
-          let routeIndex = 0;
-          if (altIndex < sortedRoutes.length) {
-            routeIndex = altIndex;
-          } else {
-            // We used waypoint, just pick the shortest one that satisfies it
-            routeIndex = 0;
+        if (!routeFound) {
+          const res = await fetch(basePath);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.routes && data.routes.length > 0) {
+              routeFound = [...data.routes].sort((a: any, b: any) => a.distance - b.distance)[0];
+            }
           }
-          
-          const bestRoute = sortedRoutes[routeIndex];
+        }
 
-          if (bestRoute.geometry) {
-            const coords = bestRoute.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
-            setPositions(coords);
-            if (bestRoute.distance) {
-              setRouteDistance(bestRoute.distance);
-              if (isMainRoute) {
-                setRouteInfo({
-                  distance: bestRoute.distance,
-                  duration: bestRoute.duration,
-                  alternativesCount: sortedRoutes.length
-                });
-              }
+        if (isMounted && routeFound && routeFound.geometry) {
+          setCurrentGeometryString(JSON.stringify(routeFound.geometry.coordinates));
+          const coords = routeFound.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+          setPositions(coords);
+          if (routeFound.distance) {
+            setRouteDistance(routeFound.distance);
+            if (isMainRoute) {
+              setRouteInfo({
+                distance: routeFound.distance,
+                duration: routeFound.duration,
+                alternativesCount: 1
+              });
             }
           }
         }
@@ -428,8 +438,8 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (mosqueId !== undefined) {
-                    useAppStore.getState().rejectRoute(mosqueId);
+                  if (mosqueId !== undefined && currentGeometryString) {
+                    useAppStore.getState().rejectRoute(mosqueId, currentGeometryString);
                     map.closePopup();
                   }
                 }}
