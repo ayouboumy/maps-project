@@ -9,25 +9,54 @@ import {
   CheckCircle2, 
   PieChart,
   LayoutGrid,
-  ChevronRight
+  ChevronRight,
+  Filter,
+  X,
+  Search,
+  Zap,
+  Activity
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 
-type AnalysisTab = 'overview' | 'communes' | 'services' | 'types';
+type AnalysisTab = 'overview' | 'communes' | 'services' | 'types' | 'explorer';
 
 export default function AnalysisScreen() {
   const { language, mosques } = useAppStore();
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisTab>('overview');
+  const [filterCommune, setFilterCommune] = useState<string>('');
+  const [filterType, setFilterType] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Extract unique values for filters
+  const allCommunes = useMemo(() => {
+    return Array.from(new Set(mosques.map(m => m.commune).filter(Boolean))).sort();
+  }, [mosques]);
+
+  const allTypes = useMemo(() => {
+    return Array.from(new Set(mosques.map(m => m.type).filter(Boolean))).sort();
+  }, [mosques]);
+
+  const filteredMosques = useMemo(() => {
+    return mosques.filter(m => {
+      const matchCommune = !filterCommune || m.commune === filterCommune;
+      const matchType = !filterType || m.type === filterType;
+      const matchSearch = !searchQuery || 
+        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.services?.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        m.items?.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchCommune && matchType && matchSearch;
+    });
+  }, [mosques, filterCommune, filterType, searchQuery]);
 
   const stats = useMemo(() => {
-    const total = mosques.length;
+    const total = filteredMosques.length;
     if (total === 0) return { total: 0, wuduPercent: 0, womenPercent: 0, avgServices: "0" };
     
-    const withWudu = mosques.filter(m => m.services?.some(s => s.toLowerCase().includes('wudu') || s.toLowerCase().includes('وضوء'))).length;
-    const withWomenSpace = mosques.filter(m => m.services?.some(s => s.toLowerCase().includes('femme') || s.toLowerCase().includes('women') || s.toLowerCase().includes('نساء'))).length;
-    const averageServices = mosques.reduce((acc, m) => acc + (m.services?.length || 0), 0) / total;
+    const withWudu = filteredMosques.filter(m => m.services?.some(s => s.toLowerCase().includes('wudu') || s.toLowerCase().includes('وضوء'))).length;
+    const withWomenSpace = filteredMosques.filter(m => m.services?.some(s => s.toLowerCase().includes('femme') || s.toLowerCase().includes('women') || s.toLowerCase().includes('نساء'))).length;
+    const averageServices = filteredMosques.reduce((acc, m) => acc + (m.services?.length || 0), 0) / total;
 
     return {
       total,
@@ -35,31 +64,31 @@ export default function AnalysisScreen() {
       womenPercent: Math.round((withWomenSpace / total) * 100),
       avgServices: averageServices.toFixed(1)
     };
-  }, [mosques]);
+  }, [filteredMosques]);
 
   const communesData = useMemo(() => {
     const counts: Record<string, number> = {};
-    mosques.forEach(m => {
+    filteredMosques.forEach(m => {
       const commune = m.commune || 'Other';
       counts[commune] = (counts[commune] || 0) + 1;
     });
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1]);
-  }, [mosques]);
+  }, [filteredMosques]);
 
   const mosqueTypes = useMemo(() => {
     const typeCounts: Record<string, number> = {};
-    mosques.forEach(m => {
+    filteredMosques.forEach(m => {
       const typeStr = m.type || 'Unknown';
       typeCounts[typeStr] = (typeCounts[typeStr] || 0) + 1;
     });
     return Object.entries(typeCounts)
       .sort((a, b) => b[1] - a[1]);
-  }, [mosques]);
+  }, [filteredMosques]);
 
   const topServices = useMemo(() => {
     const serviceCounts: Record<string, number> = {};
-    mosques.forEach(m => {
+    filteredMosques.forEach(m => {
       if (m.services && Array.isArray(m.services)) {
         m.services.forEach(s => {
           serviceCounts[s] = (serviceCounts[s] || 0) + 1;
@@ -68,13 +97,14 @@ export default function AnalysisScreen() {
     });
     return Object.entries(serviceCounts)
       .sort((a, b) => b[1] - a[1]);
-  }, [mosques]);
+  }, [filteredMosques]);
 
   const tabs = [
     { id: 'overview', label: t('Overview', language), icon: LayoutGrid },
     { id: 'communes', label: t('Communes', language), icon: MapIcon },
     { id: 'services', label: t('Services', language), icon: ListChecks },
     { id: 'types', label: t('Types', language), icon: Building2 },
+    { id: 'explorer', label: t('Explorer', language), icon: Search },
   ];
 
   return (
@@ -86,7 +116,7 @@ export default function AnalysisScreen() {
             {t("Analysis", language)}
           </h1>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -102,6 +132,45 @@ export default function AnalysisScreen() {
                 {tab.label}
               </button>
             ))}
+          </div>
+
+          <div className="flex gap-2 pb-2">
+            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-3 flex items-center gap-2 border border-transparent focus-within:border-emerald-500/50 transition-all">
+              <Filter size={16} className="text-gray-400" />
+              <select 
+                value={filterCommune}
+                onChange={(e) => setFilterCommune(e.target.value)}
+                className="bg-transparent border-none text-sm w-full py-2 focus:ring-0 text-gray-700 dark:text-gray-300 outline-none appearance-none"
+              >
+                <option value="">{t('All Communes', language)}</option>
+                {allCommunes.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            
+            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-3 flex items-center gap-2 border border-transparent focus-within:border-emerald-500/50 transition-all">
+              <Building2 size={16} className="text-gray-400" />
+              <select 
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="bg-transparent border-none text-sm w-full py-2 focus:ring-0 text-gray-700 dark:text-gray-300 outline-none appearance-none"
+              >
+                <option value="">{t('All Types', language)}</option>
+                {allTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            {(filterCommune || filterType || searchQuery) && (
+              <button 
+                onClick={() => {
+                  setFilterCommune('');
+                  setFilterType('');
+                  setSearchQuery('');
+                }}
+                className="p-2 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -169,6 +238,15 @@ export default function AnalysisScreen() {
                     </div>
                   </div>
                 </div>
+
+                {(filterCommune || filterType) && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-3">
+                    <Zap size={20} className="text-emerald-500 shrink-0" />
+                    <p className="text-sm text-emerald-800 dark:text-emerald-400">
+                      {t("Analysis is currently filtered to", language)} {filterCommune} {filterType && `(${filterType})`}.
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -185,15 +263,16 @@ export default function AnalysisScreen() {
                     <div 
                       key={name}
                       className={cn(
-                        "flex items-center gap-4 p-4 rounded-2xl transition-colors",
+                        "flex items-center gap-4 p-4 rounded-2xl transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group",
                         idx !== communesData.length - 1 && "border-b border-gray-50 dark:border-gray-800/50"
                       )}
+                      onClick={() => setFilterCommune(name)}
                     >
                       <div className="w-10 h-10 flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full font-bold text-sm shrink-0">
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-gray-900 dark:text-gray-100 truncate">{name}</div>
+                        <div className="font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-emerald-600 transition-colors">{name}</div>
                         <div className="text-xs text-gray-500">{count} {t("Mosques", language)}</div>
                       </div>
                       <div className="text-right">
@@ -201,9 +280,14 @@ export default function AnalysisScreen() {
                           {Math.round((count / stats.total) * 100)}%
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-gray-300" />
+                      <ChevronRight size={16} className={cn("transition-transform", name === filterCommune ? "text-emerald-500 rotate-90" : "text-gray-300")} />
                     </div>
                   ))}
+                  {communesData.length === 0 && (
+                    <div className="p-12 text-center text-gray-500 font-medium">
+                      {t("No data matching filters", language)}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -227,7 +311,7 @@ export default function AnalysisScreen() {
                         <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-purple-500 rounded-full"
-                            style={{ width: `${(count / mosques.length) * 100}%` }}
+                            style={{ width: `${(count / filteredMosques.length) * 100}%` }}
                           />
                         </div>
                         <span className="text-xs font-bold text-gray-500">{count}</span>
@@ -246,8 +330,18 @@ export default function AnalysisScreen() {
                 className="space-y-4"
               >
                 {mosqueTypes.map(([typeStr, count]) => (
-                  <div key={typeStr} className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex justify-between items-center group overflow-hidden relative">
-                    <div className="absolute right-0 top-0 w-1 bg-blue-500 h-0 group-hover:h-full transition-all duration-300" />
+                  <div 
+                    key={typeStr} 
+                    className={cn(
+                      "bg-white dark:bg-gray-900 p-6 rounded-3xl border shadow-sm flex justify-between items-center group overflow-hidden relative cursor-pointer transition-all",
+                      filterType === typeStr ? "border-blue-500 ring-1 ring-blue-500/20" : "border-gray-100 dark:border-gray-800"
+                    )}
+                    onClick={() => setFilterType(typeStr === filterType ? '' : typeStr)}
+                  >
+                    <div className={cn(
+                      "absolute right-0 top-0 w-1 bg-blue-500 transition-all duration-300",
+                      filterType === typeStr ? "h-full" : "h-0 group-hover:h-full"
+                    )} />
                     <div>
                       <div className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">{t("Category", language)}</div>
                       <div className="text-xl font-bold text-gray-900 dark:text-gray-100 capitalize">{typeStr}</div>
@@ -257,6 +351,78 @@ export default function AnalysisScreen() {
                     </div>
                   </div>
                 ))}
+              </motion.div>
+            )}
+
+            {activeAnalysis === 'explorer' && (
+              <motion.div
+                key="explorer"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-6 shadow-sm">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-400">{t("Custom Analysis", language)}</label>
+                    <div className="relative group">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                      <input 
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t("Search by name, service, or items...", language)}
+                        className="w-full bg-gray-50 dark:bg-gray-800 rounded-2xl py-4 pl-12 pr-4 text-gray-900 dark:text-gray-100 font-medium placeholder:text-gray-400 border border-transparent focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Activity className="text-emerald-500" size={20} />
+                      <h4 className="font-bold text-emerald-900 dark:text-emerald-300">{t("Live Stats", language)}</h4>
+                    </div>
+                    <p className="text-sm text-emerald-800/80 dark:text-emerald-400/80 leading-relaxed">
+                      {filteredMosques.length} {t("Results matching your current filters and search criteria.", language)}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 uppercase text-[10px] tracking-widest">{t("Top Matching Localities", language)}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {communesData.slice(0, 10).map(([name, count]) => (
+                        <button
+                          key={name}
+                          onClick={() => setFilterCommune(name)}
+                          className={cn(
+                            "px-4 py-2 rounded-full text-xs font-bold transition-all border",
+                            filterCommune === name
+                              ? "bg-emerald-500 text-white border-transparent shadow-lg shadow-emerald-500/20"
+                              : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-100 dark:border-gray-700 hover:border-emerald-500/30"
+                          )}
+                        >
+                          {name} ({count})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {filteredMosques.length > 0 && filteredMosques.length < 50 && (
+                    <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100 uppercase text-[10px] tracking-widest">{t("Matching Mosques", language)}</h3>
+                      <div className="space-y-2">
+                        {filteredMosques.map(m => (
+                          <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl group/item">
+                            <div className="min-w-0">
+                              <div className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">{m.name}</div>
+                              <div className="text-[10px] text-gray-500 truncate">{m.commune} • {m.type}</div>
+                            </div>
+                            <ChevronRight size={14} className="text-gray-300 group-hover/item:text-emerald-500 transition-colors" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
