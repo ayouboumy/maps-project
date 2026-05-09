@@ -11,7 +11,7 @@ export default function BottomSheet() {
   const { 
     mosques, selectedMosque, setSelectedMosque, favorites, toggleFavorite, 
     language, setRoutingToMosque, userLocation, routeInfo, routingToMosque, routeProfile,
-    darkMode, alternativeRouteIndex, setAlternativeRouteIndex, setRouteProfile
+    darkMode, setRouteProfile
   } = useAppStore();
   
   const [showProfile, setShowProfile] = useState(false);

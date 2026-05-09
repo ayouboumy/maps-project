@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, Fragment } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Polyline, ZoomControl, Popup } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import RBush from 'rbush';
@@ -274,10 +274,12 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
-function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', key }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, key?: string }) {
+function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', mosqueId }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, mosqueId?: number }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
-  const { setRouteInfo, language, routeInfo, alternativeRouteIndex } = useAppStore();
+  const { setRouteInfo, language, routeInfo, rejectedRoutes } = useAppStore();
+  
+  const altIndex = mosqueId !== undefined ? (rejectedRoutes[mosqueId] || 0) : 0;
 
   const formatDurationInner = (seconds: number) => {
     const minutes = Math.round(seconds / 60);
@@ -305,7 +307,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         let data = await response.json();
         
         // If native alternatives are not enough, inject a waypoint
-        if (data.routes && alternativeRouteIndex >= data.routes.length) {
+        if (data.routes && altIndex >= data.routes.length) {
           // Calculate midpoint
           const midLat = (start[0] + end[0]) / 2;
           const midLng = (start[1] + end[1]) / 2;
@@ -313,7 +315,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
           const dLat = end[0] - start[0];
           const dLng = end[1] - start[1];
           // We subtract data.routes.length to start multiplier from 1 instead of jumping
-          const offsetBase = alternativeRouteIndex - data.routes.length + 1;
+          const offsetBase = altIndex - data.routes.length + 1;
           const offsetMultiplier = 0.15 * offsetBase; 
           
           let offsetLat = midLat - dLng * offsetMultiplier;
@@ -336,8 +338,8 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
           const sortedRoutes = [...data.routes].sort((a: any, b: any) => a.distance - b.distance);
           
           let routeIndex = 0;
-          if (alternativeRouteIndex < sortedRoutes.length) {
-            routeIndex = alternativeRouteIndex;
+          if (altIndex < sortedRoutes.length) {
+            routeIndex = altIndex;
           } else {
             // We used waypoint, just pick the shortest one that satisfies it
             routeIndex = 0;
@@ -366,7 +368,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
     };
     fetchRoute();
     return () => { isMounted = false; };
-  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo, routeProfile, alternativeRouteIndex]);
+  }, [start[0], start[1], end[0], end[1], isMainRoute, setRouteInfo, routeProfile, altIndex]);
 
   // Clean up route info when unmounting if it's the main route
   useEffect(() => {
@@ -419,6 +421,37 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         lineJoin="round"
         dashArray={dashArray}
       >
+        <Popup>
+          <div className="flex flex-col gap-2 relative min-w-[120px]">
+            <span className="text-xs font-bold text-gray-700 text-center">
+              {t('Rate this route:', language)}
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Just hide popup natively if possible, or mark as good and nothing changes
+                }}
+                className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-colors pointer-events-auto"
+                title="Good Route"
+              >
+                <Heart size={16} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (mosqueId !== undefined) {
+                    useAppStore.getState().rejectRoute(mosqueId);
+                  }
+                }}
+                className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-colors pointer-events-auto"
+                title={t('Search more accurate road', language)}
+              >
+                <ThumbsDown size={16} />
+              </button>
+            </div>
+          </div>
+        </Popup>
         {isMainRoute && routeDistance > 0 && (
           <Tooltip 
             permanent 
@@ -446,8 +479,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
     setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType,
-    showCommuneNames, setShowCommuneNames,
-    alternativeRouteIndex, setAlternativeRouteIndex
+    showCommuneNames, setShowCommuneNames
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
@@ -926,6 +958,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         {routingToMosque && isUserLocationValid && (
           <RouteLine 
             key={`route-single-${routingToMosque.id}-${routeProfile}`}
+            mosqueId={routingToMosque.id}
             start={[userLocation.latitude, userLocation.longitude]}
             end={[routingToMosque.latitude, routingToMosque.longitude]}
             straightDistance={getDistance(
@@ -955,6 +988,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           return (
             <RouteLine 
               key={`route-${mosque.id}-${routeProfile}`}
+              mosqueId={mosque.id}
               start={[userLocation.latitude, userLocation.longitude]}
               end={[mosque.latitude, mosque.longitude]}
               straightDistance={(mosque as any).distance || 0}
@@ -1146,37 +1180,6 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                 {showCommuneNames ? t('Labels On', language) : t('Labels Off', language)}
               </span>
             </button>
-          </motion.div>
-        )}
-
-        {showNearest && nearestMosques.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -20, x: '-50%' }}
-            className="absolute top-20 left-1/2 z-[2000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl p-3 w-48"
-          >
-            <div className="flex flex-col gap-2 relative z-[2000]">
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 text-center">
-                {t('Rate this route:', language)}
-              </span>
-              <div className="flex items-center gap-2">
-                <button 
-                  className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors pointer-events-auto"
-                >
-                  <Heart size={16} />
-                </button>
-                <button 
-                  onClick={() => {
-                    setAlternativeRouteIndex(alternativeRouteIndex + 1);
-                  }}
-                  className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors pointer-events-auto"
-                  title={t('Search more accurate road', language)}
-                >
-                  <ThumbsDown size={16} />
-                </button>
-              </div>
-            </div>
           </motion.div>
         )}
 

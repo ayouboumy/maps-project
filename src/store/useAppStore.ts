@@ -21,7 +21,7 @@ interface AppState {
   routingToMosque: Mosque | null;
   routeInfo: RouteInfo | null;
   routeProfile: RouteProfile;
-  alternativeRouteIndex: number;
+  rejectedRoutes: Record<number, number>;
   userLocation: { latitude: number; longitude: number } | null;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
@@ -45,6 +45,7 @@ interface AppState {
   clusterByCommune: boolean;
   showCommuneNames: boolean;
   colorByPrayerType: boolean;
+  rejectedRoutes: Record<number, number>;
   mapInstance: any | null;
   isExporting: boolean;
   
@@ -55,7 +56,7 @@ interface AppState {
   setRoutingToMosque: (mosque: Mosque | null) => void;
   setRouteInfo: (info: RouteInfo | null) => void;
   setRouteProfile: (profile: RouteProfile) => void;
-  setAlternativeRouteIndex: (index: number) => void;
+  rejectRoute: (mosqueId: number) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
@@ -93,7 +94,6 @@ export const useAppStore = create<AppState>()(
       routingToMosque: null,
       routeInfo: null,
       routeProfile: 'foot',
-      alternativeRouteIndex: 0,
       userLocation: { latitude: 34.9814488, longitude: -3.3934335 },
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
@@ -117,6 +117,7 @@ export const useAppStore = create<AppState>()(
       clusterByCommune: false,
       showCommuneNames: true,
       colorByPrayerType: false,
+      rejectedRoutes: {},
       mapInstance: null,
       isExporting: false,
 
@@ -134,11 +135,16 @@ export const useAppStore = create<AppState>()(
             : state.selectedMosque,
         })),
       setActiveTab: (tab) => set({ activeTab: tab }),
-      setSelectedMosque: (mosque) => set({ selectedMosque: mosque, alternativeRouteIndex: 0 }),
-      setRoutingToMosque: (mosque) => set({ routingToMosque: mosque, alternativeRouteIndex: 0 }),
+      setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
+      setRoutingToMosque: (mosque) => set({ routingToMosque: mosque }),
       setRouteInfo: (info) => set({ routeInfo: info }),
-      setRouteProfile: (profile) => set({ routeProfile: profile, alternativeRouteIndex: 0 }),
-      setAlternativeRouteIndex: (index) => set({ alternativeRouteIndex: index }),
+      setRouteProfile: (profile) => set({ routeProfile: profile }),
+      rejectRoute: (mosqueId) => set((state) => ({ 
+        rejectedRoutes: {
+          ...state.rejectedRoutes,
+          [mosqueId]: (state.rejectedRoutes[mosqueId] || 0) + 1
+        }
+      })),
       setUserLocation: (location) => set({ userLocation: location }),
       importMosques: (newMosques) => set({ mosques: newMosques }),
       setLanguage: (lang) => set({ language: lang }),
@@ -233,7 +239,8 @@ export const useAppStore = create<AppState>()(
         aiInsights: state.aiInsights,
         lastTrainingDate: state.lastTrainingDate,
         clusterByCommune: state.clusterByCommune,
-        colorByPrayerType: state.colorByPrayerType
+        colorByPrayerType: state.colorByPrayerType,
+        rejectedRoutes: state.rejectedRoutes
       }),
     }
   )
