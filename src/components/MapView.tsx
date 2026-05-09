@@ -305,7 +305,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         let data = await response.json();
         
         // If native alternatives are not enough, inject a waypoint
-        if (isMainRoute && data.routes && alternativeRouteIndex >= data.routes.length) {
+        if (data.routes && alternativeRouteIndex >= data.routes.length) {
           // Calculate midpoint
           const midLat = (start[0] + end[0]) / 2;
           const midLng = (start[1] + end[1]) / 2;
@@ -336,14 +336,11 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
           const sortedRoutes = [...data.routes].sort((a: any, b: any) => a.distance - b.distance);
           
           let routeIndex = 0;
-          if (isMainRoute) {
-            // If we used native alternatives without waypoint
-            if (alternativeRouteIndex < sortedRoutes.length) {
-              routeIndex = alternativeRouteIndex;
-            } else {
-              // We used waypoint, just pick the shortest one that satisfies it
-              routeIndex = 0;
-            }
+          if (alternativeRouteIndex < sortedRoutes.length) {
+            routeIndex = alternativeRouteIndex;
+          } else {
+            // We used waypoint, just pick the shortest one that satisfies it
+            routeIndex = 0;
           }
           
           const bestRoute = sortedRoutes[routeIndex];
@@ -1152,7 +1149,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           </motion.div>
         )}
 
-        {routeInfo && selectedMosque && showNearest && (
+        {showNearest && nearestMosques.length > 0 && (
           <motion.div 
             initial={{ opacity: 0, y: -20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
