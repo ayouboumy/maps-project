@@ -6,6 +6,7 @@ import SearchScreen from './screens/SearchScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EquipmentScreen from './screens/EquipmentScreen';
+import AnalysisScreen from './screens/AnalysisScreen';
 import { LocateFixed, MapPin, Layers, HelpCircle, X, Network, Settings2, Palette, Camera, Loader2, Share2, Download } from 'lucide-react';
 import MapView from './components/MapView';
 import { t } from './utils/translations';
@@ -374,6 +375,8 @@ export default function App() {
           {activeTab === 'search' && <SearchScreen />}
           
           {activeTab === 'favorites' && <FavoritesScreen />}
+
+          {activeTab === 'analysis' && <AnalysisScreen />}
 
           {activeTab === 'settings' && <SettingsScreen />}
 

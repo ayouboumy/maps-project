@@ -16,4 +16,4 @@ export interface Mosque {
   extraData?: Record<string, any>;
 }
 
-export type TabType = 'map' | 'search' | 'favorites' | 'settings';
+export type TabType = 'map' | 'search' | 'favorites' | 'settings' | 'analysis';
