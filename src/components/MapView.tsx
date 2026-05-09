@@ -297,7 +297,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         const profile = routeProfile === 'foot' ? 'walking' : 'driving';
         const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         
-        const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`);
+        const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

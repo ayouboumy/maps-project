@@ -40,6 +40,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Translating...': { en: 'Translating...', fr: 'Traduction...', ar: 'جاري الترجمة...' },
   'Language': { en: 'Language', fr: 'Langue', ar: 'اللغة' },
   'Select Language': { en: 'Select Language', fr: 'Choisir la langue', ar: 'اختر اللغة' },
+  'Rate this route:': { en: 'Rate this route:', fr: 'Évaluer cet itinéraire:', ar: 'قيم هذا المسار:' },
   'Route Details': { en: 'Route Details', fr: 'Détails de l\'itinéraire', ar: 'تفاصيل المسار' },
   'Bad Route?': { en: 'Bad Route?', fr: 'Mauvais itinéraire ?', ar: 'مسار سيء؟' },
   'Cancel': { en: 'Cancel', fr: 'Annuler', ar: 'إلغاء' },
