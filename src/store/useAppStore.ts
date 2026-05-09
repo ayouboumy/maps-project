@@ -134,7 +134,7 @@ export const useAppStore = create<AppState>()(
             : state.selectedMosque,
         })),
       setActiveTab: (tab) => set({ activeTab: tab }),
-      setSelectedMosque: (mosque) => set({ selectedMosque: mosque }),
+      setSelectedMosque: (mosque) => set({ selectedMosque: mosque, alternativeRouteIndex: 0 }),
       setRoutingToMosque: (mosque) => set({ routingToMosque: mosque, alternativeRouteIndex: 0 }),
       setRouteInfo: (info) => set({ routeInfo: info }),
       setRouteProfile: (profile) => set({ routeProfile: profile, alternativeRouteIndex: 0 }),

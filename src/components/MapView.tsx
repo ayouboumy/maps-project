@@ -928,6 +928,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
               end={[mosque.latitude, mosque.longitude]}
               straightDistance={(mosque as any).distance || 0}
               routeProfile={routeProfile}
+              isMainRoute={selectedMosque?.id === mosque.id}
             />
           );
         })}

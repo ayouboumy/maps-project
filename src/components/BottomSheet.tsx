@@ -195,31 +195,6 @@ export default function BottomSheet() {
               {/* Quick Actions (Horizontal Scroll) */}
               <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 scrollbar-hide -mx-5 px-5">
                 <button 
-                  onClick={() => {
-                    if (isRoutingToThis) {
-                      setRoutingToMosque(null);
-                    } else {
-                      setRoutingToMosque(selectedMosque);
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-colors shadow-sm shrink-0",
-                    isRoutingToThis 
-                      ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900/40"
-                      : "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600"
-                  )}
-                >
-                  {isRoutingToThis ? <X size={18} /> : <Navigation size={18} />}
-                  {isRoutingToThis ? t('Cancel', language) : t('Directions', language)}
-                </button>
-                <button 
-                  onClick={handleOpenGoogleMapsRoute}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 dark:bg-emerald-500 text-white rounded-full font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shadow-sm shrink-0"
-                >
-                  <Navigation size={18} />
-                  {t('Google Maps', language)}
-                </button>
-                <button 
                   onClick={handleCopyPosition}
                   className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0"
                 >
@@ -248,7 +223,7 @@ export default function BottomSheet() {
               </div>
 
               {/* Internal Route Status */}
-              {isRoutingToThis && routeInfo && (
+              {routeInfo && (
                 <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-4 transition-colors">
                   <div className="flex items-start justify-between">
                     <div>
