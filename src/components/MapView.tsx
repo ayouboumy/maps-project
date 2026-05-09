@@ -278,6 +278,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
   const { setRouteInfo, language, routeInfo, rejectedRoutes } = useAppStore();
+  const map = useMap();
   
   const altIndex = mosqueId !== undefined ? (rejectedRoutes[mosqueId] || 0) : 0;
 
@@ -401,25 +402,12 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 
   return (
     <>
-      {/* Outer stroke (Casing/Halo) */}
+      {/* Invisible click catcher polyline */}
       <Polyline 
         positions={validPositions}
-        color={outerColor}
-        weight={outerWeight}
-        opacity={isMainRoute ? 1 : 0.8}
-        lineCap="round"
-        lineJoin="round"
-        dashArray={dashArray}
-      />
-      {/* Inner colored stroke */}
-      <Polyline 
-        positions={validPositions}
-        color={innerColor}
-        weight={innerWeight}
-        opacity={1}
-        lineCap="round"
-        lineJoin="round"
-        dashArray={dashArray}
+        color="transparent"
+        weight={25}
+        opacity={0}
       >
         <Popup>
           <div className="flex flex-col gap-2 relative min-w-[120px]">
@@ -430,7 +418,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Just hide popup natively if possible, or mark as good and nothing changes
+                  map.closePopup();
                 }}
                 className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-colors pointer-events-auto"
                 title="Good Route"
@@ -442,6 +430,7 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
                   e.stopPropagation();
                   if (mosqueId !== undefined) {
                     useAppStore.getState().rejectRoute(mosqueId);
+                    map.closePopup();
                   }
                 }}
                 className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-colors pointer-events-auto"
@@ -452,6 +441,30 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
             </div>
           </div>
         </Popup>
+      </Polyline>
+
+      {/* Outer stroke (Casing/Halo) */}
+      <Polyline 
+        positions={validPositions}
+        color={outerColor}
+        weight={outerWeight}
+        opacity={isMainRoute ? 1 : 0.8}
+        lineCap="round"
+        lineJoin="round"
+        dashArray={dashArray}
+        interactive={false}
+      />
+      {/* Inner colored stroke */}
+      <Polyline 
+        positions={validPositions}
+        color={innerColor}
+        weight={innerWeight}
+        opacity={1}
+        lineCap="round"
+        lineJoin="round"
+        dashArray={dashArray}
+        interactive={false}
+      >
         {isMainRoute && routeDistance > 0 && (
           <Tooltip 
             permanent 
