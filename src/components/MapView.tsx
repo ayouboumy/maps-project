@@ -9,7 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useAppStore } from '../store/useAppStore';
 import { getDistance } from 'geolib';
 import { getLocalizedName, t } from '../utils/translations';
-import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw, Eye, EyeOff, Tag } from 'lucide-react';
+import { ListOrdered, Navigation, Car, Footprints, Share2, RefreshCw, Eye, EyeOff, Tag, Heart, ThumbsDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -297,7 +297,33 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         const profile = routeProfile === 'foot' ? 'walking' : 'driving';
         const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
         
-        const response = await fetch(`${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`);
+        let url = `${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
+        
+        // If alternative route is requested but OSRM didn't return one before, we force a difference
+        // by adding a slightly offset midpoint.
+        if (isMainRoute && alternativeRouteIndex > 0) {
+          // Calculate midpoint
+          const midLat = (start[0] + end[0]) / 2;
+          const midLng = (start[1] + end[1]) / 2;
+          
+          // Tangential offset
+          // x offset = -(end.y - start.y), y offset = (end.x - start.x)
+          const dLat = end[0] - start[0];
+          const dLng = end[1] - start[1];
+          const offsetMultiplier = 0.2 * alternativeRouteIndex; // Adjust the multiplier to control offset size
+          
+          let offsetLat = midLat - dLng * offsetMultiplier;
+          let offsetLng = midLng + dLat * offsetMultiplier;
+
+          if (alternativeRouteIndex % 2 === 0) {
+             offsetLat = midLat + dLng * offsetMultiplier;
+             offsetLng = midLng - dLat * offsetMultiplier;
+          }
+          
+          url = `${baseUrl}/${start[1]},${start[0]};${offsetLng},${offsetLat};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
+        }
+
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -416,7 +442,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
     setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType,
-    showCommuneNames, setShowCommuneNames
+    showCommuneNames, setShowCommuneNames,
+    alternativeRouteIndex, setAlternativeRouteIndex
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
 
@@ -1115,6 +1142,37 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
                 {showCommuneNames ? t('Labels On', language) : t('Labels Off', language)}
               </span>
             </button>
+          </motion.div>
+        )}
+
+        {routeInfo && selectedMosque && showNearest && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, x: '50%' }}
+            animate={{ opacity: 1, y: 0, x: '50%' }}
+            exit={{ opacity: 0, y: -20, x: '50%' }}
+            className="absolute top-20 right-1/2 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl p-3 w-48"
+          >
+            <div className="flex flex-col gap-2 relative z-[1000]">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 text-center">
+                {t('Rate this route:', language)}
+              </span>
+              <div className="flex items-center gap-2">
+                <button 
+                  className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors pointer-events-auto"
+                >
+                  <Heart size={16} />
+                </button>
+                <button 
+                  onClick={() => {
+                    setAlternativeRouteIndex(alternativeRouteIndex + 1);
+                  }}
+                  className="flex-1 flex justify-center items-center gap-1.5 px-2 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors pointer-events-auto"
+                  title={t('Search more accurate road', language)}
+                >
+                  <ThumbsDown size={16} />
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
 

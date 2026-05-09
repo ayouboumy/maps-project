@@ -257,28 +257,6 @@ export default function BottomSheet() {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-blue-100 dark:border-blue-800 flex items-center justify-between">
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                      {t('Rate this route:', language)}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                      >
-                        <Heart size={14} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setAlternativeRouteIndex(alternativeRouteIndex + 1);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                        title={t('Search more accurate road', language)}
-                      >
-                        <ThumbsDown size={14} />
-                        {t('Bad Route?', language)}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
 

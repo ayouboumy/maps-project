@@ -423,14 +423,7 @@ export default function ProfileScreen({ mosque, onClose }: ProfileScreenProps) {
 
         {/* Action & Stats Summary */}
         <div className="px-5 -mt-4 relative z-10 space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={handleOpenGoogleMapsRoute}
-              className="flex flex-col items-center justify-center p-3 bg-emerald-600 text-white rounded-2xl shadow-xl active:scale-95 transition-all text-center"
-            >
-              <Navigation size={20} />
-              <span className="text-[8px] font-black uppercase tracking-tighter mt-1">{t('Google Maps', language)}</span>
-            </button>
+          <div className="grid grid-cols-1 gap-2">
             <button 
               onClick={handleCopyPosition}
               className="flex flex-col items-center justify-center p-3 bg-blue-600 dark:bg-blue-500 text-white rounded-2xl shadow-xl active:scale-95 transition-all text-center"
