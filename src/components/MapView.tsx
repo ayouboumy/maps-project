@@ -299,46 +299,53 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
         
         let url = `${baseUrl}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
         
-        // If alternative route is requested but OSRM didn't return one before, we force a difference
-        // by adding a slightly offset midpoint.
-        if (isMainRoute && alternativeRouteIndex > 0) {
+        let response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        let data = await response.json();
+        
+        // If native alternatives are not enough, inject a waypoint
+        if (isMainRoute && data.routes && alternativeRouteIndex >= data.routes.length) {
           // Calculate midpoint
           const midLat = (start[0] + end[0]) / 2;
           const midLng = (start[1] + end[1]) / 2;
           
-          // Tangential offset
-          // x offset = -(end.y - start.y), y offset = (end.x - start.x)
           const dLat = end[0] - start[0];
           const dLng = end[1] - start[1];
-          const offsetMultiplier = 0.2 * alternativeRouteIndex; // Adjust the multiplier to control offset size
+          // We subtract data.routes.length to start multiplier from 1 instead of jumping
+          const offsetBase = alternativeRouteIndex - data.routes.length + 1;
+          const offsetMultiplier = 0.15 * offsetBase; 
           
           let offsetLat = midLat - dLng * offsetMultiplier;
           let offsetLng = midLng + dLat * offsetMultiplier;
 
-          if (alternativeRouteIndex % 2 === 0) {
+          if (offsetBase % 2 === 0) {
              offsetLat = midLat + dLng * offsetMultiplier;
              offsetLng = midLng - dLat * offsetMultiplier;
           }
           
           url = `${baseUrl}/${start[1]},${start[0]};${offsetLng},${offsetLat};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=3`;
+          
+          response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          data = await response.json();
         }
 
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Received non-JSON response from routing server");
-        }
-
-        const data = await response.json();
         if (isMounted && data.routes && data.routes.length > 0) {
-          // Identify all routes. Sort them by distance first so index 0 is best
+          // Sort natively returned routes by distance
           const sortedRoutes = [...data.routes].sort((a: any, b: any) => a.distance - b.distance);
-          const routeIndex = isMainRoute ? (alternativeRouteIndex % sortedRoutes.length) : 0;
+          
+          let routeIndex = 0;
+          if (isMainRoute) {
+            // If we used native alternatives without waypoint
+            if (alternativeRouteIndex < sortedRoutes.length) {
+              routeIndex = alternativeRouteIndex;
+            } else {
+              // We used waypoint, just pick the shortest one that satisfies it
+              routeIndex = 0;
+            }
+          }
+          
           const bestRoute = sortedRoutes[routeIndex];
 
           if (bestRoute.geometry) {
@@ -1147,12 +1154,12 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
         {routeInfo && selectedMosque && showNearest && (
           <motion.div 
-            initial={{ opacity: 0, y: -20, x: '50%' }}
-            animate={{ opacity: 1, y: 0, x: '50%' }}
-            exit={{ opacity: 0, y: -20, x: '50%' }}
-            className="absolute top-20 right-1/2 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl p-3 w-48"
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            className="absolute top-20 left-1/2 z-[2000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl p-3 w-48"
           >
-            <div className="flex flex-col gap-2 relative z-[1000]">
+            <div className="flex flex-col gap-2 relative z-[2000]">
               <span className="text-xs font-bold text-gray-700 dark:text-gray-300 text-center">
                 {t('Rate this route:', language)}
               </span>
