@@ -14,13 +14,34 @@ import {
   X,
   Search,
   Zap,
-  Activity
+  Activity,
+  TrendingUp,
+  BrainCircuit,
+  Maximize2
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  PieChart as RePieChart,
+  Pie,
+  Legend,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
+} from 'recharts';
 
-type AnalysisTab = 'overview' | 'communes' | 'services' | 'types' | 'explorer';
+type AnalysisTab = 'overview' | 'communes' | 'services' | 'types' | 'explorer' | 'intelligence';
 
 export default function AnalysisScreen() {
   const { language, mosques } = useAppStore();
@@ -28,6 +49,9 @@ export default function AnalysisScreen() {
   const [filterCommune, setFilterCommune] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Custom Dimension Picker state
+  const [mainDimension, setMainDimension] = useState<'commune' | 'type' | 'spending' | 'condition'>('commune');
 
   // Extract unique values for filters
   const allCommunes = useMemo(() => {
@@ -66,6 +90,46 @@ export default function AnalysisScreen() {
     };
   }, [filteredMosques]);
 
+  const profileData = useMemo(() => {
+    if (filteredMosques.length === 0) return [];
+    
+    return [
+      { subject: 'Services', A: Math.min(100, (parseFloat(stats.avgServices) / 10) * 100) },
+      { subject: 'Wudu', A: stats.wuduPercent },
+      { subject: 'Women', A: stats.womenPercent },
+      { subject: 'Types', A: Math.min(100, (Object.keys(mosqueTypes).length / 10) * 100) },
+      { subject: 'Scale', A: Math.min(100, (stats.total / (mosques.length || 1)) * 100) }
+    ];
+  }, [stats, filteredMosques, mosqueTypes, mosques.length]);
+
+  // Recharts Data Transformation
+  const chartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredMosques.forEach(m => {
+      let key = 'Unknown';
+      if (mainDimension === 'commune') key = m.commune || 'Other';
+      else if (mainDimension === 'type') key = m.type || 'Other';
+      else if (mainDimension === 'spending') key = (m as any).spendingType || 'Other';
+      else if (mainDimension === 'condition') key = (m as any).condition || 'Other';
+      
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Show top 10 for better visualization
+  }, [filteredMosques, mainDimension]);
+
+  const typeDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredMosques.forEach(m => {
+      const type = m.type || 'Other';
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [filteredMosques]);
+
   const communesData = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredMosques.forEach(m => {
@@ -99,13 +163,58 @@ export default function AnalysisScreen() {
       .sort((a, b) => b[1] - a[1]);
   }, [filteredMosques]);
 
+  const insights = useMemo(() => {
+    if (filteredMosques.length < 5) return [];
+    
+    const messages = [];
+    const mainCommune = communesData[0];
+    if (mainCommune) {
+      messages.push(`${mainCommune[0]} has the highest concentration of mosques in the current view (${mainCommune[1]}).`);
+    }
+
+    if (stats.wuduPercent > 80) {
+      messages.push(t("Excellent coverage of wudu facilities across the selected mosques.", language));
+    } else if (stats.wuduPercent < 40) {
+      messages.push(t("Significant need for improved wudu facilities in this selection.", language));
+    }
+
+    if (stats.womenPercent > 50) {
+      messages.push(t("High availability of designated spaces for women in these localities.", language));
+    }
+
+    const typeStats = Object.entries(filteredMosques.reduce((acc, m) => {
+      const t = m.type || 'Other';
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]);
+
+    if (typeStats[0]) {
+      messages.push(t("Most mosques in this category are classified as", language) + ` '${typeStats[0][0]}'.`);
+    }
+
+    // New: Anomaly detection (communes with way above average services)
+    const avgServ = parseFloat(stats.avgServices);
+    communesData.forEach(([name, count]) => {
+      const communeMosques = filteredMosques.filter(m => m.commune === name);
+      const communeAvg = communeMosques.reduce((acc, m) => acc + (m.services?.length || 0), 0) / count;
+      if (communeAvg > avgServ * 1.5 && count > 2) {
+        messages.push(`${name} ` + t("has significantly better equipped mosques than average.", language));
+      }
+    });
+
+    return messages;
+  }, [filteredMosques, stats, communesData, language]);
+
   const tabs = [
     { id: 'overview', label: t('Overview', language), icon: LayoutGrid },
     { id: 'communes', label: t('Communes', language), icon: MapIcon },
     { id: 'services', label: t('Services', language), icon: ListChecks },
     { id: 'types', label: t('Types', language), icon: Building2 },
+    { id: 'intelligence', label: t('Intelligence', language), icon: BrainCircuit },
     { id: 'explorer', label: t('Explorer', language), icon: Search },
   ];
+
+  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden w-full transition-colors duration-300">
@@ -189,16 +298,93 @@ export default function AnalysisScreen() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
                     <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
-                    <Compass className="text-emerald-500 mb-3" size={24} />
+                    <Compass className="text-emerald-500 mb-2" size={24} />
                     <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.total}</div>
                     <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Total Mosques", language)}</div>
                   </div>
 
                   <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
                     <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
-                    <CheckCircle2 className="text-blue-500 mb-3" size={24} />
+                    <CheckCircle2 className="text-blue-500 mb-2" size={24} />
                     <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.avgServices}</div>
                     <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Avg Services", language)}</div>
+                  </div>
+                </div>
+
+                {/* Animated Chart Section */}
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      <TrendingUp size={18} className="text-emerald-500" />
+                      {t("Distribution", language)}
+                    </h3>
+                    <select 
+                      value={mainDimension}
+                      onChange={(e) => setMainDimension(e.target.value as any)}
+                      className="text-xs font-bold uppercase tracking-widest bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border-none outline-none text-emerald-600 dark:text-emerald-400"
+                    >
+                      <option value="commune">Commune</option>
+                      <option value="type">Type</option>
+                      <option value="spending">Authority</option>
+                      <option value="condition">Condition</option>
+                    </select>
+                  </div>
+
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
+                        <XAxis type="number" hide />
+                        <YAxis 
+                          dataKey="name" 
+                          type="category" 
+                          scale="band" 
+                          tick={{ fontSize: 10, fontWeight: 600 }}
+                          width={80}
+                        />
+                        <Tooltip 
+                          cursor={{ fill: 'transparent' }}
+                          contentStyle={{ 
+                            borderRadius: '16px', 
+                            border: 'none', 
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            fontSize: '12px',
+                            fontWeight: 'bold'
+                          }}
+                        />
+                        <Bar 
+                          dataKey="value" 
+                          radius={[0, 10, 10, 0]}
+                          barSize={20}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Maximize2 size={18} className="text-purple-500" />
+                    {t("Selection Profile", language)}
+                  </h3>
+                  <div className="h-64 w-full flex justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={profileData}>
+                        <PolarGrid stroke="#e2e8f0" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 700 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
+                        <Radar
+                          name="Selection"
+                          dataKey="A"
+                          stroke="#8b5cf6"
+                          fill="#8b5cf6"
+                          fillOpacity={0.4}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
@@ -238,15 +424,6 @@ export default function AnalysisScreen() {
                     </div>
                   </div>
                 </div>
-
-                {(filterCommune || filterType) && (
-                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-3">
-                    <Zap size={20} className="text-emerald-500 shrink-0" />
-                    <p className="text-sm text-emerald-800 dark:text-emerald-400">
-                      {t("Analysis is currently filtered to", language)} {filterCommune} {filterType && `(${filterType})`}.
-                    </p>
-                  </div>
-                )}
               </motion.div>
             )}
 
@@ -258,6 +435,16 @@ export default function AnalysisScreen() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">{t("Mosque Density", language)}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{t("A breakdown of mosques by geographical location.", language)}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-600">
+                    <MapIcon size={24} />
+                  </div>
+                </div>
+
                 <div className="bg-white dark:bg-gray-900 p-2 rounded-3xl border border-gray-100 dark:border-gray-800">
                   {communesData.map(([name, count], idx) => (
                     <div 
@@ -283,74 +470,173 @@ export default function AnalysisScreen() {
                       <ChevronRight size={16} className={cn("transition-transform", name === filterCommune ? "text-emerald-500 rotate-90" : "text-gray-300")} />
                     </div>
                   ))}
-                  {communesData.length === 0 && (
-                    <div className="p-12 text-center text-gray-500 font-medium">
-                      {t("No data matching filters", language)}
-                    </div>
-                  )}
                 </div>
               </motion.div>
             )}
+
+            {activeAnalysis === 'intelligence' && (
+              <motion.div
+                key="intelligence"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-6"
+              >
+                <div className="grid grid-cols-1 gap-4">
+                  {insights.map((insight, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-emerald-100 dark:border-emerald-800/30 shadow-sm flex items-start gap-4 relative overflow-hidden"
+                    >
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                      <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
+                        <Zap size={20} />
+                      </div>
+                      <p className="text-gray-800 dark:text-gray-200 font-medium leading-relaxed">
+                        {insight}
+                      </p>
+                    </motion.div>
+                  ))}
+
+                  {insights.length === 0 && (
+                    <div className="p-12 text-center text-gray-500 font-medium">
+                      {t("Not enough data for intelligence analysis", language)}
+                    </div>
+                  )}
+
+                  <div className="bg-gray-900 dark:bg-black p-8 rounded-[40px] text-white relative overflow-hidden">
+                    <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-500/20 blur-[100px] rounded-full" />
+                    <div className="relative z-10 space-y-4">
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <TrendingUp size={20} />
+                        <span className="text-xs font-black uppercase tracking-widest">{t("Data Insights", language)}</span>
+                      </div>
+                      <h2 className="text-2xl font-bold leading-tight">
+                        {t("Structural Trends", language)}
+                      </h2>
+                      <div className="grid grid-cols-2 gap-4 pt-4">
+                        <div className="space-y-1">
+                          <div className="text-emerald-400 font-black text-2xl">{stats.avgServices}</div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t("Complexity Score", language)}</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-emerald-400 font-black text-2xl">{stats.total}</div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t("Sample Size", language)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Rest of the existing tabs (Services, Types, Explorer) will be handled similarly */}
+            {/* Keeping them for completeness but updating visuals within */}
 
             {activeAnalysis === 'services' && (
               <motion.div
                 key="services"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
                 className="grid grid-cols-1 gap-4"
               >
-                {topServices.map(([name, count]) => (
-                  <div key={name} className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 flex items-center gap-4 group">
-                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-500 rounded-2xl group-hover:scale-110 transition-transform">
-                      <ListChecks size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-gray-900 dark:text-gray-100 capitalize">{name}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-purple-500 rounded-full"
-                            style={{ width: `${(count / filteredMosques.length) * 100}%` }}
-                          />
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm h-80">
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                    <ListChecks size={20} className="text-blue-500" />
+                    {t("Common Amenities", language)}
+                  </h3>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topServices.slice(0, 8).map(([name, count]) => ({ name, count }))}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
+                      <YAxis hide />
+                      <Tooltip 
+                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      />
+                      <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-4 pt-4">
+                  {topServices.map(([name, count]) => (
+                    <div key={name} className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 flex items-center gap-4 group">
+                      <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-500 rounded-2xl">
+                        <ListChecks size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-900 dark:text-gray-100 capitalize">{name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-purple-500 rounded-full"
+                              style={{ width: `${(count / filteredMosques.length) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-gray-500">{count}</span>
                         </div>
-                        <span className="text-xs font-bold text-gray-500">{count}</span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </motion.div>
             )}
 
             {activeAnalysis === 'types' && (
               <motion.div
                 key="types"
-                initial={{ opacity: 0, filter: 'blur(10px)' }}
-                animate={{ opacity: 1, filter: 'blur(0px)' }}
-                className="space-y-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-6"
               >
-                {mosqueTypes.map(([typeStr, count]) => (
-                  <div 
-                    key={typeStr} 
-                    className={cn(
-                      "bg-white dark:bg-gray-900 p-6 rounded-3xl border shadow-sm flex justify-between items-center group overflow-hidden relative cursor-pointer transition-all",
-                      filterType === typeStr ? "border-blue-500 ring-1 ring-blue-500/20" : "border-gray-100 dark:border-gray-800"
-                    )}
-                    onClick={() => setFilterType(typeStr === filterType ? '' : typeStr)}
-                  >
-                    <div className={cn(
-                      "absolute right-0 top-0 w-1 bg-blue-500 transition-all duration-300",
-                      filterType === typeStr ? "h-full" : "h-0 group-hover:h-full"
-                    )} />
-                    <div>
-                      <div className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">{t("Category", language)}</div>
-                      <div className="text-xl font-bold text-gray-900 dark:text-gray-100 capitalize">{typeStr}</div>
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm h-64 flex flex-col items-center">
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 self-start">{t("Category Breakdown", language)}</h3>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RePieChart>
+                      <Pie
+                        data={typeDistribution}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {typeDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RePieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {mosqueTypes.map(([typeStr, count]) => (
+                    <div 
+                      key={typeStr} 
+                      className={cn(
+                        "bg-white dark:bg-gray-900 p-6 rounded-3xl border shadow-sm flex justify-between items-center group overflow-hidden relative cursor-pointer transition-all",
+                        filterType === typeStr ? "border-blue-500 ring-1 ring-blue-500/20" : "border-gray-100 dark:border-gray-800"
+                      )}
+                      onClick={() => setFilterType(typeStr === filterType ? '' : typeStr)}
+                    >
+                      <div className={cn(
+                        "absolute right-0 top-0 w-1 bg-blue-500 transition-all duration-300",
+                        filterType === typeStr ? "h-full" : "h-0 group-hover:h-full"
+                      )} />
+                      <div>
+                        <div className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">{t("Category", language)}</div>
+                        <div className="text-xl font-bold text-gray-900 dark:text-gray-100 capitalize">{typeStr}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-4xl font-black text-gray-100 dark:text-gray-800 group-hover:text-blue-500/10 transition-colors">{count}</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-4xl font-black text-gray-100 dark:text-gray-800 group-hover:text-blue-500/10 transition-colors">{count}</div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </motion.div>
             )}
 
