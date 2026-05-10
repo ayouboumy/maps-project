@@ -17,7 +17,9 @@ import {
   Activity,
   TrendingUp,
   BrainCircuit,
-  Maximize2
+  Maximize2,
+  Accessibility,
+  Users
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,10 +40,12 @@ import {
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
-  PolarRadiusAxis
+  PolarRadiusAxis,
+  LineChart,
+  Line
 } from 'recharts';
 
-type AnalysisTab = 'overview' | 'communes' | 'services' | 'types' | 'explorer' | 'intelligence';
+type AnalysisTab = 'overview' | 'communes' | 'services' | 'types' | 'explorer' | 'intelligence' | 'custom';
 
 export default function AnalysisScreen() {
   const { language, mosques } = useAppStore();
@@ -52,6 +56,17 @@ export default function AnalysisScreen() {
   
   // Custom Dimension Picker state
   const [mainDimension, setMainDimension] = useState<'commune' | 'type' | 'spending' | 'condition'>('commune');
+  const [selectedAttribute, setSelectedAttribute] = useState<string>('');
+
+  // Extract unique attributes (services + items)
+  const allAttributes = useMemo(() => {
+    const attrs = new Set<string>();
+    mosques.forEach(m => {
+      m.services?.forEach(s => attrs.add(s));
+      m.items?.forEach(i => attrs.add(i));
+    });
+    return Array.from(attrs).sort();
+  }, [mosques]);
 
   // Extract unique values for filters
   const allCommunes = useMemo(() => {
@@ -76,58 +91,28 @@ export default function AnalysisScreen() {
 
   const stats = useMemo(() => {
     const total = filteredMosques.length;
-    if (total === 0) return { total: 0, wuduPercent: 0, womenPercent: 0, avgServices: "0" };
+    if (total === 0) return { total: 0, wuduPercent: 0, womenPercent: 0, avgServices: "0", womenCount: 0, accessibilityCount: 0 };
     
     const withWudu = filteredMosques.filter(m => m.services?.some(s => s.toLowerCase().includes('wudu') || s.toLowerCase().includes('وضوء'))).length;
-    const withWomenSpace = filteredMosques.filter(m => m.services?.some(s => s.toLowerCase().includes('femme') || s.toLowerCase().includes('women') || s.toLowerCase().includes('نساء'))).length;
+    const withWomenSpace = filteredMosques.filter(m => 
+      m.services?.some(s => s.toLowerCase().includes('femme') || s.toLowerCase().includes('women') || s.toLowerCase().includes('نساء') || s.toLowerCase().includes('قاعة صلاة للنساء')) ||
+      (m as any).womenHallCount > 0
+    ).length;
+
+    const withAccessibility = filteredMosques.filter(m => 
+      m.services?.some(s => s.toLowerCase().includes('access') || s.toLowerCase().includes('handicap') || s.toLowerCase().includes('ولوجيات') || s.toLowerCase().includes('disabled'))
+    ).length;
+
     const averageServices = filteredMosques.reduce((acc, m) => acc + (m.services?.length || 0), 0) / total;
 
     return {
       total,
       wuduPercent: Math.round((withWudu / total) * 100),
       womenPercent: Math.round((withWomenSpace / total) * 100),
-      avgServices: averageServices.toFixed(1)
+      avgServices: averageServices.toFixed(1),
+      womenCount: withWomenSpace,
+      accessibilityCount: withAccessibility
     };
-  }, [filteredMosques]);
-
-  const profileData = useMemo(() => {
-    if (filteredMosques.length === 0) return [];
-    
-    return [
-      { subject: 'Services', A: Math.min(100, (parseFloat(stats.avgServices) / 10) * 100) },
-      { subject: 'Wudu', A: stats.wuduPercent },
-      { subject: 'Women', A: stats.womenPercent },
-      { subject: 'Types', A: Math.min(100, (Object.keys(mosqueTypes).length / 10) * 100) },
-      { subject: 'Scale', A: Math.min(100, (stats.total / (mosques.length || 1)) * 100) }
-    ];
-  }, [stats, filteredMosques, mosqueTypes, mosques.length]);
-
-  // Recharts Data Transformation
-  const chartData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredMosques.forEach(m => {
-      let key = 'Unknown';
-      if (mainDimension === 'commune') key = m.commune || 'Other';
-      else if (mainDimension === 'type') key = m.type || 'Other';
-      else if (mainDimension === 'spending') key = (m as any).spendingType || 'Other';
-      else if (mainDimension === 'condition') key = (m as any).condition || 'Other';
-      
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10); // Show top 10 for better visualization
-  }, [filteredMosques, mainDimension]);
-
-  const typeDistribution = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredMosques.forEach(m => {
-      const type = m.type || 'Other';
-      counts[type] = (counts[type] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredMosques]);
 
   const communesData = useMemo(() => {
@@ -161,6 +146,46 @@ export default function AnalysisScreen() {
     });
     return Object.entries(serviceCounts)
       .sort((a, b) => b[1] - a[1]);
+  }, [filteredMosques]);
+
+  const profileData = useMemo(() => {
+    if (filteredMosques.length === 0) return [];
+    
+    return [
+      { subject: 'Services', A: Math.min(100, (parseFloat(stats.avgServices) / 10) * 100) },
+      { subject: 'Wudu', A: stats.wuduPercent },
+      { subject: 'Women', A: stats.womenPercent },
+      { subject: 'Types', A: Math.min(100, (mosqueTypes.length / 10) * 100) },
+      { subject: 'Scale', A: Math.min(100, (stats.total / (mosques.length || 1)) * 100) }
+    ];
+  }, [stats, filteredMosques, mosqueTypes, mosques.length]);
+
+  // Recharts Data Transformation
+  const chartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredMosques.forEach(m => {
+      let key = 'Unknown';
+      if (mainDimension === 'commune') key = m.commune || 'Other';
+      else if (mainDimension === 'type') key = m.type || 'Other';
+      else if (mainDimension === 'spending') key = (m as any).spendingType || 'Other';
+      else if (mainDimension === 'condition') key = (m as any).condition || 'Other';
+      
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Show top 10 for better visualization
+  }, [filteredMosques, mainDimension]);
+
+  const typeDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredMosques.forEach(m => {
+      const type = m.type || 'Other';
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredMosques]);
 
   const insights = useMemo(() => {
@@ -211,6 +236,7 @@ export default function AnalysisScreen() {
     { id: 'services', label: t('Services', language), icon: ListChecks },
     { id: 'types', label: t('Types', language), icon: Building2 },
     { id: 'intelligence', label: t('Intelligence', language), icon: BrainCircuit },
+    { id: 'custom', label: t('Dynamic Analysis', language), icon: Zap },
     { id: 'explorer', label: t('Explorer', language), icon: Search },
   ];
 
@@ -308,6 +334,20 @@ export default function AnalysisScreen() {
                     <CheckCircle2 className="text-blue-500 mb-2" size={24} />
                     <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.avgServices}</div>
                     <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Avg Services", language)}</div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors" />
+                    <Users className="text-purple-500 mb-2" size={24} />
+                    <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.womenCount}</div>
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Mosques with Women Hall", language)}</div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/5 rounded-full blur-2xl group-hover:bg-orange-500/10 transition-colors" />
+                    <Accessibility className="text-orange-500 mb-2" size={24} />
+                    <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.accessibilityCount}</div>
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Mosques with Accessibility", language)}</div>
                   </div>
                 </div>
 
@@ -470,6 +510,112 @@ export default function AnalysisScreen() {
                       <ChevronRight size={16} className={cn("transition-transform", name === filterCommune ? "text-emerald-500 rotate-90" : "text-gray-300")} />
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            )}
+
+            {activeAnalysis === 'custom' && (
+              <motion.div
+                key="custom"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-6"
+              >
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4 shadow-sm">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-400">{t("Select an Attribute", language)}</label>
+                    <select 
+                      value={selectedAttribute}
+                      onChange={(e) => setSelectedAttribute(e.target.value)}
+                      className="w-full bg-gray-50 dark:bg-gray-800 rounded-2xl py-4 px-4 text-gray-900 dark:text-gray-100 font-bold border border-transparent focus:border-emerald-500/50 outline-none appearance-none"
+                    >
+                      <option value="">-- {t("Analyze", language)} --</option>
+                      {allAttributes.map(attr => (
+                        <option key={attr} value={attr}>{t(attr, language)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedAttribute && (
+                    <div className="space-y-6 pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/20 text-center">
+                          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                            {filteredMosques.filter(m => m.services?.includes(selectedAttribute) || m.items?.includes(selectedAttribute)).length}
+                          </div>
+                          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t("Total", language)}</div>
+                        </div>
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/20 text-center">
+                          <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                            {Math.round((filteredMosques.filter(m => m.services?.includes(selectedAttribute) || m.items?.includes(selectedAttribute)).length / filteredMosques.length) * 100)}%
+                          </div>
+                          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t("Percentage", language)}</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 px-1">{t("Distribution by Commune", language)}</h4>
+                        <div className="h-48 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={
+                              Object.entries(
+                                filteredMosques
+                                  .filter(m => m.services?.includes(selectedAttribute) || m.items?.includes(selectedAttribute))
+                                  .reduce((acc, m) => {
+                                    const c = m.commune || 'Other';
+                                    acc[c] = (acc[c] || 0) + 1;
+                                    return acc;
+                                  }, {} as Record<string, number>)
+                              )
+                              .map(([name, value]) => ({ name, value }))
+                              .sort((a, b) => b.value - a.value)
+                              .slice(0, 8)
+                            }>
+                              <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
+                              <YAxis hide />
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                              <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 px-1">{t("Distribution by Category", language)}</h4>
+                        <div className="h-48 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={
+                              Object.entries(
+                                filteredMosques
+                                  .filter(m => m.services?.includes(selectedAttribute) || m.items?.includes(selectedAttribute))
+                                  .reduce((acc, m) => {
+                                    const t = m.type || 'Other';
+                                    acc[t] = (acc[t] || 0) + 1;
+                                    return acc;
+                                  }, {} as Record<string, number>)
+                              )
+                              .map(([name, value]) => ({ name, value }))
+                              .sort((a, b) => b.value - a.value)
+                            }>
+                              <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
+                              <YAxis hide />
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                              <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedAttribute && (
+                    <div className="py-20 text-center space-y-4 opacity-50">
+                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto">
+                        <Activity size={32} className="text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-500">{t("Select an attribute above to begin real-time analysis", language)}</p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

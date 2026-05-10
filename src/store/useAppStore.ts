@@ -45,7 +45,6 @@ interface AppState {
   clusterByCommune: boolean;
   showCommuneNames: boolean;
   colorByPrayerType: boolean;
-  rejectedRoutes: Record<number, string[]>;
   mapInstance: any | null;
   isExporting: boolean;
   
