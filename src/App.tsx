@@ -14,14 +14,23 @@ import PullToRefresh from './components/PullToRefresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import * as htmlToImage from 'html-to-image';
+import mosquesData from './data/mosques.json';
 
 export default function App() {
   const { 
     activeTab, setUserLocation, language, routingToMosque, 
     refreshLocation, mosques, mapStyle, setMapStyle, 
     isEquipmentOpen, darkMode, clusterByCommune, setClusterByCommune,
-    colorByPrayerType, setColorByPrayerType, mapInstance, isExporting, setIsExporting
+    colorByPrayerType, setColorByPrayerType, mapInstance, isExporting, setIsExporting,
+    importMosques
   } = useAppStore();
+
+  useEffect(() => {
+    // If persistent storage is empty, populate with default data
+    if (mosques.length === 0 && mosquesData.length > 0) {
+      importMosques(mosquesData);
+    }
+  }, [mosques.length, importMosques]);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showNearest, setShowNearest] = useState(false);

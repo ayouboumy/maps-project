@@ -50,6 +50,15 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Search': { en: 'Search', fr: 'Recherche', ar: 'بحث' },
   'Favorites': { en: 'Favorites', fr: 'Favoris', ar: 'المفضلة' },
   'Analysis': { en: 'Analysis', fr: 'Analyse', ar: 'تحليل' },
+  'Facility Audit': { en: 'Facility Audit', fr: 'Audit des installations', ar: 'تدقيق المرافق' },
+  'Women Spaces': { en: 'Women Spaces', fr: 'Espaces Femmes', ar: 'مصليات النساء' },
+  'Avg Amenities': { en: 'Avg Amenities', fr: 'Moy. Équipements', ar: 'متوسط التجهيزات' },
+  'Total Mosques': { en: 'Total Mosques', fr: 'Total des mosquées', ar: 'إجمالي المساجد' },
+  'Select an attribute above to begin real-time analysis': { 
+    en: 'Select an attribute above to begin real-time analysis', 
+    fr: 'Sélectionnez un attribut ci-dessus pour commencer l\'analyse', 
+    ar: 'اختر ميزة أعلاه لبدء التحليل المباشر' 
+  },
   'Types of Mosques': { en: 'Types of Mosques', fr: 'Types de Mosquées', ar: 'أنواع المساجد' },
   'Most Common Amenities': { en: 'Most Common Amenities', fr: 'Commodités les plus courantes', ar: 'المرافق الأكثر شيوعا' },
   'Overview': { en: 'Overview', fr: 'Aperçu', ar: 'نظرة عامة' },

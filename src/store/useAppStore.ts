@@ -86,7 +86,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      mosques: [],
+      mosques: mosquesData,
       favorites: [],
       activeTab: 'map',
       selectedMosque: null,
@@ -180,7 +180,7 @@ export const useAppStore = create<AppState>()(
       }),
       resetApp: () => {
         set({
-          mosques: [],
+          mosques: mosquesData,
           favorites: [],
           dynamicTranslations: {},
           selectedCommune: null,

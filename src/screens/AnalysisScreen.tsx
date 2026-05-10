@@ -1,4 +1,6 @@
 import { useAppStore } from '../store/useAppStore';
+import { Mosque } from '../types';
+import mosquesData from '../data/mosques.json';
 import { t } from '../utils/translations';
 import { 
   BarChart2, 
@@ -19,7 +21,8 @@ import {
   BrainCircuit,
   Maximize2,
   Accessibility,
-  Users
+  Users,
+  Database
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -93,17 +96,29 @@ export default function AnalysisScreen() {
     const total = filteredMosques.length;
     if (total === 0) return { total: 0, wuduPercent: 0, womenPercent: 0, avgServices: "0", womenCount: 0, accessibilityCount: 0 };
     
-    const withWudu = filteredMosques.filter(m => m.services?.some(s => s.toLowerCase().includes('wudu') || s.toLowerCase().includes('وضوء'))).length;
+    const checkKeywords = (m: Mosque, keywords: string[]) => {
+      const lowerWords = keywords.map(k => k.toLowerCase());
+      const fields = [
+        ...(m.services || []), 
+        ...(m.items || []),
+        m.type || '',
+        m.name || '',
+        m.address || ''
+      ].map(f => f.toLowerCase());
+      return fields.some(f => lowerWords.some(k => f.includes(k)));
+    };
+
+    const withWudu = filteredMosques.filter(m => checkKeywords(m, ['wudu', 'وضوء', 'ablution', 'water', 'eau', 'toilettes'])).length;
     const withWomenSpace = filteredMosques.filter(m => 
-      m.services?.some(s => s.toLowerCase().includes('femme') || s.toLowerCase().includes('women') || s.toLowerCase().includes('نساء') || s.toLowerCase().includes('قاعة صلاة للنساء')) ||
+      checkKeywords(m, ['femme', 'women', 'نساء', 'dames', 'salle de prière pour femmes', 'women hall', 'women space', 'مصلى للنساء', 'قاعة للنساء']) ||
       (m as any).womenHallCount > 0
     ).length;
 
     const withAccessibility = filteredMosques.filter(m => 
-      m.services?.some(s => s.toLowerCase().includes('access') || s.toLowerCase().includes('handicap') || s.toLowerCase().includes('ولوجيات') || s.toLowerCase().includes('disabled'))
+      checkKeywords(m, ['access', 'handicap', 'ولوجيات', 'disabled', 'wheelchair', 'ramp', 'rampe', 'chaise roulante'])
     ).length;
 
-    const averageServices = filteredMosques.reduce((acc, m) => acc + (m.services?.length || 0), 0) / total;
+    const averageServices = filteredMosques.reduce((acc, m) => acc + (m.services?.length || 0) + (m.items?.length || 0), 0) / total;
 
     return {
       total,
@@ -242,6 +257,28 @@ export default function AnalysisScreen() {
 
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
 
+  if (mosques.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-6 bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+        <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center animate-pulse">
+          <Database size={48} className="text-gray-400" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">{t("No data available", language)}</h2>
+          <p className="text-gray-500 mt-2 max-w-xs mx-auto">
+            {t("There are no mosques loaded in the system to analyze. Import an Excel file or load the default dataset.", language)}
+          </p>
+        </div>
+        <button 
+          onClick={() => useAppStore.getState().importMosques(mosquesData)}
+          className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-transform"
+        >
+          {t("Load Default Data", language)}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden w-full transition-colors duration-300">
       <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 pt-safe transition-colors duration-300">
@@ -333,21 +370,39 @@ export default function AnalysisScreen() {
                     <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
                     <CheckCircle2 className="text-blue-500 mb-2" size={24} />
                     <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.avgServices}</div>
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Avg Services", language)}</div>
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Avg Amenities", language)}</div>
                   </div>
+                </div>
 
-                  <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors" />
-                    <Users className="text-purple-500 mb-2" size={24} />
-                    <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.womenCount}</div>
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Mosques with Women Hall", language)}</div>
-                  </div>
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <PieChart size={18} className="text-emerald-500" />
+                    {t("Facility Audit", language)}
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-sm font-bold">
+                       <span className="text-gray-600 dark:text-gray-400">{t("Women Spaces", language)}</span>
+                       <span className="text-purple-500">{stats.womenPercent}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                       <motion.div initial={{ width: 0 }} animate={{ width: `${stats.womenPercent}%` }} className="h-full bg-purple-500 rounded-full" />
+                    </div>
 
-                  <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/5 rounded-full blur-2xl group-hover:bg-orange-500/10 transition-colors" />
-                    <Accessibility className="text-orange-500 mb-2" size={24} />
-                    <div className="text-3xl font-black text-gray-900 dark:text-gray-100">{stats.accessibilityCount}</div>
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("Mosques with Accessibility", language)}</div>
+                    <div className="flex justify-between items-center text-sm font-bold">
+                       <span className="text-gray-600 dark:text-gray-400">{t("Accessibility", language)}</span>
+                       <span className="text-orange-500">{stats.accessibilityCount} {t("Mosques", language)}</span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                       <motion.div initial={{ width: 0 }} animate={{ width: `${(stats.accessibilityCount / stats.total) * 100}%` }} className="h-full bg-orange-500 rounded-full" />
+                    </div>
+
+                    <div className="flex justify-between items-center text-sm font-bold">
+                       <span className="text-gray-600 dark:text-gray-400">{t("Wudu Facilities", language)}</span>
+                       <span className="text-blue-500">{stats.wuduPercent}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                       <motion.div initial={{ width: 0 }} animate={{ width: `${stats.wuduPercent}%` }} className="h-full bg-blue-500 rounded-full" />
+                    </div>
                   </div>
                 </div>
 
@@ -428,42 +483,6 @@ export default function AnalysisScreen() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    <PieChart size={20} className="text-purple-500" />
-                    {t("Key Facilities", language)}
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800">
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t("Wudu Facilities", language)}</span>
-                        <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{stats.wuduPercent}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 dark:bg-gray-800 h-3 rounded-full overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${stats.wuduPercent}%` }}
-                          className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800">
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t("Women Space", language)}</span>
-                        <span className="text-xl font-bold text-purple-600 dark:text-purple-400">{stats.womenPercent}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 dark:bg-gray-800 h-3 rounded-full overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${stats.womenPercent}%` }}
-                          className="h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </motion.div>
             )}
 
