@@ -19,6 +19,7 @@ export default function SearchScreen() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
+  const [selectedNature, setSelectedNature] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'distance'>(userLocation ? 'distance' : 'name');
   const [isUsingSmartSearch, setIsUsingSmartSearch] = useState(false);
 
@@ -61,6 +62,11 @@ export default function SearchScreen() {
     return Array.from(new Set(allCommunes)).sort();
   }, [mosques]);
 
+  const natures = useMemo(() => {
+    const allNatures = mosques.map(m => m.extraData?.['الطبيعة'] || m.extraData?.['nature'] || m.extraData?.['Nature']).filter(Boolean);
+    return Array.from(new Set(allNatures)).sort() as string[];
+  }, [mosques]);
+
   const filteredMosques = useMemo(() => {
     // If AI recommended results are present and we specifically asked for smart search
     if (isUsingSmartSearch && aiRecommendedIds.length > 0) {
@@ -75,6 +81,10 @@ export default function SearchScreen() {
 
       const matchesCommune = selectedCommune ? mosque.commune === selectedCommune : true;
       if (!matchesCommune) return false;
+
+      const mosqueNature = mosque.extraData?.['الطبيعة'] || mosque.extraData?.['nature'] || mosque.extraData?.['Nature'];
+      const matchesNature = selectedNature ? mosqueNature === selectedNature : true;
+      if (!matchesNature) return false;
 
       if (!lowerQuery) return true;
 
@@ -116,7 +126,7 @@ export default function SearchScreen() {
 
     // Limit to 100 results to prevent rendering lag with large datasets
     return filtered.slice(0, 100);
-  }, [mosques, debouncedQuery, selectedType, selectedCommune, language, sortBy, userLocation, aiRecommendedIds, isUsingSmartSearch]);
+  }, [mosques, debouncedQuery, selectedType, selectedCommune, selectedNature, language, sortBy, userLocation, aiRecommendedIds, isUsingSmartSearch]);
 
   const handleSelect = (mosque: Mosque) => {
     setSelectedMosque(mosque);
@@ -173,12 +183,13 @@ export default function SearchScreen() {
               <span className="hidden sm:inline">{t('AI Search', language)}</span>
             </button>
           )}
-          {(query || selectedType || selectedCommune || isUsingSmartSearch) && (
+          {(query || selectedType || selectedCommune || selectedNature || isUsingSmartSearch) && (
             <button
               onClick={() => {
                 setQuery('');
                 setSelectedType(null);
                 setSelectedCommune(null);
+                setSelectedNature(null);
               }}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center justify-center"
             >
@@ -188,7 +199,7 @@ export default function SearchScreen() {
         </div>
 
         {/* Smart Suggestions */}
-        {smartSuggestions.length > 0 && query === '' && !selectedType && !selectedCommune && (
+        {smartSuggestions.length > 0 && query === '' && !selectedType && !selectedCommune && !selectedNature && (
           <div className="mb-4">
             <div className={`flex items-center gap-2 mb-2 px-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
               <Sparkles size={14} className="text-purple-500 dark:text-purple-400" />
@@ -269,6 +280,36 @@ export default function SearchScreen() {
                 }`}
               >
                 {commune}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <div className={`flex items-center text-gray-500 dark:text-gray-400 ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+              <Filter size={16} className={language === 'ar' ? 'ml-1' : 'mr-1'} />
+              <span className="text-xs font-medium uppercase tracking-wider">{t('Nature', language)}</span>
+            </div>
+            <button
+              onClick={() => setSelectedNature(null)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                selectedNature === null 
+                  ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              {t('All', language)}
+            </button>
+            {natures.map(nature => (
+              <button
+                key={nature}
+                onClick={() => setSelectedNature(nature)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                  selectedNature === nature 
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t(nature, language)}
               </button>
             ))}
           </div>

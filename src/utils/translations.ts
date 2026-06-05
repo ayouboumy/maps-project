@@ -203,7 +203,7 @@ const dictionary: Record<string, Record<Language, string>> = {
   // Fields
   'Mosque Code': { en: 'Mosque Code', fr: 'Code Mosquée', ar: 'رمز المسجد' },
   'Spending Entity': { en: 'Spending Entity', fr: 'Gestionnaire', ar: 'جهة الإنفاق' },
-  'Nature': { en: 'Nature', fr: 'Nature', ar: 'nature' },
+  'Nature': { en: 'Nature', fr: 'Nature', ar: 'الطبيعة' },
   'Build Date': { en: 'Build Date', fr: 'Date de Construction', ar: 'تاريخ البناء' },
   'Building Condition': { en: 'Building Condition', fr: 'État du bâtiment', ar: 'حالة البناية' },
   'Land Area': { en: 'Land Area', fr: 'Surface Terrain', ar: 'مساحة القطعة الأرضية' },
