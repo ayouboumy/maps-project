@@ -22,7 +22,7 @@ export default function App() {
     refreshLocation, mosques, mapStyle, setMapStyle, 
     isEquipmentOpen, darkMode, clusterByCommune, setClusterByCommune,
     colorByPrayerType, setColorByPrayerType, mapInstance, isExporting, setIsExporting,
-    importMosques
+    importMosques, isPickingCustomOrigin, setIsPickingCustomOrigin
   } = useAppStore();
 
   useEffect(() => {
@@ -107,15 +107,18 @@ export default function App() {
           setIsLocating(false);
         },
         (error) => {
-          console.error("Error getting location:", error);
-          setLocationError(t("Location access denied or unavailable.", language));
+          console.warn("Location access unavailable or denied:", error.message);
+          setLocationError(error.message || t("Location access denied or unavailable.", language));
           setIsLocating(false);
+          // Auto-dismiss the error after a few seconds so it doesn't stay permanently
+          setTimeout(() => setLocationError(null), 4000);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
       setLocationError(t("Geolocation is not supported by your browser.", language));
       setIsLocating(false);
+      setTimeout(() => setLocationError(null), 4000);
     }
   };
 
@@ -174,6 +177,27 @@ export default function App() {
             <PullToRefresh onRefresh={refreshLocation}>
               <MapView showNearest={showNearest} />
               
+              {/* Custom Origin Picker Banner */}
+              <AnimatePresence>
+                {isPickingCustomOrigin && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="absolute top-safe-4 left-1/2 -translate-x-1/2 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg font-bold flex items-center gap-2"
+                  >
+                    <MapPin size={18} className="animate-bounce" />
+                    <span>{t("Tap on the map to set location", language)}</span>
+                    <button 
+                      onClick={() => setIsPickingCustomOrigin(false)}
+                      className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Floating Location & Tools Buttons */}
               {!routingToMosque && (
                 <div className={`absolute top-safe-4 ${language === 'ar' ? 'left-4' : 'right-4'} z-[1000] flex flex-col gap-3 items-end transition-all`}>
@@ -207,6 +231,17 @@ export default function App() {
                         >
                           <LocateFixed size={18} className={isLocating ? "animate-pulse text-blue-500" : "text-gray-400 dark:text-gray-500"} />
                           <span>{t("My Location", language)}</span>
+                        </button>
+
+                        <button 
+                          onClick={() => { 
+                            useAppStore.getState().setIsPickingCustomOrigin(true); 
+                            setIsMapToolsOpen(false); 
+                          }}
+                          className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors text-sm font-bold active:scale-[0.98]"
+                        >
+                          <MapPin size={18} className="text-gray-400 dark:text-gray-500" />
+                          <span>{t("Pick Map Location", language)}</span>
                         </button>
                         
                         <button 

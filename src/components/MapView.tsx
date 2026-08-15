@@ -274,6 +274,21 @@ function ZoomListener({ onZoomChange }: { onZoomChange: (zoom: number) => void }
   return null;
 }
 
+function MapClickHandler() {
+  const { isPickingCustomOrigin, setIsPickingCustomOrigin, setCustomOrigin } = useAppStore();
+  
+  useMapEvents({
+    click: (e) => {
+      if (isPickingCustomOrigin) {
+        setCustomOrigin({ latitude: e.latlng.lat, longitude: e.latlng.lng });
+        setIsPickingCustomOrigin(false);
+      }
+    }
+  });
+
+  return null;
+}
+
 function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = 'foot', mosqueId }: { start: [number, number], end: [number, number], straightDistance: number, isMainRoute?: boolean, routeProfile?: string, mosqueId?: number }) {
   const [positions, setPositions] = useState<[number, number][]>([start, end]);
   const [routeDistance, setRouteDistance] = useState<number>(straightDistance);
@@ -498,13 +513,15 @@ function RouteLine({ start, end, straightDistance, isMainRoute, routeProfile = '
 
 export default function MapView({ showNearest }: { showNearest?: boolean }) {
   const { 
-    mosques, userLocation, selectedMosque, setSelectedMosque, 
+    mosques, userLocation, customOrigin, selectedMosque, setSelectedMosque, 
     language, routingToMosque, setRoutingToMosque, routeProfile, 
     selectedCommune, mapStyle, setMapStyle, optimizedRouteIds, 
     setOptimizedRouteIds, darkMode, routeInfo, clusterByCommune, setSelectedCommune, setClusterByCommune, colorByPrayerType,
     showCommuneNames, setShowCommuneNames
   } = useAppStore();
   const [zoom, setZoom] = useState(12);
+
+  const effectiveLocation = customOrigin || userLocation;
 
   const formatDuration = (seconds: number) => {
     const minutes = Math.round(seconds / 60);
@@ -516,11 +533,11 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
 
   // Simple Nearest Neighbor TSP Solver
   const handleOptimizeRoute = () => {
-    if (!isUserLocationValid || nearestMosques.length === 0) return;
+    if (!isEffectiveLocationValid || nearestMosques.length === 0) return;
     
     const unvisited = [...nearestMosques];
     const tour: any[] = [];
-    let currentPos = { latitude: userLocation.latitude, longitude: userLocation.longitude };
+    let currentPos = { latitude: effectiveLocation!.latitude, longitude: effectiveLocation!.longitude };
     
     while (unvisited.length > 0) {
       let nearestIdx = 0;
@@ -543,13 +560,13 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     setRoutingToMosque(null);
   };
 
-  const isUserLocationValid = userLocation && 
-    typeof userLocation.latitude === 'number' && !isNaN(userLocation.latitude) &&
-    typeof userLocation.longitude === 'number' && !isNaN(userLocation.longitude);
+  const isEffectiveLocationValid = effectiveLocation && 
+    typeof effectiveLocation.latitude === 'number' && !isNaN(effectiveLocation.latitude) &&
+    typeof effectiveLocation.longitude === 'number' && !isNaN(effectiveLocation.longitude);
 
   // Default center (Casablanca)
-  const center = isUserLocationValid 
-    ? [userLocation.latitude, userLocation.longitude] as [number, number]
+  const center = isEffectiveLocationValid 
+    ? [effectiveLocation.latitude, effectiveLocation.longitude] as [number, number]
     : [33.5731, -7.5898] as [number, number];
 
   const filteredByCommune = useMemo(() => {
@@ -565,7 +582,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
   const [roadDurations, setRoadDurations] = useState<Record<number, number>>({});
 
   const nearestMosques = useMemo(() => {
-    if (!isUserLocationValid || filteredByCommune.length === 0) return [];
+    if (!isEffectiveLocationValid || filteredByCommune.length === 0) return [];
     
     // First, get top 15 by straight line to limit API calls
     const withStraightDistance = filteredByCommune.map(mosque => {
@@ -573,7 +590,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         return {
           ...mosque,
           straightDistance: getDistance(
-            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+            { latitude: effectiveLocation!.latitude, longitude: effectiveLocation!.longitude },
             { latitude: mosque.latitude, longitude: mosque.longitude }
           )
         };
@@ -603,11 +620,11 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         return a.distance - b.distance;
       })
       .slice(0, 3);
-  }, [filteredByCommune, userLocation, roadDistances, roadDurations]);
+  }, [filteredByCommune, effectiveLocation, roadDistances, roadDurations]);
 
   // Fetch road distances for top candidates
   useEffect(() => {
-    if (!isUserLocationValid || filteredByCommune.length === 0) return;
+    if (!isEffectiveLocationValid || filteredByCommune.length === 0) return;
 
     let isSubscribed = true;
 
@@ -623,7 +640,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             let d = Infinity;
             try {
               d = getDistance(
-                { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                { latitude: effectiveLocation!.latitude, longitude: effectiveLocation!.longitude },
                 { latitude: m.latitude, longitude: m.longitude }
               );
             } catch (e) {}
@@ -651,7 +668,7 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
             const profile = (routeProfile || 'foot') === 'foot' ? 'walking' : 'driving';
             const baseUrl = `https://router.project-osrm.org/route/v1/${profile}`;
             
-            const response = await fetch(`${baseUrl}/${userLocation.longitude},${userLocation.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
+            const response = await fetch(`${baseUrl}/${effectiveLocation!.longitude},${effectiveLocation!.latitude};${m.lng},${m.lat}?overview=false&alternatives=true`);
             
             if (response.status === 429) {
               console.warn("OSRM API rate limit reached, falling back to straight-line distance.");
@@ -698,12 +715,12 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
     return () => {
       isSubscribed = false;
     };
-  }, [userLocation.latitude, userLocation.longitude, filteredByCommune.length, routeProfile]);
+  }, [effectiveLocation?.latitude, effectiveLocation?.longitude, filteredByCommune.length, routeProfile]);
 
   const displayedMosques = useMemo(() => {
-    const mosquesToList = showNearest && isUserLocationValid ? nearestMosques : filteredByCommune;
+    const mosquesToList = showNearest && isEffectiveLocationValid ? nearestMosques : filteredByCommune;
     return mosquesToList.filter(m => !isNaN(m.latitude) && !isNaN(m.longitude) && m.latitude !== 0 && m.longitude !== 0);
-  }, [showNearest, isUserLocationValid, nearestMosques, filteredByCommune]);
+  }, [showNearest, isEffectiveLocationValid, nearestMosques, filteredByCommune]);
 
   const communeClusters = useMemo(() => {
     if (!clusterByCommune) return { clusters: [], minCount: 0, maxCount: 0 };
@@ -942,6 +959,8 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
         <MapEffect />
         <ZoomListener onZoomChange={setZoom} />
         
+        <MapClickHandler />
+        
         {mapStyle === 'street' && (
           <TileLayer
             crossOrigin="anonymous"
@@ -971,21 +990,21 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
         
-        {isUserLocationValid && (
+        {isEffectiveLocationValid && (
           <Marker 
-            position={[userLocation.latitude, userLocation.longitude]} 
+            position={[effectiveLocation!.latitude, effectiveLocation!.longitude]} 
             icon={userIcon}
           />
         )}
 
-        {routingToMosque && isUserLocationValid && (
+        {routingToMosque && isEffectiveLocationValid && (
           <RouteLine 
             key={`route-single-${routingToMosque.id}-${routeProfile}`}
             mosqueId={routingToMosque.id}
-            start={[userLocation.latitude, userLocation.longitude]}
+            start={[effectiveLocation!.latitude, effectiveLocation!.longitude]}
             end={[routingToMosque.latitude, routingToMosque.longitude]}
             straightDistance={getDistance(
-              { latitude: userLocation.latitude, longitude: userLocation.longitude },
+              { latitude: effectiveLocation!.latitude, longitude: effectiveLocation!.longitude },
               { latitude: routingToMosque.latitude, longitude: routingToMosque.longitude }
             )}
             isMainRoute={true}
@@ -993,10 +1012,10 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
 
-        {optimizedRouteIds && isUserLocationValid && (
+        {optimizedRouteIds && isEffectiveLocationValid && (
           <MultiStopRoute 
             stops={[
-              [userLocation.latitude, userLocation.longitude],
+              [effectiveLocation!.latitude, effectiveLocation!.longitude],
               ...optimizedRouteIds.map(id => {
                 const m = mosques.find(msq => msq.id === id);
                 return [m!.latitude, m!.longitude] as [number, number];
@@ -1006,13 +1025,13 @@ export default function MapView({ showNearest }: { showNearest?: boolean }) {
           />
         )}
 
-        {showNearest && isUserLocationValid && !routingToMosque && !optimizedRouteIds && nearestMosques.map((mosque) => {
+        {showNearest && isEffectiveLocationValid && !routingToMosque && !optimizedRouteIds && nearestMosques.map((mosque) => {
           if (typeof mosque.latitude !== 'number' || typeof mosque.longitude !== 'number') return null;
           return (
             <RouteLine 
               key={`route-${mosque.id}-${routeProfile}`}
               mosqueId={mosque.id}
-              start={[userLocation.latitude, userLocation.longitude]}
+              start={[effectiveLocation!.latitude, effectiveLocation!.longitude]}
               end={[mosque.latitude, mosque.longitude]}
               straightDistance={(mosque as any).distance || 0}
               routeProfile={routeProfile}

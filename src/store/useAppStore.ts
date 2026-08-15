@@ -23,6 +23,8 @@ interface AppState {
   routeProfile: RouteProfile;
   rejectedRoutes: Record<number, string[]>;
   userLocation: { latitude: number; longitude: number } | null;
+  customOrigin: { latitude: number; longitude: number } | null;
+  isPickingCustomOrigin: boolean;
   language: Language;
   dynamicTranslations: Record<string, Record<Language, string>>;
   selectedCommune: string | null;
@@ -57,6 +59,8 @@ interface AppState {
   setRouteProfile: (profile: RouteProfile) => void;
   rejectRoute: (mosqueId: number, geometry: string) => void;
   setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
+  setCustomOrigin: (location: { latitude: number; longitude: number } | null) => void;
+  setIsPickingCustomOrigin: (isPicking: boolean) => void;
   importMosques: (newMosques: Mosque[]) => void;
   setLanguage: (lang: Language) => void;
   addDynamicTranslations: (translations: Record<string, Record<Language, string>>) => void;
@@ -94,6 +98,8 @@ export const useAppStore = create<AppState>()(
       routeInfo: null,
       routeProfile: 'foot',
       userLocation: { latitude: 34.9814488, longitude: -3.3934335 },
+      customOrigin: null,
+      isPickingCustomOrigin: false,
       language: 'fr', // Default to French since data is in French
       dynamicTranslations: {},
       selectedCommune: null,
@@ -149,6 +155,8 @@ export const useAppStore = create<AppState>()(
         };
       }),
       setUserLocation: (location) => set({ userLocation: location }),
+      setCustomOrigin: (location) => set({ customOrigin: location }),
+      setIsPickingCustomOrigin: (isPicking) => set({ isPickingCustomOrigin: isPicking }),
       importMosques: (newMosques) => set({ mosques: newMosques }),
       setLanguage: (lang) => set({ language: lang }),
       addDynamicTranslations: (translations) => set((state) => ({ 
@@ -169,7 +177,7 @@ export const useAppStore = create<AppState>()(
               resolve();
             },
             (error) => {
-              console.error("Error getting location:", error);
+              console.warn("Location access unavailable or denied:", error.message);
               resolve();
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }

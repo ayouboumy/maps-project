@@ -146,6 +146,8 @@ const dictionary: Record<string, Record<Language, string>> = {
   'Switch to Satellite': { en: 'Switch to Satellite', fr: 'Passer au satellite', ar: 'التبديل إلى القمر الصناعي' },
   'Switch to Terrain': { en: 'Switch to Terrain', fr: 'Passer au terrain', ar: 'التبديل إلى التضاريس' },
   'Switch to Street': { en: 'Switch to Street', fr: 'Passer à la rue', ar: 'التبديل إلى الشارع' },
+  'Pick Map Location': { en: 'Pick Map Location', fr: 'Choisir sur la carte', ar: 'اختر موقعا على الخريطة' },
+  'Tap on the map to set location': { en: 'Tap on the map to set location', fr: 'Appuyez sur la carte pour définir la position', ar: 'اضغط على الخريطة لتحديد الموقع' },
   'Filters': { en: 'Filters', fr: 'Filtres', ar: 'تصفية' },
   'Type': { en: 'Type', fr: 'Type', ar: 'النوع' },
   'All': { en: 'All', fr: 'Tout', ar: 'الكل' },
